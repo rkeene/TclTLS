@@ -20,7 +20,8 @@ content="Matt Newman &lt;matt@novadigm.com&gt;">
     </dd>
     <dd><a href="#SYNOPSIS">SYNOPSIS</a> </dd>
     <dd><dl>
-            <dd><b>package require tls </b><em>?1.3?</em></dd>
+            <dd><b>package require Tcl </b><em>?8.2?</em></dd>
+            <dd><b>package require tls </b><em>?1.4?</em></dd>
             <dt>&nbsp;</dt>
             <dd><b>tls::init </b><i>?options?</i> </dd>
             <dd><b>tls::socket </b><em>?options? host port</em></dd>
@@ -48,7 +49,8 @@ toolkit.</p>
 
 <h3><a name="SYNOPSIS">SYNOPSIS</a></h3>
 
-<p><b>package require tls </b><em>?1.3?</em><br>
+<p><b>package require Tcl 8.2</b><br>
+<b>package require tls 1.4</b><br>
 <br>
 <a href="#tls::init"><b>tls::init </b><i>?options?</i><br>
 </a><a href="#tls::socket"><b>tls::socket </b><em>?options? host
@@ -64,12 +66,17 @@ port</em><br>
 <h3><a name="DESCRIPTION">DESCRIPTION</a></h3>
 
 <p>This extension provides a generic binding to <a
-href="http://www.openssl.org/">OpenSSL</a>, utilizing the <a
-href="http://www.oche.de/~akupries/soft/trf/index.html">Trf</a>
-Channel Stacking patch for Tcl 8.[01] and the new <strong>Tcl_StackChannel</strong>
+href="http://www.openssl.org/">OpenSSL</a>, utilizing the
+<strong>Tcl_StackChannel</strong>
 API for Tcl 8.2 and higher. The sockets behave exactly the same
 as channels created using Tcl's built-in <strong>socket</strong>
-command with additional options for controlling the SSL session.</p>
+command with additional options for controlling the SSL session.
+To use TLS with an earlier version of Tcl than 8.2, please obtain
+TLS v1.3.  Please note that there are known limitations with the
+stacked channel implementation prior to 8.3.2, so it is recommended
+that TLS is used with an 8.3.2+ interpreter.  TLS v1.4 will work
+with 8.2+, it is just more stable with 8.3.2+.
+</p>
 
 <h3><a name="COMMANDS">COMMANDS</a></h3>
 
