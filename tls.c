@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.4 2000/06/05 18:09:53 welch Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.5 2000/06/06 01:04:35 stanton Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -728,8 +728,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 			       (TCL_READABLE | TCL_WRITABLE), chan);
 #endif
     if (statePtr->self == (Tcl_Channel) NULL) {
-	Tls_Free(statePtr);
-/*        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free); */
+	Tls_Free((char *) statePtr);
         return TCL_ERROR;
     }
 
@@ -757,8 +756,7 @@ ImportObjCmd(clientData, interp, objc, objv)
         Tcl_AppendResult(interp,
                          "couldn't construct ssl session: ", REASON(),
                          (char *) NULL);
-	Tls_Free(statePtr);
-/*        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free); */
+	Tls_Free((char *) statePtr);
         return TCL_ERROR;
     }
 
@@ -1033,8 +1031,8 @@ Tls_Free( char *blockPtr )
 {
     State *statePtr = (State *)blockPtr;
 
-    Tls_Clean(blockPtr);
-    Tcl_Free((char *)statePtr);
+    Tls_Clean(statePtr);
+    Tcl_Free(blockPtr);
 }
 
 /*
@@ -1056,10 +1054,8 @@ Tls_Free( char *blockPtr )
  *-------------------------------------------------------------------
  */
 void
-Tls_Clean( char *blockPtr )
+Tls_Clean(State *statePtr)
 {
-    State *statePtr = (State *)blockPtr;
-
     /* we're assuming here that we're single-threaded */
     if (statePtr->ssl) {
 	SSL_shutdown(statePtr->ssl);
@@ -1075,7 +1071,6 @@ Tls_Clean( char *blockPtr )
 	Tcl_DeleteTimerHandler (statePtr->timer);
 	statePtr->timer = NULL;
     }
-
 }
 
 /*
