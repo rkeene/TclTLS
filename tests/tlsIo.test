@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.12 2000/06/03 05:01:33 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.13 2000/06/05 20:22:34 aborr Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -669,6 +669,17 @@ test tlsIo-2.12 {tcp connection; no certificates specified} {socket stdio pcCras
 
 
 
+#################################
+if {[string match sock* $commandSocket] == 1} {
+   puts $commandSocket exit
+   flush $commandSocket
+}
+catch {close $commandSocket}
+catch {close $remoteProcChan}
+::tcltest::cleanupTests
+flush stdout
+return
+#################################
 test tlsIo-3.1 {socket conflict} {socket stdio} {
     removeFile script
     set f [open script w]
@@ -1998,14 +2009,4 @@ catch {close $remoteProcChan}
 ::tcltest::cleanupTests
 flush stdout
 return
-
-
-
-
-
-
-
-
-
-
 
