@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.23 2004/12/23 23:51:37 patthoyts Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.24 2005/02/09 00:58:26 hobbs2 Exp $
 
 
 #========================================================================
@@ -35,7 +35,7 @@ PKG_TCL_SOURCES	= tls.tcl
 # This is a list of header files to be installed
 #========================================================================
 
-PKG_HEADERS	= $(srcdir)/tls.h
+PKG_HEADERS	= tls.h
 
 #========================================================================
 # Variables and AC_SUBST cases added for tls.
@@ -101,7 +101,6 @@ RANLIB		= @RANLIB@
 RANLIB_STUB	= @RANLIB_STUB@
 SHLIB_CFLAGS	= @SHLIB_CFLAGS@
 SHLIB_LD	= @SHLIB_LD@
-SHLIB_LD_FLAGS	= @SHLIB_LD_FLAGS@
 SHLIB_LD_LIBS	= @SHLIB_LD_LIBS@
 STLIB_LD	= @STLIB_LD@
 TCL_DEFS	= @TCL_DEFS@
@@ -128,12 +127,12 @@ TCLSH_PROG	= @TCLSH_PROG@
 TCLSH		= $(TCLSH_ENV) $(TCLSH_PROG)
 SHARED_BUILD	= @SHARED_BUILD@
 
-INCLUDES	= @TCL_INCLUDES@ @PKG_INCLUDES@ $(SSL_INCLUDES)
+INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ $(SSL_INCLUDES)
 
-EXTRA_CFLAGS	= @EXTRA_CFLAGS@ @PKG_CFLAGS@
+PKG_CFLAGS	= @PKG_CFLAGS@
 
 #DEFS		= $(TCL_DEFS) @DEFS@ $(EXTRA_CFLAGS)
-DEFS		= @DEFS@ $(EXTRA_CFLAGS)
+DEFS		= @DEFS@ $(PKG_CFLAGS)
 
 CONFIG_CLEAN_FILES = Makefile
 
@@ -173,9 +172,6 @@ doc:
 install: all install-binaries install-libraries install-doc
 
 install-binaries: binaries install-lib-binaries install-bin-binaries
-	if test "x$(SHARED_BUILD)" = "x1"; then \
-	    $(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir); \
-	fi
 
 #========================================================================
 # This rule installs platform-independent files, such as header files.
@@ -184,9 +180,9 @@ install-binaries: binaries install-lib-binaries install-bin-binaries
 install-libraries: libraries
 	@mkdir -p $(DESTDIR)$(includedir)
 	@echo "Installing header files in $(DESTDIR)$(includedir)"
-	@for i in $(PKG_HEADERS) ; do \
-	    echo "Installing $$i" ; \
-	    $(INSTALL_DATA) $$i $(DESTDIR)$(includedir) ; \
+	@list='$(PKG_HEADERS)'; for i in $$list; do \
+	    echo "Installing $(srcdir)/$$i" ; \
+	    $(INSTALL_DATA) $(srcdir)/$$i $(DESTDIR)$(includedir) ; \
 	done;
 
 #========================================================================
@@ -252,7 +248,7 @@ $(PKG_LIB_FILE): $(PKG_OBJECTS)
 
 VPATH = $(srcdir)
 
-.c.$(OBJEXT):
+.c.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
 #========================================================================
@@ -368,6 +364,10 @@ install-lib-binaries:
 	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkglibdir)/$$destp; \
 	  fi; \
 	done
+	@if test "x$(SHARED_BUILD)" = "x1"; then \
+	    echo " Install pkgIndex.tcl $(DESTDIR)$(pkglibdir)"; \
+	    $(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir); \
+	fi
 
 #========================================================================
 # Install binary executables (e.g. .exe files)

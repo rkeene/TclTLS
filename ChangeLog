@@ -1,3 +1,8 @@
+2005-02-08  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* Makefile.in, tclconfig/tcl.m4: update to TEA 3.2
+	* configure, configure.in: 
+
 2004-12-23  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* Makefile.in:      Removed spurious copying of tls.tcl into the
