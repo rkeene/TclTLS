@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.6 2000/06/02 22:26:12 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.7 2000/06/03 00:20:02 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -124,8 +124,10 @@ set remoteProcChan ""
 set commandSocket ""
 if {$doTestsWithRemoteServer} {
     catch {close $commandSocket}
-    if {[catch {set commandSocket [tls::socket $remoteServerIP \
-						$remoteServerPort]}] != 0} {
+    if {[catch {set commandSocket [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP \
+	    $remoteServerPort]}] != 0} {
 	if {[info commands exec] == ""} {
 	    set noRemoteTestReason "can't exec"
 	    set doTestsWithRemoteServer 0
@@ -140,7 +142,9 @@ if {$doTestsWithRemoteServer} {
 					w+]} \
 		   msg] == 0} {
 		after 1000
-		if {[catch {set commandSocket [tls::socket $remoteServerIP \
+		if {[catch {set commandSocket [tls::socket \
+		    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+				$remoteServerIP \
 				$remoteServerPort]} msg] == 0} {
 		    fconfigure $commandSocket -translation crlf -buffering line
 		} else {
@@ -156,6 +160,7 @@ if {$doTestsWithRemoteServer} {
 	fconfigure $commandSocket -translation crlf -buffering line
     }
 }
+puts stdout "commandSocket: $commandSocket"
 
 # Some tests are run only if we are doing testing against a remote server.
 set ::tcltest::testConstraints(doTestsWithRemoteServer) $doTestsWithRemoteServer
@@ -191,7 +196,7 @@ if {$doTestsWithRemoteServer == 1} {
 	while {1} {
 	    set line [gets $commandSocket]
 	    if {[eof $commandSocket]} {
-		error "remote server disappaered"
+		error "remote server disappeared"
 	    }
 	    if {[string compare $line "--Marker--Marker--Marker--"] == 0} {
 		if {[string compare [lindex $resp 0] error] == 0} {
@@ -569,10 +574,11 @@ test socket-2.9 {socket conflict} {socket stdio} {
 "tls::socket -server accept 2828"
     (file "script" line 1)}}
 
-test socket-2.10 {close on accept, accepted socket lives} {socket pcCrash} {
+test socket-2.10 {close on accept, accepted socket lives} {socket knownBug} {
     set done 0
     set timer [after 20000 "set done timed_out"]
-    set ss [tls::socket -server accept 2830]
+    set ss [tls::socket -server accept -certfile $serverCert -cafile $caCert \
+	-keyfile $serverKey 2830]
     proc accept {s a p} {
 	global ss
 	close $ss
@@ -585,22 +591,31 @@ test socket-2.10 {close on accept, accepted socket lives} {socket pcCrash} {
 	close $s
 	set done 1
     }
-    set cs [tls::socket [info hostname] 2830]
-    puts $cs hello
+    set cs [tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey [info hostname] 2830]
     close $cs
+
     vwait done
     after cancel $timer
     set done
 } 1
-test socket-2.11 {detecting new data} {socket pcCrash} {
+
+test socket-2.11 {detecting new data} {socket knownBug} {
     proc accept {s a p} {
 	global sock
 	set sock $s
+	set f [open awb.log w]
+	puts $f [catch {tls::handshake $sock} err]
+	puts $f "err: $err"
+	puts $f "[tls::status $sock]"
+	close $s
     }
 
-    set s [tls::socket -server accept 2400]
+    set s [tls::socket -require 0 -request 0 -server accept -certfile $serverCert -cafile $caCert \
+	-keyfile $serverKey 2400]
     set sock ""
-    set s2 [tls::socket 127.0.0.1 2400]
+    set s2 [tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2400]
     vwait sock
     puts $s2 one
     flush $s2
@@ -1124,18 +1139,26 @@ test socket-10.1 {testing socket accept callback error handling} {socket pcCrash
 
 test socket-11.1 {tcp connection} {socket doTestsWithRemoteServer} {
     sendCommand {
-	set socket9_1_test_server [tls::socket -server accept 2834]
+	set socket9_1_test_server [tls::socket -server accept \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+		2834]
 	proc accept {s a p} {
 	    puts $s done
+	    tls::handshake $s
 	    close $s
 	}
     }
-    set s [tls::socket $remoteServerIP 2834]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2834]
     set r [gets $s]
     close $s
     sendCommand {close $socket9_1_test_server}
     set r
 } done
+
 test socket-11.2 {client specifies its port} {socket doTestsWithRemoteServer} {
     if {[info exists port]} {
 	incr port
@@ -1143,13 +1166,19 @@ test socket-11.2 {client specifies its port} {socket doTestsWithRemoteServer} {
 	set port [expr 2048 + [pid]%1024]
     }
     sendCommand {
-	set socket9_2_test_server [tls::socket -server accept 2835]
+	set socket9_2_test_server [tls::socket -server accept \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+	    2835]
 	proc accept {s a p} {
 	    puts $s $p
 	    close $s
 	}
     }
-    set s [tls::socket -myport $port $remoteServerIP 2835]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    -myport $port $remoteServerIP 2835]
     set r [gets $s]
     close $s
     sendCommand {close $socket9_2_test_server}
