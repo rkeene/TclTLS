@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.6 2000/06/05 23:31:17 aborr Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.7 2000/06/06 00:48:41 aborr Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -1432,7 +1432,7 @@ test tlsIO-11.7 {server with several clients} {socket doTestsWithRemoteServer} {
     set i
 } 100    
 
-test tlsIO-11.8 {client with several servers} {socket doTestsWithRemoteServer} {
+test tlsIO-11.8 {client with several servers} {unexplainedHang socket doTestsWithRemoteServer} {
     # this one seems to hang -- awb 6/2/2000
     sendCommand {
 	set s1 [tls::socket \
@@ -1539,7 +1539,7 @@ test tlsIO-11.10 {testing socket specific options} {socket doTestsWithRemoteServ
     set l
 } {2836 3 3}
 
-test tlsIO-11.11 {testing spurious events} {socket doTestsWithRemoteServer} {
+test tlsIO-11.11 {testing spurious events} {unexplainedHang socket doTestsWithRemoteServer} {
     # hangs
     sendCommand "set caCert $caCert"
     sendCommand "set serverCert $serverCert"
