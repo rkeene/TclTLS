@@ -5,12 +5,12 @@
 # generates output for errors.  No output means no errors were found.
 #
 # Copyright (c) 1994-1996 Sun Microsystems, Inc.
-# Copyright (c) 1998-1999 by Scriptics Corporation.
+# Copyright (c) 1998-2000 Ajuba Solutions. 
 #
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.5 2000/06/02 21:50:44 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.6 2000/06/02 22:26:12 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -254,13 +254,15 @@ test socket-1.12 {arg parsing for socket command} {socket} {
     list [catch {tls::socket foo badport} msg] $msg
 } {1 {expected integer but got "badport"}}
 
-test socket-2.1 {tcp connection} {socket stdio pcCrash} {
+test socket-2.1 {tcp connection} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
     	package require tls
 	set timer [after 2000 "set x timed_out"]
-	set f [tls::socket -server accept 2828]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2828 \]"
+    puts $f {
 	proc accept {file addr port} {
 	    global x
 	    set x done
@@ -275,7 +277,8 @@ test socket-2.1 {tcp connection} {socket stdio pcCrash} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f x
-    if {[catch {tls::socket 127.0.0.1 2828} msg]} {
+    if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2828} msg]} {
         set x $msg
     } else {
         lappend x [gets $f]
@@ -368,13 +371,15 @@ test socket-2.3 {tcp connection with client interface specified} {socket stdio} 
     set x
 } {ready {hello 127.0.0.1}}
 
-test socket-2.4 {tcp connection with server interface specified} {socket stdio pcCrash} {
+test socket-2.4 {tcp connection with server interface specified} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
 	set timer [after 2000 "set x done"]
-        set f [tls::socket -server accept -myaddr [info hostname] 2831]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey -myaddr [info hostname] 2831 \]"
+    puts $f {
 	proc accept {file addr port} {
             global x
             puts "[gets $file]"
@@ -389,7 +394,8 @@ test socket-2.4 {tcp connection with server interface specified} {socket stdio p
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f x
-    if {[catch {tls::socket [info hostname] 2831} sock]} {
+    if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey [info hostname] 2831} sock]} {
         set x $sock
     } else {
         puts $sock hello
@@ -400,13 +406,16 @@ test socket-2.4 {tcp connection with server interface specified} {socket stdio p
     close $f
     set x
 } {ready hello}
-test socket-2.5 {tcp connection with redundant server port} {socket stdio pcCrash} {
+
+test socket-2.5 {tcp connection with redundant server port} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
 	set timer [after 2000 "set x done"]
-        set f [tls::socket -server accept 2832]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2832 \]"
+    puts $f {
 	proc accept {file addr port} {
             global x
             puts "[gets $file]"
@@ -421,7 +430,8 @@ test socket-2.5 {tcp connection with redundant server port} {socket stdio pcCras
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f x
-    if {[catch {tls::socket 127.0.0.1 2832} sock]} {
+    if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2832} sock]} {
         set x $sock
     } else {
         puts $sock hello
@@ -442,13 +452,16 @@ test socket-2.6 {tcp connection} {socket} {
     }
     set status
 } ok
-test socket-2.7 {echo server, one line} {socket stdio pcCrash} {
+
+test socket-2.7 {echo server, one line} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
 	set timer [after 2000 "set x done"]
-	set f [tls::socket -server accept 2834]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2834 \]"
+    puts $f {
 	proc accept {s a p} {
             fileevent $s readable [list echo $s]
 	    fconfigure $s -translation lf -buffering line
@@ -472,7 +485,8 @@ test socket-2.7 {echo server, one line} {socket stdio pcCrash} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f
-    set s [tls::socket 127.0.0.1 2834]
+    set s [tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2834]
     fconfigure $s -buffering line -translation lf
     puts $s "hello abcdefghijklmnop"
     after 1000
@@ -483,10 +497,13 @@ test socket-2.7 {echo server, one line} {socket stdio pcCrash} {
     list $x $y
 } {{hello abcdefghijklmnop} done}
 
-test socket-2.8 {echo server, loop 50 times, single connection} {socket stdio pcCrash} {
-    makeFile {
+test socket-2.8 {echo server, loop 50 times, single connection} {socket stdio} {
+    set f [open script w]
+    puts $f {
     	package require tls
-	set f [tls::socket -server accept 2835]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2835 \]"
+    puts $f {
 	proc accept {s a p} {
             fileevent $s readable [list echo $s]
             fconfigure $s -buffering line
@@ -510,10 +527,12 @@ test socket-2.8 {echo server, loop 50 times, single connection} {socket stdio pc
 	after cancel $timer
 	close $f
 	puts "done $i"
-    } script
+    }
+    close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f
-    set s [tls::socket 127.0.0.1 2835]
+    set s [tls::socket -certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2835]
     fconfigure $s -buffering line
     catch {
 	for {set x 0} {$x < 50} {incr x} {
@@ -600,6 +619,40 @@ test socket-2.11 {detecting new data} {socket pcCrash} {
     close $sock
     set result
 } {one {} two}
+
+test socket-2.12 {tcp connection; no certificates specified} {socket stdio pcCrash} {
+    removeFile script
+    set f [open script w]
+    puts $f {
+    	package require tls
+	set timer [after 2000 "set x timed_out"]
+	set f [tls::socket -server accept 2828]
+	proc accept {file addr port} {
+	    global x
+	    set x done
+            close $file
+	}
+	puts ready
+	vwait x
+	after cancel $timer
+	close $f
+	puts $x
+    }
+    close $f
+    set f [open "|[list $::tcltest::tcltest script]" r]
+    gets $f x
+    if {[catch {tls::socket 127.0.0.1 2828} msg]} {
+        set x $msg
+    } else {
+        lappend x [gets $f]
+        close $msg
+    }
+    lappend x [gets $f]
+    close $f
+    set x
+} {ready done {}}
+
+
 
 
 test socket-3.1 {socket conflict} {socket stdio} {
