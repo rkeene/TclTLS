@@ -1,3 +1,17 @@
+2000-07-10  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tlsBIO.c (BioWrite, BioRead): changed Tcl_Read/Write to
+	Tcl_ReadRaw/TclWriteRaw.
+
+	* tls.c: added use of Tcl_GetTopChannel after Tcl_GetChannel and
+	got return value from Tcl_StackChannel.
+
+	* tests/tlsIO.test: added some handshaking that shouldn't be
+	necessary, but we crash otherwise (needs more testing).
+
+	* tlsIO.c: added support for "corrected" stacked channels.  All
+	the above channels are in TCL_CHANNEL_VERSION_2 #ifdefs.
+
 2000-06-05  Scott Stanton  <stanton@ajubasolutions.com>
 
 	* Makefile.in: Fixed broken test target.
