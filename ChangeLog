@@ -1,3 +1,13 @@
+2004-03-17  Dan Razzell <research@starfishsystems.ca>
+
+	* tlsX509.c:	Add support for long serial numbers per RFC 3280.
+			Format is now hexadecimal. 
+			[Request #915313]
+			Correctly convert certificate Distinguished Names
+			to Tcl string representation.  Eliminates use of
+			deprecated OpenSSL function.  Format is now compliant
+			with RFC 2253.  [Request #915315]
+
 2004-02-17  Dan Razzell <research@starfishsystems.ca>
 
 	TLS 1.5.0 RELEASE

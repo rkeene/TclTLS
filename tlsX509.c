@@ -2,9 +2,19 @@
  * Copyright (C) 1997-2000 Sensus Consulting Ltd.
  * Matt Newman <matt@sensus.org>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsX509.c,v 1.3 2003/07/07 20:24:49 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsX509.c,v 1.4 2004/03/17 17:53:57 razzell Exp $
  */
 #include "tlsInt.h"
+
+static int min(int a, int b)
+{
+    return (a < b) ? a : b;
+}
+
+static int max(int a, int b)
+{
+    return (a > b) ? a : b;
+}
 
 /*
  * ASN1_UTCTIME_tostr --
@@ -71,9 +81,12 @@ Tls_NewX509Obj( interp, cert)
     X509 *cert;
 {
     Tcl_Obj *certPtr = Tcl_NewListObj( 0, NULL);
-    int serial;
+    BIO *bio;
+    int n;
+    unsigned long flags;
     char subject[BUFSIZ];
     char issuer[BUFSIZ];
+    char serial[BUFSIZ];
     char notBefore[BUFSIZ];
     char notAfter[BUFSIZ];
 #ifndef NO_SSL_SHA
@@ -82,9 +95,34 @@ Tls_NewX509Obj( interp, cert)
     const char *shachars="0123456789ABCDEF";
 #endif
 
-    serial = ASN1_INTEGER_get(X509_get_serialNumber(cert));
-    X509_NAME_oneline(X509_get_subject_name(cert),subject,sizeof(subject));
-    X509_NAME_oneline(X509_get_issuer_name(cert),issuer,sizeof(issuer));
+    if ((bio = BIO_new(BIO_s_mem())) == NULL) {
+	subject[0] = 0;
+	issuer[0]  = 0;
+	serial[0]  = 0;
+    } else {
+	flags = XN_FLAG_RFC2253 | ASN1_STRFLGS_UTF8_CONVERT;
+	flags &= ~ASN1_STRFLGS_ESC_MSB;
+
+	X509_NAME_print_ex(bio, X509_get_subject_name(cert), 0, flags); 
+	n = BIO_read(bio, subject, min(BIO_pending(bio), BUFSIZ - 1));
+	n = max(n, 0);
+	subject[n] = 0;
+	BIO_flush(bio);
+
+	X509_NAME_print_ex(bio, X509_get_issuer_name(cert), 0, flags);
+	n = BIO_read(bio, issuer, min(BIO_pending(bio), BUFSIZ - 1));
+	n = max(n, 0);
+	issuer[n] = 0;
+	BIO_flush(bio);
+
+	i2a_ASN1_INTEGER(bio, X509_get_serialNumber(cert));
+	n = BIO_read(bio, serial, min(BIO_pending(bio), BUFSIZ - 1));
+	n = max(n, 0);
+	serial[n] = 0;
+	BIO_flush(bio);
+
+	BIO_free(bio);
+    }
 
     strcpy( notBefore, ASN1_UTCTIME_tostr( X509_get_notBefore(cert) ));
     strcpy( notAfter, ASN1_UTCTIME_tostr( X509_get_notAfter(cert) ));
@@ -124,7 +162,7 @@ Tls_NewX509Obj( interp, cert)
     Tcl_ListObjAppendElement( interp, certPtr,
 	    Tcl_NewStringObj( "serial", -1) );
     Tcl_ListObjAppendElement( interp, certPtr,
-	    Tcl_NewIntObj( serial) );
+	    Tcl_NewStringObj( serial, -1) );
 
     return certPtr;
 }
