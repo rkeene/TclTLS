@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.5 2000/06/01 22:34:01 stanton Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.6 2000/06/02 05:14:46 welch Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -487,16 +487,7 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
      * The following NotifyChannel calls seems to be important, but
      * we don't know why.  It looks like if the mask is ever non-zero
      * that it will enter an infinite loop.
-     */
-
-    if (mask & TCL_WRITABLE) {
-	fprintf(stderr, "ChannelHandler: mask is writable\n");
-    }
-    if (mask & TCL_READABLE) {
-	fprintf(stderr, "ChannelHandler: mask is readable\n");
-    }
-
-    /*
+     *
      * Notify the upper channel of the current BIO state so the event
      * continues to propagate up the chain.
      *
