@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.4 2000/08/15 00:02:08 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.5 2000/08/18 19:17:36 hobbs Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -61,7 +61,8 @@ BioWrite (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
     int ret;
 
-    dprintf(stderr,"\nBioWrite(0x%x, <buf>, %d) [0x%x]", bio, bufLen, chan);
+    dprintf(stderr,"\nBioWrite(0x%x, <buf>, %d) [0x%x]",
+	    (unsigned int) bio, bufLen, (unsigned int) chan);
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
 	ret = Tcl_WriteRaw(chan, buf, bufLen);
@@ -69,8 +70,8 @@ BioWrite (bio, buf, bufLen)
 	ret = Tcl_Write(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[0x%x] BioWrite(%d) -> %d [%d.%d]", chan, bufLen, ret,
-	    Tcl_Eof(chan), Tcl_GetErrno());
+    dprintf(stderr,"\n[0x%x] BioWrite(%d) -> %d [%d.%d]",
+	    (unsigned int) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY);
 
@@ -95,7 +96,8 @@ BioRead (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
     int ret = 0;
 
-    dprintf(stderr,"\nBioRead(0x%x, <buf>, %d) [0x%x]", bio, bufLen, chan);
+    dprintf(stderr,"\nBioRead(0x%x, <buf>, %d) [0x%x]",
+	    (unsigned int) bio, bufLen, (unsigned int) chan);
 
     if (buf == NULL) return 0;
 
@@ -105,8 +107,8 @@ BioRead (bio, buf, bufLen)
 	ret = Tcl_Read(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[0x%x] BioRead(%d) -> %d [%d.%d]", chan, bufLen, ret,
-	    Tcl_Eof(chan), Tcl_GetErrno());
+    dprintf(stderr,"\n[0x%x] BioRead(%d) -> %d [%d.%d]",
+	    (unsigned int) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
 
@@ -141,7 +143,9 @@ BioCtrl	(bio, cmd, num, ptr)
     long ret = 1;
     int *ip;
 
-    dprintf(stderr,"\nBioCtrl(0x%x, 0x%x, 0x%x, 0x%x)", bio, cmd, num, ptr);
+    dprintf(stderr,"\nBioCtrl(0x%x, 0x%x, 0x%x, 0x%x)",
+	    (unsigned int) bio, (unsigned int) cmd, (unsigned int) num,
+	    (unsigned int) ptr);
 
     switch (cmd) {
     case BIO_CTRL_RESET:
@@ -183,7 +187,7 @@ BioCtrl	(bio, cmd, num, ptr)
 	break;
     case BIO_CTRL_PENDING:
 	ret = (Tcl_InputBuffered(chan) ? 1 : 0);
-	dprintf(stderr, "BIO_CTRL_PENDING(%d)\n", ret);
+	dprintf(stderr, "BIO_CTRL_PENDING(%d)\n", (int) ret);
 	break;
     case BIO_CTRL_WPENDING:
 	ret = 0;
