@@ -1,3 +1,8 @@
+2003-10-07  Dan Razzell	<research@starfishsystems.ca>
+
+	* tests/ciphers.test: updated list of tested ciphers to correspond
+	* with those available from OpenSSL. [Request #811981]
+
 2003-10-07  Dan Razzell <research@starfishsystems.ca>
 
 	* tls.c: added CONST with intent similar to those from 2002-02-04.
