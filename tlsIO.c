@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.14 2004/03/24 05:22:53 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.15 2004/06/29 11:07:08 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -34,7 +34,7 @@ static int	TlsInputProc _ANSI_ARGS_((ClientData instanceData,
 static int	TlsOutputProc _ANSI_ARGS_((ClientData instanceData,
 			CONST char *buf, int toWrite, int *errorCodePtr));
 static int	TlsGetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp, CONST char *optionName,
+			Tcl_Interp *interp, CONST84 char *optionName,
 			Tcl_DString *dsPtr));
 static void	TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
 static int	TlsGetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
@@ -507,7 +507,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 static int
 TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 	Tcl_Interp *interp,		/* For errors - can be NULL. */
-	CONST char *optionName,		/* Name of the option to
+	CONST84 char *optionName,	/* Name of the option to
 					 * retrieve the value for, or
 					 * NULL to get all options and
 					 * their values. */

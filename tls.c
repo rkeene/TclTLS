@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.22 2004/03/24 05:22:53 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.23 2004/06/29 11:07:08 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -454,7 +454,7 @@ CiphersObjCmd(clientData, interp, objc, objv)
     int objc;
     Tcl_Obj	*CONST objv[];
 {
-    static CONST char *protocols[] = {
+    static CONST84 char *protocols[] = {
 	"ssl2",	"ssl3",	"tls1",	NULL
     };
     enum protocol {
@@ -1168,7 +1168,7 @@ MiscObjCmd(clientData, interp, objc, objv)
     int objc;
     Tcl_Obj	*CONST objv[];
 {
-    const char *commands [] = { "req", NULL };
+    CONST84 char *commands [] = { "req", NULL };
     enum command { C_REQ, C_DUMMY };
     int cmd;
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.13 2004/06/29 10:58:08 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.14 2004/06/29 11:07:08 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -24,10 +24,15 @@
 #include <errno.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef __WIN32__
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <wincrypt.h> /* OpenSSL needs this on Windows */
+#endif
+
+/* Handle tcl8.3->tcl8.4 CONST changes */
+#ifndef CONST84
+#define CONST84
 #endif
 
 #ifdef NO_PATENTS

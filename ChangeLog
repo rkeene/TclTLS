@@ -1,5 +1,8 @@
 2004-06-29  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
+	* tls.c:            Fixup to build against tcl 8.3.3. Handle
+	* tlsIO.c:          8.4 constification.
+
 	* tlsInt.h:         Added headers required with MSVC on Win32.
 	* tlsX509.c:        undef min and max if defined (win32).
 
