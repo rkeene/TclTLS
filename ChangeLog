@@ -1,5 +1,8 @@
 2004-06-29  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
+	* tlsInt.h:         Added headers required with MSVC on Win32.
+	* tlsX509.c:        undef min and max if defined (win32).
+
 	* Makefile.in:      Fixed to build on win32 using msys with
 	* aclocal.m4:       MSVC. Also fixed the test target.
 	* configure.in:
