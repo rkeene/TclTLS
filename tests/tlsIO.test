@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.14.2.1 2000/07/11 04:58:46 hobbs Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.14.2.2 2000/07/12 01:54:03 hobbs Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -74,7 +74,6 @@ package require tls
 set tlsServerPort 8048
 
 set certsDir [file join [file dirname [info script]] certs] 
-#set certsDir ~hobbs/cvs/tls/tests/certs
 
 set serverCert [file join $certsDir server.pem]
 set clientCert [file join $certsDir client.pem]
@@ -314,10 +313,10 @@ test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8829 \]"
     puts $f {
-	proc accept {file addr port} {
+	proc accept {sock addr port} {
             global x
-            puts "[gets $file] $port"
-            close $file
+            puts "[gets $sock] $port"
+            close $sock
             set x done
 	}
 	puts ready
@@ -335,8 +334,6 @@ test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
         set x $sock
 	catch {close [tls::socket 127.0.0.1 8829]}
     } else {
-	# HOBBS handshake shouldn't be necessary
-	tls::handshake $sock
         puts $sock hello
 	flush $sock
         lappend x [gets $f]
@@ -355,10 +352,10 @@ test tlsIO-2.3 {tcp connection with client interface specified} {socket stdio} {
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8830 \]"
     puts $f {
-	proc accept {file addr port} {
+	proc accept {sock addr port} {
             global x
-            puts "[gets $file] $addr"
-            close $file
+            puts "[gets $sock] $addr"
+            close $sock
             set x done
 	}
 	puts ready
@@ -374,8 +371,6 @@ test tlsIO-2.3 {tcp connection with client interface specified} {socket stdio} {
 	-keyfile $clientKey 127.0.0.1 8830} sock]} {
         set x $sock
     } else {
-	# HOBBS handshake shouldn't be necessary
-	tls::handshake $sock
         puts $sock hello
 	catch {flush $sock}
         lappend x [gets $f]
@@ -394,10 +389,10 @@ test tlsIO-2.4 {tcp connection with server interface specified} {socket stdio} {
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey -myaddr [info hostname] 8831 \]"
     puts $f {
-	proc accept {file addr port} {
+	proc accept {sock addr port} {
             global x
-            puts "[gets $file]"
-            close $file
+            puts "[gets $sock]"
+            close $sock
             set x done
 	}
 	puts ready
@@ -412,8 +407,6 @@ test tlsIO-2.4 {tcp connection with server interface specified} {socket stdio} {
 	-keyfile $clientKey [info hostname] 8831} sock]} {
         set x $sock
     } else {
-	# HOBBS handshake shouldn't be necessary
-	tls::handshake $sock
         puts $sock hello
 	flush $sock
         lappend x [gets $f]
@@ -432,10 +425,10 @@ test tlsIO-2.5 {tcp connection with redundant server port} {socket stdio} {
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8832 \]"
     puts $f {
-	proc accept {file addr port} {
+	proc accept {sock addr port} {
             global x
-            puts "[gets $file]"
-            close $file
+            puts "[gets $sock]"
+            close $sock
             set x done
 	}
 	puts ready
@@ -450,8 +443,6 @@ test tlsIO-2.5 {tcp connection with redundant server port} {socket stdio} {
 	-keyfile $clientKey 127.0.0.1 8832} sock]} {
         set x $sock
     } else {
-	# HOBBS handshake shouldn't be necessary
-	tls::handshake $sock
         puts $sock hello
 	flush $sock
         lappend x [gets $f]
@@ -771,7 +762,7 @@ test tlsIO-3.2 {server with several clients} {socket stdio} {
     set x
 } {ready done}
 
-test tlsIO-4.1 {server with several clients} {hangsHobbs socket stdio} {
+test tlsIO-4.1 {server with several clients} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
