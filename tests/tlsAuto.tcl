@@ -1,7 +1,7 @@
 #
-# Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
+# Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/Attic/tlsAuto.tcl,v 1.1.1.1 2000/01/19 22:10:59 aborr Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/Attic/tlsAuto.tcl,v 1.2 2000/01/20 01:56:18 aborr Exp $
 #
 
 set dir [file dirname [info script]]

@@ -1,7 +1,7 @@
 #
-# Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
+# Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/Attic/tlsSrv2.tcl,v 1.1.1.1 2000/01/19 22:10:59 aborr Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/Attic/tlsSrv2.tcl,v 1.2 2000/01/20 01:57:02 aborr Exp $
 #
 # Sample Tls-enabled server
 #
