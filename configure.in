@@ -84,7 +84,9 @@ fi
 # This step isn't necessary if we're using OpenSSL.
 #--------------------------------------------------------------------
 
+
 if test -z "${OPENSSL}"; then
+    AC_MSG_CHECKING(host type)
     case "`uname -s`" in
 	*win32* | *WIN32* | *CYGWIN_NT*|*CYGWIN_98*|*CYGWIN_95*)
 	    PLATFORM=WIN32
@@ -93,10 +95,14 @@ if test -z "${OPENSSL}"; then
 	*SunOS*)
 	    PLATFORM=SOLARIS
 	    ;;
+	HP-UX)
+	    PLATFORM=HPUX
+	    ;;
 	*)
 	    PLATFORM=LINUX
 	    ;;
     esac
+    AC_MSG_RESULT(${PLATFORM})
 fi
 
 AC_ARG_WITH(ssl-dir, [  --with-ssl-dir=DIR  SSL root directory], SSL_DIR=$withval)
