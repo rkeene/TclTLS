@@ -88,6 +88,7 @@ if test -z "${OPENSSL}"; then
     case "`uname -s`" in
 	*win32* | *WIN32* | *CYGWIN_NT*|*CYGWIN_98*|*CYGWIN_95*)
 	    PLATFORM=WIN32
+	    AC_DEFINE(WINDOWS)
 	    ;;
 	*SunOS*)
 	    PLATFORM=SOLARIS
