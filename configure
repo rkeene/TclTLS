@@ -267,8 +267,8 @@ SHELL=${CONFIG_SHELL-/bin/sh}
 # Identity of this package.
 PACKAGE_NAME='tls'
 PACKAGE_TARNAME='tls'
-PACKAGE_VERSION='1.5.0'
-PACKAGE_STRING='tls 1.5.0'
+PACKAGE_VERSION='1.5.1'
+PACKAGE_STRING='tls 1.5.1'
 PACKAGE_BUGREPORT=''
 
 # Factoring default headers for most tests.

@@ -1,3 +1,8 @@
+2004-12-22  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* configure.in:     Incremented minor version to 1.5.1
+	* configure:        
+
 2004-12-17  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* win/makefile.vc:  Added the MSVC build system (from the Tcl
