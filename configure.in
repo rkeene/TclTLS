@@ -72,6 +72,8 @@ AC_ARG_ENABLE(bsafe, [  --enable-bsafe  Use RSA BSAFE SSL-C libraries instead of
 
 if test -n "${OPENSSL}"; then
     SSL_DIR='/usr/local/openssl'
+    AC_DEFINE(NO_IDEA)
+    AC_DEFINE(NO_RC5)
 else
     SSL_DIR='/use/local/sslc'
     AC_DEFINE(BSAFE)
