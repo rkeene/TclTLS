@@ -1,7 +1,8 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
+ * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.9 2000/08/15 00:02:08 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.10 2000/08/15 18:49:30 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -19,14 +20,6 @@
  */
 
 #include "tlsInt.h"
-
-/*
- * External functions
- */
-
-/*
- * Local Defines
- */
 
 /*
  * Forward declarations
@@ -54,16 +47,13 @@ static void	TlsChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
 
 /*
  * This structure describes the channel type structure for TCP socket
- * based IO:
+ * based IO.  These are what the structures should look like, but we
+ * have to build them up at runtime to be correct depending on whether
+ * we are loaded into an 8.2.0-8.3.1 or 8.3.2+ Tcl interpreter.
  */
+#ifdef TLS_STATIC_STRUCTURES_NOT_USED
 static Tcl_ChannelType tlsChannelType2 = {
     "tls",		/* Type name. */
-#ifndef TCL_CHANNEL_VERSION_2
-    /*
-     * Avoids warning in Windows compiler when compiling with 8.3.1-.
-     */
-    (Tcl_DriverBlockModeProc *)
-#endif
     TCL_CHANNEL_VERSION_2,	/* A v2 channel (8.3.2+) */
     TlsCloseProc,	/* Close proc. */
     TlsInputProc,	/* Input proc. */
@@ -81,12 +71,6 @@ static Tcl_ChannelType tlsChannelType2 = {
 
 static Tcl_ChannelType tlsChannelType1 = {
     "tls",		/* Type name. */
-#ifdef TCL_CHANNEL_VERSION_2
-    /*
-     * Avoids warning in Windows compiler when compiling with 8.3.2+.
-     */
-    (Tcl_ChannelTypeVersion)
-#endif
     TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
     TlsCloseProc,	/* Close proc. */
     TlsInputProc,	/* Input proc. */
@@ -97,14 +81,146 @@ static Tcl_ChannelType tlsChannelType1 = {
     TlsWatchProc,	/* Initialize notifier. */
     TlsGetHandleProc,	/* Get file handle out of channel. */
 };
+#else
+static Tcl_ChannelType *tlsChannelType = NULL;
+#endif
 
+/*
+ *-------------------------------------------------------------------
+ *
+ * Tls_ChannelType --
+ *
+ *	Return the correct TLS channel driver info
+ *
+ * Results:
+ *	The correct channel driver for the current version of Tcl.
+ *
+ * Side effects:
+ *	None.
+ *
+ *-------------------------------------------------------------------
+ */
 Tcl_ChannelType *Tls_ChannelType()
 {
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	return &tlsChannelType2;
-    } else {
-	return &tlsChannelType1;
+    /*
+     * Initialize the channel type if necessary
+     */
+    if (tlsChannelType == NULL) {
+	/*
+	 * Allocation of a new channeltype structure is not easy, because of
+	 * the various verson of the core and subsequent changes to the
+	 * structure. The main challenge is to allocate enough memory for
+	 * odern versions even if this extyension is compiled against one
+	 * of the older variant!
+	 *
+	 * (1) Versions before stubs (8.0.x) are simple, because they are
+	 *     supported only if the extension is compiled against exactly
+	 *     that version of the core.
+	 *
+	 * (2) With stubs we just determine the difference between the older
+	 *     and modern variant and overallocate accordingly if compiled
+	 *     against an older variant.
+	 */
+
+	int size = sizeof(Tcl_ChannelType); /* Base size */
+
+	/*
+	 * Size of a procedure pointer. We assume that all procedure
+	 * pointers are of the same size, regardless of exact type
+	 * (arguments and return values).
+	 *
+	 * 8.2.   First version containing close2proc. Baseline.
+	 * 8.3.2  Three additional vectors. Moved blockMode, new flush- and
+	 *        handlerProc's.
+	 *
+	 * => Compilation against earlier version has to overallocate three
+	 *    procedure pointers.
+	 */
+
+#ifdef EMULATE_CHANNEL_VERSION_2
+	size += 3 * procPtrSize;
+#endif
+
+	tlsChannelType = (Tcl_ChannelType *) ckalloc(size);
+	memset((VOID *) tlsChannelType, 0, size);
+
+	/*
+	 * Common elements of the structure (no changes in location or name)
+	 * close2Proc, seekProc, setOptionProc stay NULL.
+	 */
+
+	tlsChannelType->closeProc        = TlsCloseProc;
+	tlsChannelType->inputProc        = TlsInputProc;
+	tlsChannelType->outputProc       = TlsOutputProc;
+	tlsChannelType->getOptionProc    = TlsGetOptionProc;
+	tlsChannelType->watchProc        = TlsWatchProc;
+	tlsChannelType->getHandleProc    = TlsGetHandleProc;
+
+	/*
+	 * blockModeProc is a twister.  We have to make some runtime-choices,
+	 * depending on the version we compiled against.
+	 */
+
+#ifdef EMULATE_CHANNEL_VERSION_2
+	/*
+	 * We are compiling against an 8.3.1- core.  We have to create some
+	 * definitions for the new elements as the compiler does not know them
+	 * by name.
+	 */
+
+	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
+	    /*
+	     * The 'version' element of 8.3.2 is in the the place of the
+	     * blockModeProc. For 8.2.0-8.3.1 we have to set our blockModeProc
+	     * into this place.
+	     */
+	    tlsChannelType->blockModeProc = TlsBlockModeProc;
+	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
+	    /*
+	     * For the 8.3.2 core we present ourselves as a version 2
+	     * driver. This means a special value in version (ex
+	     * blockModeProc), blockModeProc in a different place and of
+	     * course usage of the handlerProc.  The last two have to
+	     * referenced with pointer magic because they aren't defined
+	     * otherwise.
+	     */
+
+	    tlsChannelType->blockModeProc =
+		(Tcl_DriverBlockModeProc*) TLS_CHANNEL_VERSION_2;
+	    (*((Tcl_DriverBlockModeProc**)(&(tlsChannelType->close2Proc)+1)))
+		= TlsBlockModeProc;
+	    (*((TlsDriverHandlerProc**)(&(tlsChannelType->close2Proc)+3)))
+		= TlsNotifyProc;
+	}
+#else
+	/*
+	 * Compiled against 8.3.2+. Direct access to all elements possible. Use
+	 * channelTypeVersion information to select the values to use.
+	 */
+
+	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
+	    /*
+	     * The 'version' element of 8.3.2 is in the the place of the
+	     * blockModeProc. For the original patch in 8.1.x and the firstly
+	     * included (8.2) we have to set our blockModeProc into this
+	     * place.
+	     */
+	    tlsChannelType->version = (Tcl_ChannelTypeVersion)TlsBlockModeProc;
+	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
+	    /*
+	     * For the 8.3.2 core we present ourselves as a version 2
+	     * driver. This means a special value in version (ex
+	     * blockModeProc), blockModeProc in a different place and of
+	     * course usage of the handlerProc.
+	     */
+
+	    tlsChannelType->version       = TCL_CHANNEL_VERSION_2;
+	    tlsChannelType->blockModeProc = TlsBlockModeProc;
+	    tlsChannelType->handlerProc   = TlsNotifyProc;
+	}
+#endif
     }
+    return tlsChannelType;
 }
 
 /*

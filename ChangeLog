@@ -1,5 +1,17 @@
 2000-08-15  Jeff Hobbs  <hobbs@scriptics.com>
 
+	* README.txt: added notes about need to use 8.2.0+.
+
+	* tlsInt.h:
+	* tls.c:
+	* tlsIO.c: corrected structure initialization to work when
+	compiling with 8.2.  Now compiles with 8.2+ and tested to work
+	with 8.2+ and dynamically adjust to the version of Tcl it was
+	loaded into.  TLS will fail the test suite with Tcl 8.2-8.3.1.
+
+	* tests/all.tcl: added catch around ::tcltest::normalizePath
+	because it doesn't exist in pre-8.3 tcltest.
+
 	* tests/simpleClient.tcl: 
 	* tests/simpleServer.tcl: added simple client/server test scripts
 	that use test certs and can do simple stress tests.

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.6 2000/08/15 00:02:08 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.7 2000/08/15 18:49:31 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -104,8 +104,8 @@ typedef struct State {
 } State;
 
 /*
- * The following definitions have to be usable for 8.0.x, 8.1.x, 8.2.x,
- * 8.3.[01], 8.3.2 and beyond. The differences between these versions:
+ * The following definitions have to be usable for 8.2.0-8.3.1 and 8.3.2+.
+ * The differences between these versions:
  *
  * 8.0-8.1:	There is no support for these in TLS 1.4 (get 1.3).  This
  *		was the version with the original patch.
@@ -117,7 +117,7 @@ typedef struct State {
  * 8.3.2+:	Stacked channels rewritten for better behaviour in some
  *		situations (closing). Some new API's, semantic changes.
  *
- * The following magic was taken from Trf 2.1 (Kupries).
+ * The following magic was adapted from Trf 2.1 (Kupries).
  */
 
 #define TLS_CHANNEL_VERSION_1	0x1
@@ -164,12 +164,18 @@ typedef Tcl_Channel (tls_GetStackedChannel) _ANSI_ARGS_((Tcl_Channel chan));
 #endif /* Tcl_GetStackedChannel */
 
 
-#ifndef Tcl_WriteRaw
+#ifndef TCL_CHANNEL_VERSION_2
 /*
  * Core is older than 8.3.2.  Supply the missing definitions for
  * the new API's in 8.3.2.
  */
+#define EMULATE_CHANNEL_VERSION_2
 
+typedef struct TlsChannelTypeVersion_* TlsChannelTypeVersion;
+#define TCL_CHANNEL_VERSION_2	((TlsChannelTypeVersion) 0x2)
+
+typedef int (TlsDriverHandlerProc) _ANSI_ARGS_((ClientData instanceData,
+					int interestMask));
 /* 394 */
 typedef int (tls_ReadRaw)  _ANSI_ARGS_((Tcl_Channel chan, char *dst,
 					int bytesToRead));
@@ -197,15 +203,12 @@ typedef int (tls_GetTopChannel) _ANSI_ARGS_((Tcl_Channel chan));
 #define Tcl_WriteRaw		(*((tls_WriteRaw**)	(SLOT(395))))
 #define Tcl_GetTopChannel	(*((tls_GetTopChannel**)(SLOT(396))))
 
-typedef struct TlsChannelTypeVersion_* TlsChannelTypeVersion;
-#define TCL_CHANNEL_VERSION_2	((TlsChannelTypeVersion) 0x2)
-
 /*
  * Required, easy emulation.
  */
 #define Tcl_ChannelGetOptionProc(chanDriver) ((chanDriver)->getOptionProc)
 
-#endif /* Tcl_WriteRaw */
+#endif /* TCL_CHANNEL_VERSION_2 */
 
 #endif /* USE_TCL_STUBS */
 

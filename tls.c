@@ -1,7 +1,8 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
+ * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.9 2000/08/15 00:02:08 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.10 2000/08/15 18:49:30 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
