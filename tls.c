@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.7 2000/07/27 01:58:18 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.8 2000/08/14 21:55:12 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -1141,10 +1141,17 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
                                          * to be made available. */
 {
 #if TCL_MAJOR_VERSION >= 8 && TCL_MINOR_VERSION >= 2
-    if (!Tcl_InitStubs(interp, TCL_VERSION, 0)) {
+    /*
+     * The original 8.2.0 stacked channel implementation (and the patch
+     * that preceded it) had problems with scalability and robustness.
+     * These were address in 8.3.2 / 8.4a2, so we now require that as a
+     * minimum for TLS 1.4+.
+     */
+    if (Tcl_InitStubs(interp, "8.3.2", 0) == NULL) {
         return TCL_ERROR;
     }
 #endif
+
     if (SSL_library_init() != 1) {
         Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
 	return TCL_ERROR;

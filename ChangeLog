@@ -1,3 +1,9 @@
+2000-08-14  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tls.c (Tls_Init): changed it to require 8.3.2 when Tcl_InitStubs
+	was called because we don't want people using TLS with the
+	original stacked channel implementation.
+
 2000-07-26  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* merged all changes from tls-1-3-io-rewrite back into main branch
