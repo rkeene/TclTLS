@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.3 2000/05/04 20:40:40 aborr Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.4 2000/06/05 18:09:53 welch Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -728,7 +728,8 @@ ImportObjCmd(clientData, interp, objc, objv)
 			       (TCL_READABLE | TCL_WRITABLE), chan);
 #endif
     if (statePtr->self == (Tcl_Channel) NULL) {
-        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free);
+	Tls_Free(statePtr);
+/*        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free); */
         return TCL_ERROR;
     }
 
@@ -756,7 +757,8 @@ ImportObjCmd(clientData, interp, objc, objv)
         Tcl_AppendResult(interp,
                          "couldn't construct ssl session: ", REASON(),
                          (char *) NULL);
-        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free);
+	Tls_Free(statePtr);
+/*        Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free); */
         return TCL_ERROR;
     }
 
@@ -1031,18 +1033,49 @@ Tls_Free( char *blockPtr )
 {
     State *statePtr = (State *)blockPtr;
 
+    Tls_Clean(blockPtr);
+    Tcl_Free((char *)statePtr);
+}
+
+/*
+ *-------------------------------------------------------------------
+ *
+ * Tls_Clean --
+ *
+ *	This procedure cleans up when a SSL socket based channel
+ *	is closed and its reference count falls below 1.  This should
+ *	be called synchronously by the CloseProc, not in the
+ *	EventuallyFree callback.
+ *
+ * Results:
+ *	none
+ *
+ * Side effects:
+ *	Frees all the state
+ *
+ *-------------------------------------------------------------------
+ */
+void
+Tls_Clean( char *blockPtr )
+{
+    State *statePtr = (State *)blockPtr;
+
     /* we're assuming here that we're single-threaded */
     if (statePtr->ssl) {
 	SSL_shutdown(statePtr->ssl);
 	SSL_free(statePtr->ssl);
+	statePtr->ssl = NULL;
     }
-    if (statePtr->callback)
+    if (statePtr->callback) {
 	Tcl_DecrRefCount(statePtr->callback);
+	statePtr->callback = NULL;
+    }
 
-    if (statePtr->timer != (Tcl_TimerToken)NULL)
+    if (statePtr->timer != (Tcl_TimerToken)NULL) {
 	Tcl_DeleteTimerHandler (statePtr->timer);
+	statePtr->timer = NULL;
+    }
 
-    Tcl_Free((char *)statePtr);
 }
 
 /*

@@ -1,3 +1,9 @@
+2000-06-05  Brent Welch <welch@ajubasolutions.com>
+
+	* tls.c, tlsIO.c:  Split Tls_Free into Tls_Clean, which does
+	the SSL cleanup, and the Tcl_Free call.  It is important to shutdown
+	the SSL state "synchronously" during a stacked flush.
+
 2000-06-01  Scott Stanton  <stanton@ajubasolutions.com>
 
 	* tlsIO.c: Restored call to Tcl_NotifyChannel from ChannelHandler
