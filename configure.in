@@ -11,7 +11,7 @@ dnl commercial use. Licensing information for BSAFE SSL-C may be
 dnl obtained from RSA Data Scurity Inc., San Mateo, California, USA.
 dnl Their home page on the web is "www.rsasecurity.com". 
 #
-# RCS: @(#) $Id: configure.in,v 1.18 2004/03/19 21:05:16 hobbs Exp $
+# RCS: @(#) $Id: configure.in,v 1.19 2004/06/29 10:38:38 patthoyts Exp $
 
 
 #--------------------------------------------------------------------
@@ -173,13 +173,21 @@ TEA_MAKE_LIB
 
 if test -n "${OPENSSL}"; then
     if test "${TEA_PLATFORM}" = "windows" ; then
-	TEA_ADD_LIBS([-L\"`${CYGPATH} ${SSL_LIB_DIR}`\" -lssleay32.lib -llibeay32.lib])
+        if test "$GCC" = "yes"; then
+            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lssleay32.lib -llibeay32.lib])
+        else
+            TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE} ssleay32.lib libeay32.lib])
+        fi
     else
 	TEA_ADD_LIBS([-L${SSL_LIB_DIR} -lssl -lcrypto ${GCCPATH} ${GCCLIB}])
     fi
 else
     if test "${TEA_PLATFORM}" = "windows" ; then
-	TEA_ADD_LIBS([-L\"`${CYGPATH} ${SSL_LIB_DIR}`\" -lsslc32.lib])
+        if test "$GCC" = "yes"; then
+            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lsslc32.lib])
+        else
+            TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE} sslc32.lib])
+        fi
     else
 	TEA_ADD_LIBS([-L${SSL_LIB_DIR} -lsslc])
     fi

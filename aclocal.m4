@@ -127,8 +127,15 @@ Please specify its location with --with-ssl-dir])
     AC_SUBST(SSL_LIB_DIR)
     AC_SUBST(SSL_INCLUDE_DIR)
 
-    SSL_INCLUDE_DIR_NATIVE=\"`${CYGPATH} ${SSL_INCLUDE_DIR}`\"
+    if test "$GCC" = "yes"; then
+        SSL_INCLUDE_DIR_NATIVE=\"`${CYGPATH} ${SSL_INCLUDE_DIR}`\"
+        SSL_LIB_DIR_NATIVE=\"`${CYGPATH} ${SSL_LIB_DIR}`\"
+    else
+        SSL_INCLUDE_DIR_NATIVE=\"`echo ${SSL_INCLUDE_DIR}|sed 's%/%\\\\%g'`\"
+        SSL_LIB_DIR_NATIVE=\"`echo ${SSL_LIB_DIR}|sed 's%/%\\\\%g'`\"
+    fi
     AC_SUBST(SSL_INCLUDE_DIR_NATIVE)
+    AC_SUBST(SSL_LIB_DIR_NATIVE)
 
     #--------------------------------------------------------------------
     # If OpenSSL was built with gcc then there may be some symbols that need
