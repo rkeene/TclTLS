@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.2.2.1 2000/07/11 04:58:46 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.2.2.2 2000/07/12 01:54:26 hobbs Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -191,13 +191,20 @@ BioCtrl	(bio, cmd, num, ptr)
 	break;
     case BIO_CTRL_FLUSH:
 	dprintf(stderr, "BIO_CTRL_FLUSH\n");
-	if (Tcl_Flush( chan) == TCL_OK)
-	    ret=1;
-	else
-	    ret=-1;
+	if (
+#ifdef TCL_CHANNEL_VERSION_2
+	    Tcl_WriteRaw(chan, "", 0) >= 0
+#else
+	    Tcl_Flush( chan) == TCL_OK
+#endif
+	    ) {
+	    ret = 1;
+	} else {
+	    ret = -1;
+	}
 	break;
     default:
-	ret=0;
+	ret = 0;
 	break;
     }
     return(ret);

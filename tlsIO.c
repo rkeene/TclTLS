@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.1 2000/07/11 04:58:46 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.2 2000/07/12 01:54:26 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -32,19 +32,25 @@
  * Forward declarations
  */
 
-static int	BlockModeProc _ANSI_ARGS_((ClientData instanceData, int mode));
-static int	CloseProc _ANSI_ARGS_ ((ClientData instanceData, Tcl_Interp *interp));
-static int	InputProc _ANSI_ARGS_((ClientData instanceData,
-			    char *buf, int bufSize, int *errorCodePtr));
-static int	OutputProc _ANSI_ARGS_((ClientData instanceData,
-			    char *buf, int toWrite, int *errorCodePtr));
-static int	GetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
-			    Tcl_Interp *interp, char *optionName, Tcl_DString *dsPtr));
-static void	WatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
-static int	GetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
-			    int direction, ClientData *handlePtr));
-static void	ChannelHandler _ANSI_ARGS_ ((ClientData clientData, int mask));
-static void	ChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
+static int	TlsBlockModeProc _ANSI_ARGS_((ClientData instanceData,
+			int mode));
+static int	TlsCloseProc _ANSI_ARGS_ ((ClientData instanceData,
+			Tcl_Interp *interp));
+static int	TlsInputProc _ANSI_ARGS_((ClientData instanceData,
+			char *buf, int bufSize, int *errorCodePtr));
+static int	TlsOutputProc _ANSI_ARGS_((ClientData instanceData,
+			char *buf, int toWrite, int *errorCodePtr));
+static int	TlsGetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
+			Tcl_Interp *interp, char *optionName,
+			Tcl_DString *dsPtr));
+static void	TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
+static int	TlsGetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
+			int direction, ClientData *handlePtr));
+static int	TlsNotifyProc _ANSI_ARGS_ ((ClientData instanceData,
+			int mask));
+static void	TlsChannelHandler _ANSI_ARGS_ ((ClientData clientData,
+			int mask));
+static void	TlsChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
 
 /*
  * This structure describes the channel type structure for TCP socket
@@ -54,31 +60,31 @@ static void	ChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
 static Tcl_ChannelType tlsChannelType = {
     "tls",		/* Type name. */
     TCL_CHANNEL_VERSION_2,	/* A NG channel */
-    CloseProc,		/* Close proc. */
-    InputProc,		/* Input proc. */
-    OutputProc,		/* Output proc. */
+    TlsCloseProc,		/* Close proc. */
+    TlsInputProc,		/* Input proc. */
+    TlsOutputProc,		/* Output proc. */
     NULL,		/* Seek proc. */
     NULL,		/* Set option proc. */
-    GetOptionProc,	/* Get option proc. */
-    WatchProc,		/* Initialize notifier. */
-    GetHandleProc,	/* Get file handle out of channel. */
+    TlsGetOptionProc,	/* Get option proc. */
+    TlsWatchProc,		/* Initialize notifier. */
+    TlsGetHandleProc,	/* Get file handle out of channel. */
     NULL,		/* Close2Proc. */
-    BlockModeProc,	/* Set blocking/nonblocking mode.*/
+    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
     NULL,		/* FlushProc. */
-    NULL,		/* handlerProc. */
+    TlsNotifyProc,	/* handlerProc. */
 };
 #else
 static Tcl_ChannelType tlsChannelType = {
     "tls",		/* Type name. */
-    BlockModeProc,	/* Set blocking/nonblocking mode.*/
-    CloseProc,		/* Close proc. */
-    InputProc,		/* Input proc. */
-    OutputProc,		/* Output proc. */
+    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
+    TlsCloseProc,		/* Close proc. */
+    TlsInputProc,		/* Input proc. */
+    TlsOutputProc,		/* Output proc. */
     NULL,		/* Seek proc. */
     NULL,		/* Set option proc. */
-    GetOptionProc,	/* Get option proc. */
-    WatchProc,		/* Initialize notifier. */
-    GetHandleProc,	/* Get file handle out of channel. */
+    TlsGetOptionProc,	/* Get option proc. */
+    TlsWatchProc,		/* Initialize notifier. */
+    TlsGetHandleProc,	/* Get file handle out of channel. */
 };
 #endif
 
@@ -90,7 +96,7 @@ Tcl_ChannelType *Tls_ChannelType()
 /*
  *-------------------------------------------------------------------
  *
- * BlockModeProc --
+ * TlsBlockModeProc --
  *
  *	This procedure is invoked by the generic IO level
  *       to set blocking and nonblocking modes
@@ -104,7 +110,7 @@ Tcl_ChannelType *Tls_ChannelType()
  */
 
 static int
-BlockModeProc(ClientData instanceData,	/* Socket state. */
+TlsBlockModeProc(ClientData instanceData,	/* Socket state. */
                  int mode)			/* The mode to set. Can be one of
 						* TCL_MODE_BLOCKING or
 						* TCL_MODE_NONBLOCKING. */
@@ -127,7 +133,7 @@ BlockModeProc(ClientData instanceData,	/* Socket state. */
 /*
  *-------------------------------------------------------------------
  *
- * CloseProc --
+ * TlsCloseProc --
  *
  *	This procedure is invoked by the generic IO level to perform
  *	channel-type-specific cleanup when a SSL socket based channel
@@ -144,21 +150,21 @@ BlockModeProc(ClientData instanceData,	/* Socket state. */
  *-------------------------------------------------------------------
  */
 static int
-CloseProc(ClientData instanceData,	/* The socket to close. */
+TlsCloseProc(ClientData instanceData,	/* The socket to close. */
              Tcl_Interp *interp)	/* For error reporting - unused. */
 {
     State *statePtr = (State *) instanceData;
 
-    dprintf(stderr,"\nCloseProc(0x%x)", statePtr);
+    dprintf(stderr,"\nTlsCloseProc(0x%x)", statePtr);
 
     /*
      * Remove event handler to underlying channel, this could
      * be because we are closing for real, or being "unstacked".
      */
-
+#ifndef TCL_CHANNEL_VERSION_2
     Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-	ChannelHandler, (ClientData) statePtr);
-
+	TlsChannelHandler, (ClientData) statePtr);
+#endif
     if (statePtr->timer != (Tcl_TimerToken)NULL) {
 	Tcl_DeleteTimerHandler (statePtr->timer);
 	statePtr->timer = (Tcl_TimerToken)NULL;
@@ -172,7 +178,7 @@ CloseProc(ClientData instanceData,	/* The socket to close. */
 /*
  *-------------------------------------------------------------------
  *
- * InputProc --
+ * TlsInputProc --
  *
  *	This procedure is invoked by the generic IO level
  *       to read input from a SSL socket based channel.
@@ -189,7 +195,7 @@ CloseProc(ClientData instanceData,	/* The socket to close. */
  */
 
 static int
-InputProc(ClientData instanceData,	/* Socket state. */
+TlsInputProc(ClientData instanceData,	/* Socket state. */
              char *buf,			/* Where to store data read. */
              int bufSize,		/* How much space is available
                                          * in the buffer? */
@@ -243,7 +249,7 @@ input:
 /*
  *-------------------------------------------------------------------
  *
- * OutputProc --
+ * TlsOutputProc --
  *
  *	This procedure is invoked by the generic IO level
  *       to write output to a SSL socket based channel.
@@ -259,7 +265,7 @@ input:
  */
 
 static int
-OutputProc(ClientData instanceData,	/* Socket state. */
+TlsOutputProc(ClientData instanceData,	/* Socket state. */
               char *buf,			/* The data buffer. */
               int toWrite,		/* How many bytes to write? */
               int *errorCodePtr)	/* Where to store error code. */
@@ -332,7 +338,7 @@ output:
 /*
  *-------------------------------------------------------------------
  *
- * GetOptionProc --
+ * TlsGetOptionProc --
  *
  *	Computes an option value for a SSL socket based channel, or a
  *	list of all options and their values.
@@ -350,7 +356,7 @@ output:
  *-------------------------------------------------------------------
  */
 static int
-GetOptionProc(ClientData instanceData,	/* Socket state. */
+TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
                  Tcl_Interp *interp,		/* For errors - can be NULL. */
                  char *optionName,		/* Name of the option to
                                                  * retrieve the value for, or
@@ -405,7 +411,7 @@ GetOptionProc(ClientData instanceData,	/* Socket state. */
 /*
  *-------------------------------------------------------------------
  *
- * WatchProc --
+ * TlsWatchProc --
  *
  *	Initialize the notifier to watch Tcl_Files from this channel.
  *
@@ -420,13 +426,48 @@ GetOptionProc(ClientData instanceData,	/* Socket state. */
  */
 
 static void
-WatchProc(ClientData instanceData,	/* The socket state. */
+TlsWatchProc(ClientData instanceData,	/* The socket state. */
              int mask)			/* Events of interest; an OR-ed
                                          * combination of TCL_READABLE,
                                          * TCL_WRITABLE and TCL_EXCEPTION. */
 {
     State *statePtr = (State *) instanceData;
 
+#ifdef TCL_CHANNEL_VERSION_2
+    Tcl_Channel     downChan;
+
+    statePtr->watchMask = mask;
+
+    /* No channel handlers any more. We will be notified automatically
+     * about events on the channel below via a call to our
+     * 'TransformNotifyProc'. But we have to pass the interest down now.
+     * We are allowed to add additional 'interest' to the mask if we want
+     * to. But this transformation has no such interest. It just passes
+     * the request down, unchanged.
+     */
+
+    downChan = Tls_GetParent(statePtr);
+
+    (Tcl_GetChannelType(downChan))
+	->watchProc(Tcl_GetChannelInstanceData(downChan), mask);
+
+    /*
+     * Management of the internal timer.
+     */
+
+    if (statePtr->timer != (Tcl_TimerToken) NULL) {
+        Tcl_DeleteTimerHandler(statePtr->timer);
+	statePtr->timer = (Tcl_TimerToken) NULL;
+    }
+    if ((mask & TCL_READABLE) && Tcl_InputBuffered(statePtr->self) > 0) {
+        /*
+	 * There is interest in readable events and we actually have
+	 * data waiting, so generate a timer to flush that.
+	 */
+	statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
+		TlsChannelHandlerTimer, (ClientData) statePtr);
+    }
+#else
     if (mask == statePtr->watchMask)
 	return;
 
@@ -437,7 +478,7 @@ WatchProc(ClientData instanceData,	/* The socket state. */
 	 */
 
 	Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-		ChannelHandler, (ClientData) statePtr);
+		TlsChannelHandler, (ClientData) statePtr);
     }
     statePtr->watchMask = mask;
     if (statePtr->watchMask) {
@@ -446,14 +487,15 @@ WatchProc(ClientData instanceData,	/* The socket state. */
 	 */
 
 	Tcl_CreateChannelHandler(Tls_GetParent(statePtr),
-		statePtr->watchMask, ChannelHandler, (ClientData) statePtr);
+		statePtr->watchMask, TlsChannelHandler, (ClientData) statePtr);
     }
+#endif
 }
 
 /*
  *-------------------------------------------------------------------
  *
- * GetHandleProc --
+ * TlsGetHandleProc --
  *
  *	Called from Tcl_GetChannelFile to retrieve o/s file handler
  *	from the SSL socket based channel.
@@ -467,19 +509,66 @@ WatchProc(ClientData instanceData,	/* The socket state. */
  *-------------------------------------------------------------------
  */
 static int
-GetHandleProc(ClientData instanceData,	/* The socket state. */
+TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
                  int direction,		/* Which Tcl_File to retrieve? */
                  ClientData *handlePtr)	/* Where to store the handle.  */
 {
     State *statePtr = (State *) instanceData;
 
-    return Tcl_GetChannelHandle (Tls_GetParent(statePtr), direction, handlePtr);
+    return Tcl_GetChannelHandle(Tls_GetParent(statePtr), direction, handlePtr);
 }
 
 /*
+ *-------------------------------------------------------------------
+ *
+ * TlsNotifyProc --
+ *
+ *	Handler called by Tcl to inform us of activity
+ *	on the underlying channel.
+ *
+ * Results:
+ *	None.
+ *
+ * Side effects:
+ *	May process the incoming event by itself.
+ *
+ *-------------------------------------------------------------------
+ */
+
+static int
+TlsNotifyProc(instanceData, mask)
+    ClientData	   instanceData; /* The state of the notified transformation */
+    int		   mask;       /* The mask of occuring events */
+{
+    State *statePtr = (State *) instanceData;
+
+    /*
+     * An event occured in the underlying channel.  This
+     * transformation doesn't process such events thus returns the
+     * incoming mask unchanged.
+     */
+
+    if (statePtr->timer != (Tcl_TimerToken) NULL) {
+	/*
+	 * Delete an existing timer. It was not fired, yet we are
+	 * here, so the channel below generated such an event and we
+	 * don't have to. The renewal of the interest after the
+	 * execution of channel handlers will eventually cause us to
+	 * recreate the timer (in WatchProc).
+	 */
+
+	Tcl_DeleteTimerHandler(statePtr->timer);
+	statePtr->timer = (Tcl_TimerToken) NULL;
+    }
+
+    return mask;
+}
+
+#ifndef TCL_CHANNEL_VERSION_2
+/*
  *------------------------------------------------------*
  *
- *      ChannelHandler --
+ *      TlsChannelHandler --
  *
  *      ------------------------------------------------*
  *      Handler called by Tcl as a result of
@@ -498,9 +587,9 @@ GetHandleProc(ClientData instanceData,	/* The socket state. */
  */
 
 static void
-ChannelHandler (clientData, mask)
-ClientData     clientData;
-int            mask;
+TlsChannelHandler (clientData, mask)
+    ClientData     clientData;
+    int            mask;
 {
     State *statePtr = (State *) clientData;
 
@@ -546,20 +635,21 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
 	Tcl_DeleteTimerHandler(statePtr->timer);
 	statePtr->timer = (Tcl_TimerToken)NULL;
     }
-    if ((mask & TCL_READABLE) && Tcl_InputBuffered (statePtr->self) > 0) {
+    if ((mask & TCL_READABLE) && Tcl_InputBuffered(statePtr->self) > 0) {
 	/*
 	 * Data is waiting, flush it out in short time
 	 */
 	statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
-		ChannelHandlerTimer, (ClientData) statePtr);
+		TlsChannelHandlerTimer, (ClientData) statePtr);
     }
     Tcl_Release( (ClientData)statePtr);
 }
+#endif
 
 /*
  *------------------------------------------------------*
  *
- *	ChannelHandlerTimer --
+ *	TlsChannelHandlerTimer --
  *
  *	------------------------------------------------*
  *	Called by the notifier (-> timer) to flush out
@@ -567,7 +657,7 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
  *	------------------------------------------------*
  *
  *	Sideeffects:
- *		As of 'ChannelHandler'.
+ *		As of 'TlsChannelHandler'.
  *
  *	Result:
  *		None.
@@ -576,7 +666,7 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
  */
 
 static void
-ChannelHandlerTimer (clientData)
+TlsChannelHandlerTimer (clientData)
 ClientData clientData; /* Transformation to query */
 {
     State *statePtr = (State *) clientData;

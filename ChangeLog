@@ -1,3 +1,20 @@
+2000-07-11  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tlsIO.c: changed all the channel procs to start with Tls* for
+	better parity when comparing with Transform channel procs.
+	Rewrote TlsWatchProc, added TlsNotifyProc according to the new
+	channel design, which also leaves TlsChannelHandler unused.
+
+	* tlsBIO.c (BioCtrl): changed BIO_CTRL_FLUSH case to use
+	Tcl_WriteRaw instead of Tcl_Flush (to operate on correct channel
+	in the stack instead of starting at the top again).  Would
+	otherwise cause a recursive stack bomb when implicit handshaking
+	took effect.
+
+	* tests/tlsIO.test: removed changes made to test suite (all tests
+	that ran before now pass correctly), and changed some accept proc
+	args to reflect that a sock is an arg, not a file.
+
 2000-07-10  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tlsBIO.c (BioWrite, BioRead): changed Tcl_Read/Write to
