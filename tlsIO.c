@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.11 2000/08/18 19:17:36 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.12 2000/09/07 21:16:19 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -149,12 +149,13 @@ Tcl_ChannelType *Tls_ChannelType()
 	 * close2Proc, seekProc, setOptionProc stay NULL.
 	 */
 
-	tlsChannelType->closeProc        = TlsCloseProc;
-	tlsChannelType->inputProc        = TlsInputProc;
-	tlsChannelType->outputProc       = TlsOutputProc;
-	tlsChannelType->getOptionProc    = TlsGetOptionProc;
-	tlsChannelType->watchProc        = TlsWatchProc;
-	tlsChannelType->getHandleProc    = TlsGetHandleProc;
+	tlsChannelType->typeName	= "tls";
+	tlsChannelType->closeProc	= TlsCloseProc;
+	tlsChannelType->inputProc	= TlsInputProc;
+	tlsChannelType->outputProc	= TlsOutputProc;
+	tlsChannelType->getOptionProc	= TlsGetOptionProc;
+	tlsChannelType->watchProc	= TlsWatchProc;
+	tlsChannelType->getHandleProc	= TlsGetHandleProc;
 
 	/*
 	 * blockModeProc is a twister.  We have to make some runtime-choices,

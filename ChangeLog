@@ -1,4 +1,12 @@
+2000-09-07  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tlsIO.c (Tls_ChannelType): set typeName field of channel type to
+	"tls" (this got lost in move to dynamic version compatability
+	checking).
+
 2000-08-23  Jeff Hobbs  <hobbs@scriptics.com>
+
+	TLS 1.4 RELEASED
 
 	* Makefile.in (dist): create dist target for archive distributions
 
