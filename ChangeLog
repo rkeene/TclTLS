@@ -1,3 +1,10 @@
+2003-07-07  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.c (Tls_Init):   added tls::misc command provided by
+	* tlsX509.c:          Wojciech Kocjan (wojciech kocjan.org)
+	* tests/keytest1.tcl: to expose more low-level SSL commands
+	* tests/keytest2.tcl:
+
 2003-05-15  Dan Razzell	<research@starfishsystems.ca> 
 
 	* tls.tcl:
