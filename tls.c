@@ -1,8 +1,10 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
- * Copyright (C) 2000 Ajuba Solutions
+ * some modifications:
+ *	Copyright (C) 2000 Ajuba Solutions
+ *	Copyright (C) 2002 ActiveState Corporation
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.13 2001/03/14 22:04:35 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.14 2002/02/04 22:46:31 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -380,7 +382,7 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
     Tcl_Interp *interp = (Tcl_Interp*)udata;
 
     if (Tcl_Eval(interp, "tls::password") == TCL_OK) {
-	char *ret = Tcl_GetStringResult(interp);
+	CONST char *ret = Tcl_GetStringResult(interp);
         strncpy(buf, ret, size);
 	return strlen(ret);
     } else {
@@ -412,17 +414,11 @@ CiphersObjCmd(clientData, interp, objc, objv)
     int objc;
     Tcl_Obj	*CONST objv[];
 {
-    static char *protocols[] = {
-	"ssl2",
-	"ssl3",
-	"tls1",
-	NULL
+    static CONST char *protocols[] = {
+	"ssl2",	"ssl3",	"tls1",	NULL
     };
     enum protocol {
-	TLS_SSL2,
-	TLS_SSL3,
-	TLS_TLS1,
-	TLS_NONE
+	TLS_SSL2, TLS_SSL3, TLS_TLS1, TLS_NONE
     };
     Tcl_Obj *objPtr;
     SSL_CTX *ctx = NULL;
@@ -565,7 +561,7 @@ HandshakeObjCmd(clientData, interp, objc, objv)
 	int err;
 	ret = Tls_WaitForConnect(statePtr, &err);
 	if (ret < 0) {
-	    char *errStr = statePtr->err;
+	    CONST char *errStr = statePtr->err;
 	    Tcl_ResetResult(interp);
 	    Tcl_SetErrno(err);
 
@@ -826,7 +822,8 @@ ImportObjCmd(clientData, interp, objc, objv)
     /*
      * End of SSL Init
      */
-    Tcl_SetResult(interp, Tcl_GetChannelName(statePtr->self), TCL_VOLATILE);
+    Tcl_SetResult(interp, (char *) Tcl_GetChannelName(statePtr->self),
+	    TCL_VOLATILE);
     return TCL_OK;
 }
 
@@ -1013,11 +1010,21 @@ StatusObjCmd(clientData, interp, objc, objv)
     char *channelName, *ciphers;
     int mode;
 
-    if (objc != 2) {
-        Tcl_WrongNumArgs(interp, 1, objv, "channel");
-        return TCL_ERROR;
+    switch (objc) {
+	case 2:
+	    channelName = Tcl_GetStringFromObj(objv[1], NULL);
+	    break;
+
+	case 3:
+	    if (!strcmp (Tcl_GetString (objv[1]), "-local")) {
+		channelName = Tcl_GetStringFromObj(objv[2], NULL);
+		break;
+	    }
+	    /* else fall... */
+	default:
+	    Tcl_WrongNumArgs(interp, 1, objv, "?-local? channel");
+	    return TCL_ERROR;
     }
-    channelName = Tcl_GetStringFromObj(objv[1], NULL);
 
     chan = Tcl_GetChannel(interp, channelName, &mode);
     if (chan == (Tcl_Channel) NULL) {
@@ -1035,12 +1042,19 @@ StatusObjCmd(clientData, interp, objc, objv)
         return TCL_ERROR;
     }
     statePtr	= (State *) Tcl_GetChannelInstanceData(chan);
-    peer	= SSL_get_peer_certificate(statePtr->ssl);
+    if (objc == 2)
+	peer	= SSL_get_peer_certificate(statePtr->ssl);
+    else
+	peer	= SSL_get_certificate(statePtr->ssl);
     if (peer) {
 	objPtr = Tls_NewX509Obj(interp, peer);
     } else {
 	objPtr = Tcl_NewListObj(0, NULL);
     }
+
+    Tcl_ListObjAppendElement (interp, objPtr, Tcl_NewStringObj ("sbits", -1));
+    Tcl_ListObjAppendElement (interp, objPtr,
+	    Tcl_NewIntObj (SSL_get_cipher_bits (statePtr->ssl, NULL)));
 
     ciphers = (char*)SSL_get_cipher(statePtr->ssl);
     if (ciphers != NULL && strcmp(ciphers, "(NONE)")!=0) {

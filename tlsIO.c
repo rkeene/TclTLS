@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.12 2000/09/07 21:16:19 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.13 2002/02/04 22:46:31 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -32,9 +32,9 @@ static int	TlsCloseProc _ANSI_ARGS_ ((ClientData instanceData,
 static int	TlsInputProc _ANSI_ARGS_((ClientData instanceData,
 			char *buf, int bufSize, int *errorCodePtr));
 static int	TlsOutputProc _ANSI_ARGS_((ClientData instanceData,
-			char *buf, int toWrite, int *errorCodePtr));
+			CONST char *buf, int toWrite, int *errorCodePtr));
 static int	TlsGetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp, char *optionName,
+			Tcl_Interp *interp, CONST char *optionName,
 			Tcl_DString *dsPtr));
 static void	TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
 static int	TlsGetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
@@ -403,7 +403,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 
 static int
 TlsOutputProc(ClientData instanceData,	/* Socket state. */
-              char *buf,		/* The data buffer. */
+              CONST char *buf,		/* The data buffer. */
               int toWrite,		/* How many bytes to write? */
               int *errorCodePtr)	/* Where to store error code. */
 {
@@ -507,7 +507,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 static int
 TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 	Tcl_Interp *interp,		/* For errors - can be NULL. */
-	char *optionName,		/* Name of the option to
+	CONST char *optionName,		/* Name of the option to
 					 * retrieve the value for, or
 					 * NULL to get all options and
 					 * their values. */

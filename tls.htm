@@ -28,7 +28,7 @@ content="Matt Newman &lt;matt@novadigm.com&gt;">
             <dd><b>tls::socket</b><em> ?-server command?
                 ?options? port</em></dd>
             <dd><b>tls::handshake</b><em> channel</em></dd>
-            <dd><b>tls::status </b><em>channel</em></dd>
+            <dd><b>tls::status </b><em>?-local? channel</em></dd>
             <dd><b>tls::import</b><em> channel ?options?</em></dd>
             <dd><b>tls::ciphers </b><em>protocol ?verbose?</em></dd>
         </dl>
@@ -56,7 +56,7 @@ toolkit.</p>
 </a><a href="#tls::socket"><b>tls::socket </b><em>?options? host
 port</em><br>
 <b>tls::socket</b><em> ?-server command? ?options? port</em><br>
-</a><a href="#tls::status"><b>tls::status </b><em>channel</em><br>
+</a><a href="#tls::status"><b>tls::status </b><em>?-local? channel</em><br>
 </a><a href="#tls::handshake"><b>tls::handshake</b><em> channel</em></a><br>
 <br>
 <a href="#tls::import"><b>tls::import </b><i>channel ?options?</i></a><br>
@@ -110,11 +110,14 @@ used directly.</p>
         the handshake was successful. If the handshake failed
         this routine will throw an error.</dd>
     <dt>&nbsp;</dt>
-    <dt><a name="tls::status"><strong>tls::status</strong> <em>channel</em></a></dt>
+    <dt><a name="tls::status"><strong>tls::status</strong>
+    <em>?-local? channel</em></a></dt>
     <dd>Returns the current security status of a SSL channel. The
         result is a list of key value pairs describing the
         connected peer. If the result is an empty list then the
-        SSL handshake has not yet completed.</dd>
+        SSL handshake has not yet completed.
+        If <em>-local</em> is given, then the certificate information
+        is the one used locally.</dd>
 </dl>
 
 <blockquote>
@@ -134,6 +137,8 @@ used directly.</p>
         <dt><strong>cipher</strong> <em>cipher</em></dt>
         <dd>The current cipher in use between the client and
             server channels.</dd>
+        <dt><strong>sbits</strong> <em>n</em></dt>
+        <dd>The number of bits used for the session key.</dd>
     </dl>
 </blockquote>
 

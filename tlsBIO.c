@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.5 2000/08/18 19:17:36 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.6 2002/02/04 22:46:31 hobbs Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -12,10 +12,10 @@
  * Forward declarations
  */
 
-static int BioWrite	_ANSI_ARGS_ ((BIO *h, char *buf, int num));
+static int BioWrite	_ANSI_ARGS_ ((BIO *h, CONST char *buf, int num));
 static int BioRead	_ANSI_ARGS_ ((BIO *h, char *buf, int num));
-static int BioPuts	_ANSI_ARGS_ ((BIO *h, char *str));
-static long BioCtrl	_ANSI_ARGS_ ((BIO *h, int cmd, long arg1, char *ptr));
+static int BioPuts	_ANSI_ARGS_ ((BIO *h, CONST char *str));
+static long BioCtrl	_ANSI_ARGS_ ((BIO *h, int cmd, long arg1, CONST char *ptr));
 static int BioNew	_ANSI_ARGS_ ((BIO *h));
 static int BioFree	_ANSI_ARGS_ ((BIO *h));
 
@@ -55,7 +55,7 @@ BIO_s_tcl()
 static int
 BioWrite (bio, buf, bufLen)
     BIO *bio;
-    char *buf;
+    CONST char *buf;
     int bufLen;
 {
     Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
@@ -127,7 +127,7 @@ BioRead (bio, buf, bufLen)
 static int
 BioPuts	(bio, str)
     BIO *bio;
-    char *str;
+    CONST char *str;
 {
     return BioWrite(bio, str, strlen(str));
 }
@@ -137,7 +137,7 @@ BioCtrl	(bio, cmd, num, ptr)
     BIO *bio;
     int cmd;
     long num;
-    char *ptr;
+    CONST char *ptr;
 {
     Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
     long ret = 1;

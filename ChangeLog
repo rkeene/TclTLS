@@ -1,4 +1,32 @@
+2002-02-04  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.htm:
+	* tls.c: added support for local certificate status check, as well
+	as returning the # of bits in the session key. [Patch #505698] (rose)
+
+	* tls.c:
+	* tlsIO.c:
+	* tlsBIO.c: added CONSTs to satisfy Tcl 8.4 sources.  This may
+	give warnings when compiled against 8.3, but they can be ignored.
+
+	* tests/simpleClient.tcl:
+	* tests/simpleServer.tcl: point to updated client/server key files.
+
+	* tests/tlsIO.test:
+	* tests/ciphers.test: updated to load tls from build dir.
+
+	* Makefile.in: removed strncasecmp from default object set.  This
+	is only needed on the Mac, and Tcl stubs provides it.
+
+	* configure: regen'ed.
+	* configure.in: updated to 1.5.0 for next release.
+	Changed default openssl location to /usr/local/ssl (this is where
+	openssl 0.9.6c installs by default).
+	Changed to use public Tcl headers (private not needed).
+
 2001-06-21  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	TLS 1.4.1 RELEASE
 
 	* configure: added configure to CVS
 	* configure.in: moved to patchlevel 1.4.1
