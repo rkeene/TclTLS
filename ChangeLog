@@ -1,5 +1,8 @@
 2000-07-26  Jeff Hobbs  <hobbs@scriptics.com>
 
+	* tests/tlsIO.test: updated comments, fixed a pcCrash case that
+	was due to debug assertion in Windows SSL.
+
 	* tls.c (ImportObjCmd): removed unnecessary use of 'bio' arg.
 	(Tls_Init): check return value of SSL_library_init.  Also lots of
 	whitespace cleanup (more like Tcl Eng style guide), but not all

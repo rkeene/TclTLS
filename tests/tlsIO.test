@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.14.2.4 2000/07/21 05:32:57 hobbs Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.14.2.5 2000/07/26 23:11:46 hobbs Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -673,7 +673,10 @@ test tlsIO-2.11 {detecting new data} {socket} {
     set result
 } {a:one b: c:two}
 
-test tlsIO-2.12 {tcp connection; no certificates specified} {socket stdio pcCrash} {
+test tlsIO-2.12 {tcp connection; no certificates specified} \
+	{socket stdio unixOnly} {
+    # There is a debug assertion on Windows/SSL that causes a crash when the
+    # certificate isn't specified.
     removeFile script
     set f [open script w]
     puts $f {
@@ -797,6 +800,7 @@ test tlsIO-3.2 {server with several clients} {socket stdio} {
 } {ready done}
 
 test tlsIO-4.1 {server with several clients} {socket stdio} {
+    # have seen intermittent hangs on Windows
     removeFile script
     set f [open script w]
     puts $f {
@@ -901,28 +905,16 @@ test tlsIO-5.3 {byte order problems, socket numbers, htons} \
     set x
 } {couldn't open socket: not owner}
 
-if {0} {
-    package require tls
-
-    proc accept {s a p} {
-	puts [info level 0]
-	expr 10 / 0
-    }
-    set s [tls::socket -server accept 8848]
-
-    proc bgerror args { puts "bgerror: $args" }
-    set s [tls::socket zamora.scriptics.com 8848]
-}
-
-test tlsIO-6.1 {accept callback error} { socket stdio pcCrash} {
-    # HOBBS: still fails post-rewrite
+test tlsIO-6.1 {accept callback error} {socket stdio} {
+    # There is a debug assertion on Windows/SSL that causes a crash when the
+    # certificate isn't specified.
     removeFile script
     set f [open script w]
     puts $f {
     	package require tls
 	gets stdin
-	tls::socket 127.0.0.1 8848
     }
+    puts $f [list tls::socket -cafile $caCert 127.0.0.1 8848]
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r+]
     proc bgerror args {
@@ -930,7 +922,8 @@ test tlsIO-6.1 {accept callback error} { socket stdio pcCrash} {
 	set x $args
     }
     proc accept {s a p} {expr 10 / 0}
-    set s [tls::socket -server accept 8848]
+    set s [tls::socket -server accept \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey 8848]
     puts $f hello
     close $f
     set timer [after 10000 "set x timed_out"]
@@ -941,15 +934,14 @@ test tlsIO-6.1 {accept callback error} { socket stdio pcCrash} {
     set x
 } {{divide by zero}}
 
-# bug report #5812 fconfigure doesn't return value for '-peername'
-
 test tlsIO-7.1 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
     }
-    puts $f "tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8820"
+    puts $f [list tls::socket -server accept \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey 8820]
     puts $f {
 	proc accept args {
 	    global x
@@ -974,8 +966,6 @@ test tlsIO-7.1 {testing socket specific options} {socket stdio} {
     lappend l [string compare [lindex $p 2] 8820]
     lappend l [llength $p]
 } {0 0 3}
-
-# bug report #5812 fconfigure doesn't return value for '-sockname'
 
 test tlsIO-7.2 {testing socket specific options} {socket stdio} {
     removeFile script
@@ -1845,7 +1835,8 @@ test tlsIO-12.2 {testing inheritance of client sockets} {socket exec} {
     set x
 } {client socket was not inherited}
 
-test tlsIO-12.3 {testing inheritance of accepted sockets} {socket exec} {
+test tlsIO-12.3 {testing inheritance of accepted sockets} \
+	{socket exec unixOnly} {
     makeFile {} script1
     makeFile {} script2
 
