@@ -1,5 +1,7 @@
 2000-08-23  Jeff Hobbs  <hobbs@scriptics.com>
 
+	* Makefile.in (dist): create dist target for archive distributions
+
 	* tests/tlsIO.test (tlsIO-8.1): added a delay on the accept close
 	to make the test work with OpenSSL on Windows (doesn't affect
 	other builds).

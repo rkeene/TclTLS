@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.15 2000/07/27 01:58:18 hobbs Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.16 2000/08/23 17:39:04 hobbs Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -329,6 +329,42 @@ distclean: clean
 	-rm -f Makefile $(CONFIG_CLEAN_FILES)
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
 	-rm -f config.status
+
+PKG_DIR		= $(PACKAGE)$(VERSION)
+COMPEXE		= gzip
+COMPEXT		= gz
+COMPRESS	= tar cvf - $(PKG_DIR) | $(COMPEXE) > $(PKG_DIR).tar.$(COMPEXT)
+DIST_ROOT	= /tmp/dist
+DIST_DIR	= $(DIST_ROOT)/$(PKG_DIR)
+
+dist-clean:
+	rm -rf $(DIST_DIR) $(DIST_ROOT)/$(PKG_DIR).tar.$(COMPEXT)
+
+dist: dist-clean $(srcdir)/configure
+	mkdir -p $(DIST_DIR)
+	cp -p $(srcdir)/README.txt $(srcdir)/ChangeLog $(srcdir)/tls.htm \
+		$(srcdir)/configure $(srcdir)/configure.in \
+		$(srcdir)/Makefile.in $(srcdir)/*.c $(srcdir)/*.h \
+		$(srcdir)/pkgIndex.tcl.in $(srcdir)/license.terms \
+		$(srcdir)/aclocal.m4 $(srcdir)/tls.tcl \
+		$(DIST_DIR)
+
+	mkdir $(DIST_DIR)/config
+	cp -p $(srcdir)/config/install-sh $(srcdir)/config/mkinstalldirs \
+		$(srcdir)/config/tcl.m4 \
+		$(DIST_DIR)/config
+
+	mkdir $(DIST_DIR)/tests
+	cp -p $(srcdir)/tests/*.tcl $(srcdir)/tests/*.test $(DIST_DIR)/tests
+
+	mkdir $(DIST_DIR)/tests/certs
+	cp -p $(srcdir)/tests/certs/*.pem $(DIST_DIR)/tests/certs
+
+	chmod 664 $(DIST_DIR)/Makefile.in
+	chmod 775 $(DIST_DIR)/configure $(DIST_DIR)/configure.in
+	chmod +x $(DIST_DIR)/config/install-sh
+
+	(cd $(DIST_ROOT); $(COMPRESS);)
 
 #========================================================================
 # Install binary object libraries.  On Windows this includes both .dll and
