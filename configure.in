@@ -112,7 +112,7 @@ if test -n "${OPENSSL}"; then
     SSL_LIB_DIR=${SSL_DIR}/lib
     SSL_INCLUDE_DIR=${SSL_DIR}/include
     if test ! -f "${SSL_INCLUDE_DIR}/openssl/opensslv.h"; then
-        AC_ERROR(bad ssl-dir: cannot find opensslv.h under ${SSL_INCLUDE_DIR})
+        AC_ERROR(bad ssl-dir: cannot find openssl/opensslv.h under ${SSL_INCLUDE_DIR})
     fi
 else
     SSL_LIB_DIR=${SSL_DIR}/${PLATFORM}/library/lib
