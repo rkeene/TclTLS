@@ -11,7 +11,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.7 2000/05/04 20:08:51 aborr Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.8 2000/05/04 20:12:50 aborr Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -62,7 +62,6 @@ SSL_LIB_DIR =		@SSL_LIB_DIR@
 SSL_INCLUDE_DIR =	@SSL_INCLUDE_DIR@
 SSL_INCLUDE_DIR_NATIVE = @SSL_INCLUDE_DIR_NATIVE@
 SSL_INCLUDES =		-I$(SSL_INCLUDE_DIR_NATIVE)
-SSL_CFLAGS =		@SSL_CFLAGS@
 
 
 #========================================================================
@@ -161,7 +160,7 @@ LDFLAGS = $(LDFLAGS_DEFAULT)
 
 INCLUDES = @TCL_INCLUDES@ $(SSL_INCLUDES)
 
-EXTRA_CFLAGS = $(TCL_DEFS) $(PROTO_FLAGS) $(SECURITY_FLAGS) $(MEM_DEBUG_FLAGS) $(KEYSYM_FLAGS) $(NO_DEPRECATED_FLAGS) $(SSL_CFLAGS)
+EXTRA_CFLAGS = $(TCL_DEFS) $(PROTO_FLAGS) $(SECURITY_FLAGS) $(MEM_DEBUG_FLAGS) $(KEYSYM_FLAGS) $(NO_DEPRECATED_FLAGS)
 
 DEFS = @DEFS@ $(EXTRA_CFLAGS)
 
