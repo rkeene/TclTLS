@@ -1,3 +1,10 @@
+2000-06-01  Scott Stanton  <stanton@ajubasolutions.com>
+
+	* tlsIO.c: Restored call to Tcl_NotifyChannel from ChannelHandler
+	to ensure that events propagate from the lower driver.  This may
+	result in an infinite loop in some cases, so this is not a total
+	fix.  This may be sufficient for now, however. [Bug: 5623]
+
 2000-06-01  Scott Stanton  <stanton@scriptics.com>
 
 	* tlsIO.c: Restore the previous version.  Fixed the CloseProc so
