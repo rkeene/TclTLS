@@ -1,3 +1,9 @@
+2003-12-15  Dan Razzell	<research@starfishsystems.ca>
+
+	* pkgIndex.tcl.in:
+	* tls.htm:
+	* tests/tlsIO.test: updated version to 1.5.
+
 2003-10-07  Dan Razzell	<research@starfishsystems.ca>
 
 	* tests/ciphers.test: updated list of tested ciphers to correspond

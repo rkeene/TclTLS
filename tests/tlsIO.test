@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.19 2002/02/04 22:45:11 hobbs Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.20 2003/12/15 18:46:20 razzell Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -72,7 +72,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 # The build dir is added as the first element of $PATH
 set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 # Load the tls package
-package require tls 1.4
+package require tls 1.5
 
 set tlsServerPort 8048
 
