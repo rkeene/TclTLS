@@ -1,12 +1,19 @@
 Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 TLS 1.4.1 Copyright (C) 2000 Ajuba Solutions
 
-$Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/README.txt,v 1.5 2003/05/15 21:02:10 razzell Exp $
+$Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/README.txt,v 1.6 2004/02/17 21:27:20 razzell Exp $
 
 TLS (aka SSL) Channel - can be layered on any bi-directional Tcl_Channel.
 
 Both client and server-side sockets are possible, and this code should work
 on any platform as it uses a generic mechanism for layering on SSL and Tcl.
+
+Full filevent sematics should also be intact - see tests directory for
+blocking and non-blocking examples.
+
+The current release is TLS 1.5.0, with binaries built against OpenSSL 0.9.7c.
+For best security and function, always compile from source use the latest
+official release of OpenSSL.
 
 The TLS 1.4 release requires Tcl 8.2.0+, with 8.3.2+ preferred.  The
 stacked channel implementation in Tcl was originally introduced in 8.2.0
@@ -17,15 +24,6 @@ There are known limitations in the 8.2.0-8.3.1 stacked channel
 implementation, so it is encouraged that people use TLS 1.4+ with an
 8.3.2+ Tcl interpreter.  These modifications are by Jeff Hobbs
 <jeff@hobbs.org>.
-
-Full filevent sematics should also be intact - see tests directory for
-blocking and non-blocking examples.
-
-This was built (almost) from scratch based upon observation of OpenSSL 0.9.2b.
-For correct functioning, use OpenSSL 0.9.6g or later.  This release contains
-important fixes to memory management, as well as incorporating the verify
-callback correction which appeared in OpenSSL 0.9.6c.  For best security, use
-the latest official release of OpenSSL.
 
 Addition credit is due for Andreas Kupries (a.kupries@westend.com), for
 providing the Tcl_ReplaceChannel mechanism and working closely with me
