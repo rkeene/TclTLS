@@ -1,7 +1,7 @@
 #
-# Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
+# Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.1.1.1 2000/01/19 22:10:58 aborr Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.2 2000/01/20 01:51:05 aborr Exp $
 #
 namespace eval tls {
     variable logcmd tclLog
@@ -51,6 +51,7 @@ proc tls::socket {args} {
 	0,-myport	-
 	*,-myaddr	{lappend sopts $arg [lindex $args [incr idx]]}
 	0,-async	{lappend sopts $arg}
+	*,-cipher	-
 	*,-cadir	-
 	*,-cafile	-
 	*,-certfile	-
@@ -105,7 +106,14 @@ proc tls::_accept { iopts callback chan ipaddr port } {
     set chan [eval [list tls::import $chan] $iopts]
 
     lappend callback $chan $ipaddr $port
-    uplevel #0 $callback
+    if {[catch {
+	uplevel #0 $callback
+    } err]} {
+	log 1 "tls::_accept error: ${::errorInfo}"
+	close $chan
+    } else {
+	log 2 "tls::_accept - called \"$callback\" succeeded"
+    }
 }
 #
 # Sample callback for hooking: -
