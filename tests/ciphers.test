@@ -16,6 +16,9 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
     namespace import ::tcltest::*
 }
 
+# The build dir is added as the first element of $PATH
+set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
+
 package require tls
 
 # One of these should == 1, depending on what type of ssl library
