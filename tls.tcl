@@ -1,7 +1,7 @@
 #
-# Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
+# Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com> 
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.4 2003/05/15 20:44:46 razzell Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.5 2003/05/15 21:02:10 razzell Exp $
 #
 namespace eval tls {
     variable logcmd tclLog

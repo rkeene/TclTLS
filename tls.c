@@ -3,9 +3,9 @@
  * some modifications:
  *	Copyright (C) 2000 Ajuba Solutions
  *	Copyright (C) 2002 ActiveState Corporation
- *	Copyright (C) 2003 Starfish Systems
+ *	Copyright (C) 2003 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.15 2003/05/15 20:44:46 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.16 2003/05/15 21:02:10 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
