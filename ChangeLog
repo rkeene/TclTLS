@@ -1,3 +1,30 @@
+2001-06-21  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* configure: added configure to CVS
+	* configure.in: moved to patchlevel 1.4.1
+
+	* Makefile.in: corrected 'dist' target
+
+	* tests/certs/file.srl:
+	* tests/certs/ca.pem:
+	* tests/certs/client.key:
+	* tests/certs/client.pem:
+	* tests/certs/client.req:
+	* tests/certs/privkey.pem:
+	* tests/certs/server.key:
+	* tests/certs/server.pem:
+	* tests/certs/server.req:
+	* tests/certs/cacert.pem: replaced by new ca.pem
+	* tests/certs/skey.pem: replaced by new server.key
+	* tests/certs/ckey.pem: replaced by new client.key
+	* tests/certs/README.txt: new set of test certificates with some
+	README info on their generation.
+
+	* tests/ciphers.test: updated ciphers expected with default
+	openssl build.
+
+	* tests/tclIO.test: updated to use new names for certs/keys.
+
 2001-03-14  Jeff Hobbs  <jeffh@gimlet.activestate.com>
 
 	* tls.c (Tls_Init): add do/while for random number initialization
