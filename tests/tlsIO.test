@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.14.2.2 2000/07/12 01:54:03 hobbs Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.14.2.3 2000/07/14 04:10:23 hobbs Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -578,7 +578,7 @@ test tlsIO-2.9 {socket conflict} {socket stdio} {
 "tls::socket -server accept 8828"
     (file "script" line 1)}}
 
-test tlsIO-2.10 {close on accept, accepted socket lives} {socket knownBug} {
+test tlsIO-2.10 {close on accept, accepted socket lives} {socket} {
     set done 0
     set timer [after 20000 "set done timed_out"]
     set ss [tls::socket -server accept -certfile $serverCert -cafile $caCert \
@@ -605,6 +605,7 @@ test tlsIO-2.10 {close on accept, accepted socket lives} {socket knownBug} {
 } 1
 
 test tlsIO-2.11 {detecting new data} {socket knownBug} {
+    # HOBBS: hung pre-rewrite, hangs post-rewrite
     proc accept {s a p} {
 	global sock
 	set sock $s
@@ -868,6 +869,7 @@ test tlsIO-5.3 {byte order problems, socket numbers, htons} \
 } {couldn't open socket: not owner}
 
 test tlsIO-6.1 {accept callback error} {unexplainedFailure socket stdio pcCrash} {
+    # HOBBS: still fails post-rewrite
     removeFile script
     set f [open script w]
     puts $f {
@@ -895,7 +897,7 @@ test tlsIO-6.1 {accept callback error} {unexplainedFailure socket stdio pcCrash}
 
 # bug report #5812 fconfigure doesn't return value for '-peername'
 
-test tlsIO-7.1 {testing socket specific options} {knownBug socket stdio} {
+test tlsIO-7.1 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
@@ -929,7 +931,7 @@ test tlsIO-7.1 {testing socket specific options} {knownBug socket stdio} {
 
 # bug report #5812 fconfigure doesn't return value for '-sockname'
 
-test tlsIO-7.2 {testing socket specific options} {knownBug socket stdio} {
+test tlsIO-7.2 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
@@ -973,7 +975,7 @@ test tlsIO-7.3 {testing socket specific options} {socket} {
 
 # bug report #5812 fconfigure doesn't return value for '-sockname'
 
-test tlsIO-7.4 {testing socket specific options} {knownBug socket} {
+test tlsIO-7.4 {testing socket specific options} {socket} {
     set s [tls::socket \
 	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
     	-server accept 8823]
@@ -996,7 +998,7 @@ test tlsIO-7.4 {testing socket specific options} {knownBug socket} {
 
 # bug report #5812 fconfigure doesn't return value for '-sockname'
 
-test tlsIO-7.5 {testing socket specific options} {knownBug socket unixOrPc} {
+test tlsIO-7.5 {testing socket specific options} {socket unixOrPc} {
     set s [tls::socket \
 	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
     	-server accept 8829]
@@ -1018,6 +1020,7 @@ test tlsIO-7.5 {testing socket specific options} {knownBug socket unixOrPc} {
 } {127.0.0.1 8829 3}
 
 test tlsIO-8.1 {testing -async flag on sockets} {unexplainedHang socket} {
+    # HOBBS: still fails post-rewrite
     # test seems to hang -- awb 6/2/2000
     # NOTE: This test may fail on some Solaris 2.4 systems. If it does,
     # check that you have these patches installed (using showrev -p):
@@ -1053,6 +1056,7 @@ test tlsIO-8.1 {testing -async flag on sockets} {unexplainedHang socket} {
 } bye
 
 test tlsIO-9.1 {testing spurious events} {unexplainedHang socket} {
+    # HOBBS: still fails post-rewrite
     # locks up 
     set len 0
     set spurious 0
@@ -1091,6 +1095,8 @@ test tlsIO-9.1 {testing spurious events} {unexplainedHang socket} {
 } {0 50}
 
 test tlsIO-9.2 {testing async write, fileevents, flush on close} {socket} {
+    # HOBBS: This hangs when I turn blocking on.
+    #
     set firstblock ""
     for {set i 0} {$i < 5} {incr i} {set firstblock "a$firstblock$firstblock"}
     set secondblock ""
@@ -1136,14 +1142,16 @@ test tlsIO-9.2 {testing async write, fileevents, flush on close} {socket} {
 	}
     }
     fileevent $s readable "readit $s"
+    set done 0
     set timer [after 10000 "set done timed_out"]
     vwait done
     after cancel $timer
     close $l
-    set count
-} 65566
+    list $count $done
+} {65566 1}
 
 test tlsIO-9.3 {testing EOF stickyness} {unexplainedHang socket} {
+    # HOBBS: still fails post-rewrite
     # hangs
     proc count_to_eof {s} {
 	global count done timer
