@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.10 2000/06/06 22:00:48 aborr Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.11 2000/06/06 22:18:10 aborr Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -287,7 +287,7 @@ test tlsIO-2.1 {tcp connection} {socket stdio} {
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f x
     if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
-	-keyfile $clientKey 127.0.0.1 $tlsServerPort msg]} {
+	-keyfile $clientKey 127.0.0.1 $tlsServerPort} msg]} {
         set x $msg
     } else {
         lappend x [gets $f]
