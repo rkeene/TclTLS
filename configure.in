@@ -346,7 +346,7 @@ if test -n "${OPENSSL}"; then
     case "`uname -s`" in
 	*win32* | *WIN32* | *CYGWIN_NT*|*CYGWIN_98*|*CYGWIN_95*)
 	    if test "${SHARED_BUILD}" = "1" ; then
-		SHLIB_LD_LIBS="\"`${CYGPATH} ${TCL_BIN_DIR}/${TCL_STUB_LIB_FILE}`\" ${TCL_SHLIB_LD_LIBS} \"`${CYGPATH} ${SSL_LIB_DIR}/ssleay32${TCL_DBGX}.lib`\" \"`${CYGPATH} ${SSL_LIB_DIR}/libeay32${TCL_DBGX}.lib`\""
+		SHLIB_LD_LIBS="\"`${CYGPATH} ${TCL_BIN_DIR}/${TCL_STUB_LIB_FILE}`\" ${TCL_SHLIB_LD_LIBS} \"`${CYGPATH} ${SSL_LIB_DIR}/ssleay32.lib`\" \"`${CYGPATH} ${SSL_LIB_DIR}/libeay32.lib`\""
 		eval "${PACKAGE}_LIB_FILE=${PACKAGE}${SHARED_LIB_SUFFIX}"
 		RANLIB=:
 	    else
