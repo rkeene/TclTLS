@@ -64,7 +64,6 @@ AC_SUBST(SSL_DIR)
 AC_SUBST(SSL_LIB_DIR)
 AC_SUBST(SSL_INCLUDE_DIR)
 
-
 #--------------------------------------------------------------------
 # Check whether --enable-gcc or --disable-gcc was given.  Do this 
 # before AC_CYGWIN is called so the compiler can be fully tested by
@@ -75,6 +74,26 @@ AC_SUBST(SSL_INCLUDE_DIR)
 SC_ENABLE_GCC
 AC_PROG_INSTALL
 
+#--------------------------------------------------------------------
+# If openssl was built with gcc then there may be some symbols that need
+# resolving before we can load it into tclsh (__udivd3i on solaris.  Let the
+# user specify if we need to add libgcc to the link line to resolve these
+# symbols.
+#--------------------------------------------------------------------
+
+AC_MSG_CHECKING(if libgcc is needed to resolve openssl symbols)
+
+AC_ARG_WITH(gcclib, [  --with-gcclib         link with libgcc to resolve symbols in a gcc-built openssl library], GCCLIB="-lgcc", GCCLIB="")
+
+if test "x${GCCLIB}" = "x" ; then
+    AC_MSG_RESULT(no)
+else
+    AC_MSG_RESULT(yes)
+    AC_MSG_CHECKING(for gcc library location)
+    GCCPATH=`${CC} -print-libgcc-file-name | sed -e 's#[^/]*$##'`
+    GCCPATH="-L${GCCPATH}"
+    AC_MSG_RESULT(${GCCPATH})
+fi
 
 #--------------------------------------------------------------------
 # Checks to see if the make program sets the $MAKE variable.
@@ -255,7 +274,7 @@ case "`uname -s`" in
 	;;
     *)
 	if test "${SHARED_BUILD}" = "1" ; then
-	    SHLIB_LD_LIBS="${TCL_STUB_LIB_SPEC} -L${SSL_LIB_DIR} -lssl -L${SSL_LIB_DIR} -lcrypto"
+	    SHLIB_LD_LIBS="${TCL_STUB_LIB_SPEC} -L${SSL_LIB_DIR} -lssl -L${SSL_LIB_DIR} -lcrypto ${GCCPATH} ${GCCLIB}"
 	    eval "${PACKAGE}_LIB_FILE=lib${PACKAGE}${SHARED_LIB_SUFFIX}"
 	    RANLIB=:
 	else
