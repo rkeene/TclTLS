@@ -1,3 +1,17 @@
+2000-08-18  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tls.c (Tls_Init): added call to RAND_seed to seed the SSL random
+	number generator.  Without this, OpenSSL 0.9.5 chokes, and in any
+	case it is a big security hole to do without it.
+
+	* configure.in (OPENSSL): added NO_IDEA and NO_RC5 defines by
+	default when compiling with OpenSSL.
+
+	* tlsInt.h: added err.h include
+
+	* tlsBIO.c:
+	* tlsIO.c: corrected pedantic cast errors.
+
 2000-08-16  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tests/ciphers.test: improved ability to change constraint
