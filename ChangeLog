@@ -1,3 +1,7 @@
+2000-08-21  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tests/tlsIO.test: require at least tls1.4 in test suite.
+
 2000-08-18  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tls.c (Tls_Init): added call to RAND_seed to seed the SSL random
