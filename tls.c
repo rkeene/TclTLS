@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2003 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.18 2003/10/07 22:57:02 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.19 2004/02/04 04:02:19 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -846,7 +846,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     SSL_set_verify(statePtr->ssl, verify, VerifyCallback);
 
-    SSL_CTX_set_info_callback(statePtr->ctx, InfoCallback);
+    SSL_CTX_set_info_callback(statePtr->ctx, (void (*)())InfoCallback);
 
     /* Create Tcl_Channel BIO Handler */
     statePtr->p_bio	= BIO_new_tcl(statePtr, BIO_CLOSE);
@@ -1182,7 +1182,7 @@ MiscObjCmd(clientData, interp, objc, objv)
 	    Tcl_Obj **listv;
 	    int listc,i;
 
-	    BIO *in=NULL,*out=NULL;
+	    BIO *out=NULL;
 
 	    char *k_C="",*k_ST="",*k_L="",*k_O="",*k_OU="",*k_CN="",*k_Email="";
 	    char *keyout,*pemout,*str;

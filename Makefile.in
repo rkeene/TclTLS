@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.18 2002/02/04 22:45:53 hobbs Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.19 2004/02/04 04:02:17 razzell Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -299,9 +299,6 @@ fixstrtod.$(OBJEXT): $(srcdir)/fixstrtod.c
 
 strncasecmp.$(OBJEXT): $(srcdir)/strncasecmp.c
 	$(COMPILE) -c `@CYGPATH@ $(srcdir)/strncasecmp.c` -o $@
-
-tls.tcl: $(srcdir)/tls.tcl
-	cp $(srcdir)/tls.tcl tls.tcl
 
 #========================================================================
 # End of user-definable section

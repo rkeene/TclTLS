@@ -1,3 +1,10 @@
+2004-02-03  Dan Razzell <research@starfishsystems.ca>
+
+	* Makefile.in:	Removed circular dependency.
+	* tlsInt.h:	Make function declarations explicit.
+	* tls.c:	Fix type match and unused variable warnings.
+	* tlsBIO.c:	Fix type match warning.
+
 2003-12-15  Dan Razzell	<research@starfishsystems.ca>
 
 	* pkgIndex.tcl.in:
