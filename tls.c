@@ -2,7 +2,7 @@
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.10 2000/08/15 18:49:30 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.11 2000/08/16 17:44:05 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -1139,7 +1139,7 @@ int
 Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
                                          * to be made available. */
 {
-    int major, minor, release, serial;
+    int major, minor, patchlevel, release;
 
     /*
      * The original 8.2.0 stacked channel implementation (and the patch
@@ -1162,9 +1162,9 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
      * TLS should really only be used in 8.3.2+, but the other works for
      * some limited functionality, so an attempt at support is made.
      */
-    Tcl_GetVersion(&major, &minor, &release, &serial);
+    Tcl_GetVersion(&major, &minor, &patchlevel, &release);
     if ((major > 8) || ((major == 8) && ((minor > 3) || ((minor == 3) &&
-	    (release == TCL_FINAL_RELEASE) && (serial >= 2))))) {
+	    (release == TCL_FINAL_RELEASE) && (patchlevel >= 2))))) {
 	/* 8.3.2+ */
 	channelTypeVersion = TLS_CHANNEL_VERSION_2;
     } else {

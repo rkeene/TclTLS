@@ -1,3 +1,8 @@
+2000-08-16  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tls.c (Tls_Init): corrected interpretation of version number
+	(patchlevel and release/serial were swapped).
+
 2000-08-15  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* README.txt: added notes about need to use 8.2.0+.
