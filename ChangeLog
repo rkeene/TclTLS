@@ -1,5 +1,11 @@
 2000-08-14  Jeff Hobbs  <hobbs@scriptics.com>
 
+	* tlsInt.h:
+	* tlsIO.c:
+	* tlsBIO.c:
+	* tls.c: changed around to only working with 8.2.0+ (8.3.2+
+	preferred), with runtime checks for pre- and post-io-rewrite.
+
 	* tls.c (Tls_Init): changed it to require 8.3.2 when Tcl_InitStubs
 	was called because we don't want people using TLS with the
 	original stacked channel implementation.

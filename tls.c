@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.8 2000/08/14 21:55:12 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.9 2000/08/15 00:02:08 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -88,6 +88,11 @@ static DH *get_dh512()
 }
 #endif
 
+/*
+ * Defined in Tls_Init to determine what kind of channels we are using
+ * (old-style 8.2.0-8.3.1 or new-style 8.3.2+).
+ */
+int channelTypeVersion;
 
 /*
  * We lose the tcl password callback when we use the RSA BSAFE SSL-C 1.1.2
@@ -542,12 +547,12 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
         return TCL_ERROR;
     }
-#ifdef TCL_CHANNEL_VERSION_2
-    /*
-     * Make sure to operate on the topmost channel
-     */
-    chan = Tcl_GetTopChannel(chan);
-#endif
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	/*
+	 * Make sure to operate on the topmost channel
+	 */
+	chan = Tcl_GetTopChannel(chan);
+    }
     if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
         Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
                 "\": not a TLS channel", NULL);
@@ -642,12 +647,12 @@ ImportObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
         return TCL_ERROR;
     }
-#ifdef TCL_CHANNEL_VERSION_2
-    /*
-     * Make sure to operate on the topmost channel
-     */
-    chan = Tcl_GetTopChannel(chan);
-#endif
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	/*
+	 * Make sure to operate on the topmost channel
+	 */
+	chan = Tcl_GetTopChannel(chan);
+    }
 
     for (idx = 2; idx < objc; idx++) {
 	char *opt = Tcl_GetStringFromObj(objv[idx], NULL);
@@ -696,12 +701,12 @@ ImportObjCmd(clientData, interp, objc, objv)
 	if (chan == (Tcl_Channel) NULL) {
 	    return TCL_ERROR;
 	}
-#ifdef TCL_CHANNEL_VERSION_2
-	/*
-	 * Make sure to operate on the topmost channel
-	 */
-	chan = Tcl_GetTopChannel(chan);
-#endif
+	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	    /*
+	     * Make sure to operate on the topmost channel
+	     */
+	    chan = Tcl_GetTopChannel(chan);
+	}
 	if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
 	    Tcl_AppendResult(interp, "bad channel \"",
 		    Tcl_GetChannelName(chan), "\": not a TLS channel", NULL);
@@ -743,25 +748,18 @@ ImportObjCmd(clientData, interp, objc, objv)
      * each channel in the stack maintained its own buffers.
      */
     Tcl_SetChannelOption(interp, chan, "-translation", "binary");
-#ifndef TCL_CHANNEL_VERSION_2
-    Tcl_SetChannelOption(interp, chan, "-buffering", "none");
-#endif
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
+	Tcl_SetChannelOption(interp, chan, "-buffering", "none");
+    }
 
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 2
-    statePtr->parent = chan;
-    statePtr->self = Tcl_ReplaceChannel(interp,
-	    Tls_ChannelType(), (ClientData) statePtr,
-	    (TCL_READABLE | TCL_WRITABLE), statePtr->parent);
-#else
-#ifdef TCL_CHANNEL_VERSION_2
-    statePtr->self = Tcl_StackChannel(interp, Tls_ChannelType(),
-	    (ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
-#else
-    statePtr->self = chan;
-    Tcl_StackChannel( interp, Tls_ChannelType(), (ClientData) statePtr,
-	    (TCL_READABLE | TCL_WRITABLE), chan);
-#endif
-#endif
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	statePtr->self = Tcl_StackChannel(interp, Tls_ChannelType(),
+		(ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
+    } else {
+	statePtr->self = chan;
+	Tcl_StackChannel(interp, Tls_ChannelType(),
+		(ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
+    }
     if (statePtr->self == (Tcl_Channel) NULL) {
 	/*
 	 * No use of Tcl_EventuallyFree because no possible Tcl_Preserve.
@@ -1024,12 +1022,12 @@ StatusObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
 	return TCL_ERROR;
     }
-#ifdef TCL_CHANNEL_VERSION_2
-    /*
-     * Make sure to operate on the topmost channel
-     */
-    chan = Tcl_GetTopChannel(chan);
-#endif
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	/*
+	 * Make sure to operate on the topmost channel
+	 */
+	chan = Tcl_GetTopChannel(chan);
+    }
     if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
         Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
                 "\": not a TLS channel", NULL);
@@ -1140,17 +1138,38 @@ int
 Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
                                          * to be made available. */
 {
-#if TCL_MAJOR_VERSION >= 8 && TCL_MINOR_VERSION >= 2
+    int major, minor, release, serial;
+
     /*
      * The original 8.2.0 stacked channel implementation (and the patch
      * that preceded it) had problems with scalability and robustness.
      * These were address in 8.3.2 / 8.4a2, so we now require that as a
-     * minimum for TLS 1.4+.
+     * minimum for TLS 1.4+.  We only support 8.2+ now (8.3.2+ preferred).
      */
-    if (Tcl_InitStubs(interp, "8.3.2", 0) == NULL) {
+    if (
+#ifdef USE_TCL_STUBS
+	Tcl_InitStubs(interp, "8.2", 0)
+#else
+	Tcl_PkgRequire(interp, "Tcl", "8.2", 0)
+#endif
+	== NULL) {
         return TCL_ERROR;
     }
-#endif
+
+    /*
+     * Get the version so we can runtime switch on available functionality.
+     * TLS should really only be used in 8.3.2+, but the other works for
+     * some limited functionality, so an attempt at support is made.
+     */
+    Tcl_GetVersion(&major, &minor, &release, &serial);
+    if ((major > 8) || ((major == 8) && ((minor > 3) || ((minor == 3) &&
+	    (release == TCL_FINAL_RELEASE) && (serial >= 2))))) {
+	/* 8.3.2+ */
+	channelTypeVersion = TLS_CHANNEL_VERSION_2;
+    } else {
+	/* 8.2.0 - 8.3.1 */
+	channelTypeVersion = TLS_CHANNEL_VERSION_1;
+    }
 
     if (SSL_library_init() != 1) {
         Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
