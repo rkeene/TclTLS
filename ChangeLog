@@ -1,3 +1,9 @@
+2000-08-15  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tests/simpleClient.tcl: 
+	* tests/simpleServer.tcl: added simple client/server test scripts
+	that use test certs and can do simple stress tests.
+
 2000-08-14  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tlsInt.h:
