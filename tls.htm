@@ -1,0 +1,257 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="Author"
+content="Matt Newman &lt;matt@novadigm.com&gt;">
+<meta name="Copyright" content="1999 Matt Newman.">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>TLS (SSL) Tcl Commands</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<dl>
+    <dd><a href="#NAME">NAME</a> <dl>
+            <dd><strong>tls</strong> - binding to <strong>OpenSSL</strong>
+                toolkit.</dd>
+        </dl>
+    </dd>
+    <dd><a href="#SYNOPSIS">SYNOPSIS</a> </dd>
+    <dd><dl>
+            <dd><b>package require tls </b><em>?1.3?</em></dd>
+            <dt>&nbsp;</dt>
+            <dd><b>tls::init </b><i>?options?</i> </dd>
+            <dd><b>tls::socket </b><em>?options? host port</em></dd>
+            <dd><b>tls::socket</b><em> ?-server command?
+                ?options? port</em></dd>
+            <dd><b>tls::handshake</b><em> channel</em></dd>
+            <dd><b>tls::status </b><em>channel</em></dd>
+            <dd><b>tls::import</b><em> channel ?options?</em></dd>
+            <dd><b>tls::ciphers </b><em>protocol ?verbose?</em></dd>
+        </dl>
+    </dd>
+    <dd><a href="#COMMANDS">COMMANDS</a></dd>
+    <dd><a href="#CONFIGURATION OPTIONS">CONFIGURATION OPTIONS</a></dd>
+    <dd><a href="#HTTPS EXAMPLE">HTTPS EXAMPLE</a></dd>
+    <dd><a href="#SEE ALSO">SPECIAL CONSIDERATIONS</a></dd>
+    <dd><a href="#SEE ALSO">SEE ALSO</a></dd>
+</dl>
+
+<hr>
+
+<h3><a name="NAME">NAME</a></h3>
+
+<p><strong>tls</strong> - binding to <strong>OpenSSL</strong>
+toolkit.</p>
+
+<h3><a name="SYNOPSIS">SYNOPSIS</a></h3>
+
+<p><b>package require tls </b><em>?1.3?</em><br>
+<br>
+<a href="#tls::init"><b>tls::init </b><i>?options?</i><br>
+</a><a href="#tls::socket"><b>tls::socket </b><em>?options? host
+port</em><br>
+<b>tls::socket</b><em> ?-server command? ?options? port</em><br>
+</a><a href="#tls::status"><b>tls::status </b><em>channel</em><br>
+</a><a href="#tls::handshake"><b>tls::handshake</b><em> channel</em></a><br>
+<br>
+<a href="#tls::import"><b>tls::import </b><i>channel ?options?</i></a><br>
+<a href="#tls::ciphers protocol ?verbose?"><strong>tls::ciphers</strong>
+<em>protocol ?verbose?</em></a></p>
+
+<h3><a name="DESCRIPTION">DESCRIPTION</a></h3>
+
+<p>This extension provides a generic binding to <a
+href="http://www.openssl.org/">OpenSSL</a>, utilizing the <a
+href="http://www.oche.de/~akupries/soft/trf/index.html">Trf</a>
+Channel Stacking patch for Tcl 8.[01] and the new <strong>Tcl_StackChannel</strong>
+API for Tcl 8.2 and higher. The sockets behave exactly the same
+as channels created using Tcl's built-in <strong>socket</strong>
+command with additional options for controlling the SSL session.</p>
+
+<h3><a name="COMMANDS">COMMANDS</a></h3>
+
+<p>Typically one would use the <strong>tls::socket </strong>command
+which provides compatibility with the native Tcl <strong>socket</strong>
+command. In such cases <strong>tls::import</strong> should not be
+used directly.</p>
+
+<dl>
+    <dt><a name="tls::init"><b>tls::init </b><i>?options?</i></a></dt>
+    <dd>This routine sets the default options used by <strong>tls::socket</strong>
+        and is <em>optional</em>. If you call <strong>tls::import</strong>
+        directly this routine has no effect. Any of the options
+        that <strong>tls::socket</strong> accepts can be set
+        using this command, though you should limit your options
+        to only TLS related ones.</dd>
+    <dt>&nbsp;</dt>
+    <dt><a name="tls::socket"><b>tls::socket </b><em>?options?
+        host port</em></a></dt>
+    <dt><b>tls::socket</b><em> ?-server command? ?options? port</em></dt>
+    <dd>This is a helper function that utilizes the underlying
+        commands (<strong>tls::import</strong>). It behaves
+        exactly the same as the native Tcl <strong>socket</strong>
+        command except that the options can include any of the
+        applicable <a href="#tls::import"><strong>tls:import</strong></a>
+        options.</dd>
+    <dt>&nbsp;</dt>
+    <dt><a name="tls::handshake"><strong>tls::handshake</strong> <em>channel</em></a></dt>
+    <dd>Forces handshake to take place, and returns 0 if
+        handshake is still in progress (non-blocking), or 1 if
+        the handshake was successful. If the handshake failed
+        this routine will throw an error.</dd>
+    <dt>&nbsp;</dt>
+    <dt><a name="tls::status"><strong>tls::status</strong> <em>channel</em></a></dt>
+    <dd>Returns the current security status of a SSL channel. The
+        result is a list of key value pairs describing the
+        connected peer. If the result is an empty list then the
+        SSL handshake has not yet completed.</dd>
+</dl>
+
+<blockquote>
+    <dl>
+        <dt><strong>issuer</strong> <em>dn</em></dt>
+        <dd>The distinguished name (DN) of the certificate
+            issuer.</dd>
+        <dt><strong>subject</strong> <em>dn</em></dt>
+        <dd>The distinguished name (DN) of the certificate
+            subject.</dd>
+        <dt><strong>notBefore</strong> <em>date</em></dt>
+        <dd>The begin date for the validity of the certificate.</dd>
+        <dt><strong>notAfter</strong> <em>date</em></dt>
+        <dd>The expiry date for the certificate.</dd>
+        <dt><strong>serial</strong> <em>n</em></dt>
+        <dd>The serial number of the certificate.</dd>
+        <dt><strong>cipher</strong> <em>cipher</em></dt>
+        <dd>The current cipher in use between the client and
+            server channels.</dd>
+    </dl>
+</blockquote>
+
+<dl>
+    <dt><a name="tls::import"><b>tls::import </b><i>channel
+        ?options?</i></a></dt>
+    <dd>SSL-enable a regular Tcl channel - it need not be a
+        socket, but must provide bi-directional flow. Also
+        setting session parameters for SSL handshake.</dd>
+</dl>
+
+<blockquote>
+    <dl>
+        <dt><strong>-cafile </strong><em>filename</em></dt>
+        <dd>Provide the CA file.</dd>
+        <dt>-<strong>cadir</strong> <em>dir</em></dt>
+        <dd>Provide the directory containing the CA certificates.</dd>
+        <dt><strong>-certfile</strong> <em>filename</em></dt>
+        <dd>Provide the certificate to use.</dd>
+        <dt><strong>-cipher </strong><em>string</em></dt>
+        <dd>Provide the cipher suites to use. Syntax is as per
+            OpenSSL.</dd>
+        <dt><strong>-command</strong><em> callback</em></dt>
+        <dd>This callback is invoked to pass errors, tracing
+            information and to allow Tcl scripts to perform
+            additional verification of the certificate, which can
+            override the default validation in OpenSSL.</dd>
+        <dt><strong>-keyfile</strong> <em>filename</em></dt>
+        <dd>Provide the private key file. (<strong>default</strong>:
+            value of -certfile)</dd>
+        <dt><strong>-model</strong> <em>channel</em></dt>
+        <dd>This will force this channel to share the same <em><strong>SSL_CTX</strong></em>
+            structure as the specified <em>channel</em>, and
+            therefore share callbacks etc.</dd>
+        <dt><strong>-request </strong><em>bool</em></dt>
+        <dd>Request a certificate from peer during SSL handshake.
+            (<strong>default</strong>: <em>true</em>)</dd>
+        <dt><strong>-require</strong> <em>bool</em></dt>
+        <dd>Require a valid certificate from peer during SSL
+            handshake. If this is set to true then <strong>-request</strong>
+            must also be set to true. (<strong>default</strong>: <em>false</em>)</dd>
+        <dt><strong>-server</strong> <em>bool</em></dt>
+        <dd>Handshake as server if true, else handshake as
+            client.(<strong>default</strong>: <em>false</em>) <em>[Not
+            available to tls::socket]</em></dd>
+        <dt><strong>-ssl2</strong> <em>bool</em></dt>
+        <dd>Enable use of SSL v2. (<strong>default</strong>: <em>true</em>
+            unless -DNO_PATENTS was specified in build)</dd>
+        <dt><strong>-ssl3 </strong><em>bool</em></dt>
+        <dd>Enable use of SSL v3. (<strong>default</strong>: <em>true</em>)</dd>
+        <dt>-<strong>tls1</strong> <em>bool</em></dt>
+        <dd>Enable use of TLS v1. (<strong>default</strong>: <em>false</em>)</dd>
+    </dl>
+</blockquote>
+
+<dl>
+    <dt><a name="tls::ciphers protocol ?verbose?"><strong>tls::ciphers</strong>
+        <em>protocol ?verbose?</em></a></dt>
+    <dd>Returns list of supported ciphers based on the <em>protocol</em>
+        you supply, which must be one of <em>ssl2, ssl3, or tls1</em>.
+        If <em>verbose</em> is specified as true then a verbose,
+        semi-human readable list is returned providing additional
+        information on the nature of the cipher support. In each
+        case the result is a Tcl list.</dd>
+</dl>
+
+<h3><a name="CONFIGURATION OPTIONS">CONFIGURATION OPTIONS</a></h3>
+
+<p>In addition to the options listed above you can set the <strong>tls::debug</strong>
+flag to a non-zero value to see the output from the default
+command callback (<strong>tls::callback</strong>) which shows the
+progression of the SSL handshake. Setting this value to greated
+than 1 will cause the default verify method in <strong>tls::callback</strong>
+to always accept the certificate, even if it is invalid.</p>
+
+<p>In a real-world deployment you should substitute your own
+callback in place of <strong>tls::callback</strong>, via the <em>-command
+</em>option to <strong>tls::socket</strong> or <strong>tls::import</strong>.</p>
+
+<p>When the TLS layer needs to obtain a password, typically for a
+certificate, the software will invoke a Tcl command called <strong>tls::password</strong>,
+which should return a string which represents the password to be
+used. A default implementation is provided, which simply returns<em>
+&quot;secret&quot;</em> - you should redefine this procedure
+after issuing the <em>package require tls</em>.</p>
+
+<h3><a name="HTTPS EXAMPLE">HTTPS EXAMPLE</a></h3>
+
+<p>This example requires a patch to the <strong>http</strong>
+module that ships with Tcl - this patch has been submitted for
+inclusion in Tcl 8.2.1, but is also provided in the tls directory
+if needed. A sample server.pem is provided with the TLS release,
+courtesy of the <strong>OpenSSL</strong> project.</p>
+
+<pre><code>package require http
+package require tls
+
+http::register https 443 [list ::tls::socket -require 1 -cafile ./server.pem]
+
+set tok [http::geturl https://developer.netscape.com/]
+</code></pre>
+
+<h3><a name="SPECIAL CONSIDERATIONS">SPECIAL CONSIDERATIONS</a></h3>
+
+<p>The capabilities of this package can vary enormously based
+upon how your OpenSSL library was configured and built. At the
+most macro-level OpenSSL supports a &quot;no patents&quot; build,
+which disables RSA, IDEA, RC(2,4,5) and SSL2 - if your OpenSSL is
+configured this way then you will need to build TLS with the
+-DNO_PATENTS option - and the resultant module will function
+correctly and also support ADH certificate-less encryption,
+however you will be unable to utilize this to speak to normal Web
+Servers, which typically require RSA support. Please see <a
+href="http://www.openssl.org/">http://www.openssl.org/</a> for
+more information on the whole issue of patents and US export
+restrictions. </p>
+
+<h3><a name="SEE ALSO">SEE ALSO</a></h3>
+
+<p><strong>socket</strong>, <strong>fileevent, </strong><a
+href="http://www.openssl.org/"><strong>OpenSSL</strong></a></p>
+
+<hr>
+
+<pre>
+Copyright © 1999 Matt Newman.</pre>
+</body>
+</html>
