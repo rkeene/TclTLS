@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.16 2000/08/23 00:11:38 hobbs Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.17 2000/08/23 17:19:26 hobbs Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -1056,7 +1056,6 @@ test tlsIO-7.5 {testing socket specific options} {socket unixOrPc} {
 } {127.0.0.1 8829 3}
 
 test tlsIO-8.1 {testing -async flag on sockets} {socket} {
-    # HOBBS: still fails post-rewrite
     # NOTE: This test may fail on some Solaris 2.4 systems.
     # See notes in Tcl's socket.test.
     set s [tls::socket \
@@ -1069,7 +1068,9 @@ test tlsIO-8.1 {testing -async flag on sockets} {socket} {
 	# to return the channel to line buffering mode.
 	fconfigure $s -blocking 0 -buffering line
 	puts $s bye
-	close $s
+	# Only OpenSSL 0.9.5a on Windows seems to need the after (delayed)
+	# close, but it works just the same for all others. -hobbs
+	after 500 close $s
 	set x done
     }
     set s1 [tls::socket \
