@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.2 2000/01/20 01:51:39 aborr Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.3 2000/07/27 01:58:18 hobbs Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -38,10 +38,10 @@ BIO_new_tcl(statePtr, flags)
 {
     BIO *bio;
 
-    bio = BIO_new(&BioMethods);
-    bio->ptr = (char*)statePtr;
-    bio->init = 1;
-    bio->shutdown = flags;
+    bio			= BIO_new(&BioMethods);
+    bio->ptr		= (char*)statePtr;
+    bio->init		= 1;
+    bio->shutdown	= flags;
 
     return bio;
 }
@@ -58,26 +58,31 @@ BioWrite (bio, buf, bufLen)
     char *buf;
     int bufLen;
 {
-    Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
+    Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
     int ret;
 
     dprintf(stderr,"\nBioWrite(0x%x, <buf>, %d) [0x%x]", bio, bufLen, chan);
 
-    ret = Tcl_Write( chan, buf, bufLen);
+#ifdef TCL_CHANNEL_VERSION_2
+    ret = Tcl_WriteRaw(chan, buf, bufLen);
+#else
+    ret = Tcl_Write(chan, buf, bufLen);
+#endif
 
     dprintf(stderr,"\n[0x%x] BioWrite(%d) -> %d [%d.%d]", chan, bufLen, ret,
-		Tcl_Eof( chan), Tcl_GetErrno());
+	    Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY);
 
     if (ret == 0) {
-	if (!Tcl_Eof( chan)) {
+	if (!Tcl_Eof(chan)) {
 	    BIO_set_retry_write(bio);
 	    ret = -1;
 	}
     }
-    if (BIO_should_read(bio))
+    if (BIO_should_read(bio)) {
 	BIO_set_retry_read(bio);
+    }
     return ret;
 }
 
@@ -94,21 +99,26 @@ BioRead (bio, buf, bufLen)
 
     if (buf == NULL) return 0;
 
-    ret = Tcl_Read( chan, buf, bufLen);
+#ifdef TCL_CHANNEL_VERSION_2
+    ret = Tcl_ReadRaw(chan, buf, bufLen);
+#else
+    ret = Tcl_Read(chan, buf, bufLen);
+#endif
 
     dprintf(stderr,"\n[0x%x] BioRead(%d) -> %d [%d.%d]", chan, bufLen, ret,
-	Tcl_Eof(chan), Tcl_GetErrno());
+	    Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
 
     if (ret == 0) {
-	if (!Tcl_Eof( chan)) {
+	if (!Tcl_Eof(chan)) {
 	    BIO_set_retry_read(bio);
 	    ret = -1;
 	}
     }
-    if (BIO_should_write(bio))
+    if (BIO_should_write(bio)) {
 	BIO_set_retry_write(bio);
+    }
     return ret;
 }
 
@@ -117,7 +127,7 @@ BioPuts	(bio, str)
     BIO *bio;
     char *str;
 {
-    return BioWrite( bio, str, strlen(str));
+    return BioWrite(bio, str, strlen(str));
 }
 
 static long
@@ -146,50 +156,56 @@ BioCtrl	(bio, cmd, num, ptr)
     case BIO_C_SET_FD:
 	BioFree(bio);
 	/* Sets State* */
-	bio->ptr = *((char **)ptr);
-	bio->shutdown = (int)num;
-	bio->init = 1;
+	bio->ptr	= *((char **)ptr);
+	bio->shutdown	= (int)num;
+	bio->init	= 1;
 	break;
     case BIO_C_GET_FD:
 	if (bio->init) {
-	    ip=(int *)ptr;
-	    if (ip != NULL) *ip=bio->num;
-		ret=bio->num;
+	    ip = (int *)ptr;
+	    if (ip != NULL) {
+		*ip = bio->num;
+	    }
+	    ret = bio->num;
 	} else {
-	    ret= -1;
+	    ret = -1;
 	}
 	break;
     case BIO_CTRL_GET_CLOSE:
-	ret=bio->shutdown;
+	ret = bio->shutdown;
 	break;
     case BIO_CTRL_SET_CLOSE:
-	bio->shutdown=(int)num;
+	bio->shutdown = (int)num;
 	break;
     case BIO_CTRL_EOF:
 	dprintf(stderr, "BIO_CTRL_EOF\n");
-	ret = Tcl_Eof( chan);
+	ret = Tcl_Eof(chan);
 	break;
     case BIO_CTRL_PENDING:
-	if (Tcl_InputBuffered(chan))
-	    ret = 1;
-	else
-	    ret = 0;
+	ret = (Tcl_InputBuffered(chan) ? 1 : 0);
 	dprintf(stderr, "BIO_CTRL_PENDING(%d)\n", ret);
 	break;
     case BIO_CTRL_WPENDING:
-	ret=0;
+	ret = 0;
 	break;
     case BIO_CTRL_DUP:
 	break;
     case BIO_CTRL_FLUSH:
 	dprintf(stderr, "BIO_CTRL_FLUSH\n");
-	if (Tcl_Flush( chan) == TCL_OK)
-	    ret=1;
-	else
-	    ret=-1;
+	if (
+#ifdef TCL_CHANNEL_VERSION_2
+	    Tcl_WriteRaw(chan, "", 0) >= 0
+#else
+	    Tcl_Flush(chan) == TCL_OK
+#endif
+	    ) {
+	    ret = 1;
+	} else {
+	    ret = -1;
+	}
 	break;
     default:
-	ret=0;
+	ret = 0;
 	break;
     }
     return(ret);
@@ -199,10 +215,10 @@ static int
 BioNew	(bio)
     BIO *bio;
 {
-    bio->init = 0;
-    bio->num = 0;
-    bio->ptr = NULL;
-    bio->flags = 0;
+    bio->init	= 0;
+    bio->num	= 0;
+    bio->ptr	= NULL;
+    bio->flags	= 0;
 
     return 1;
 }
@@ -211,17 +227,18 @@ static int
 BioFree	(bio)
     BIO *bio;
 {
-    if (bio == NULL)
+    if (bio == NULL) {
 	return 0;
+    }
 
     if (bio->shutdown) {
 	if (bio->init) {
 	    /*shutdown(bio->num, 2) */
 	    /*closesocket(bio->num) */
 	}
-	bio->init = 0;
-	bio->flags = 0;
-	bio->num = 0;
+	bio->init	= 0;
+	bio->flags	= 0;
+	bio->num	= 0;
     }
     return 1;
 }

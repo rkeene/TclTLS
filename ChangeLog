@@ -1,3 +1,86 @@
+2000-07-26  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* merged all changes from tls-1-3-io-rewrite back into main branch
+
+	* tests/tlsIO.test: updated comments, fixed a pcCrash case that
+	was due to debug assertion in Windows SSL.
+
+	* tls.c (ImportObjCmd): removed unnecessary use of 'bio' arg.
+	(Tls_Init): check return value of SSL_library_init.  Also lots of
+	whitespace cleanup (more like Tcl Eng style guide), but not all
+	code was cleaned up.
+
+	* tlsBIO.c: minor whitespace cleanup
+
+	* tlsIO.c: minor whitespace cleanup.
+	(TlsInputProc, TlsOutputProc): Added ERR_clear_error before calls
+	to BIO_read or BIO_write, because we could otherwise end up
+	pulling an error off the stack that didn't belong to us.  Also
+	cleanup up excessive use of gotos.
+
+2000-07-20  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tests/tlsIO.test: corrected various tests to be correct for TLS
+	stacked channels (as opposed to the standard sockets the test
+	suite was adopted from).  Key differences are that TLS cannot
+	operate in one process without all channels being non-blocking, or
+	the handshake will block, and handshaking must be forced in some
+	cases.  Also, handshakes don't seem to complete unless the client
+	has placed at least one byte for the server to read in the channel.
+
+	* tests/remote.tcl: corrected the finding of tests certificates
+
+	* tlsIO.c (TlsCloseProc): removed deleting of timer handler as
+	that is handled by Tls_Clean.
+
+	* tls.tcl (tls::_accept): corrected the internal _accept to
+	trickle callback errors to the user.
+
+	* Makefile.in: made the install-binaries target regenerate the
+	pkgIndex.tcl correctly.  The test target probably shouldn't screw
+	it up, but this is to be on the safe side.
+
+2000-07-17  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* pkgIndex.tcl.in:
+	* configure.in: updated version to 1.4
+
+2000-07-13  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tests/tlsIO.test: enabled tests 2.10, 7.[1245] (there is no 3),
+	which now pass.  Added some comments to other failing tests.
+
+2000-07-11  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tlsIO.c: changed all the channel procs to start with Tls* for
+	better parity when comparing with Transform channel procs.
+	Rewrote TlsWatchProc, added TlsNotifyProc according to the new
+	channel design, which also leaves TlsChannelHandler unused.
+
+	* tlsBIO.c (BioCtrl): changed BIO_CTRL_FLUSH case to use
+	Tcl_WriteRaw instead of Tcl_Flush (to operate on correct channel
+	in the stack instead of starting at the top again).  Would
+	otherwise cause a recursive stack bomb when implicit handshaking
+	took effect.
+
+	* tests/tlsIO.test: removed changes made to test suite (all tests
+	that ran before now pass correctly), and changed some accept proc
+	args to reflect that a sock is an arg, not a file.
+
+2000-07-10  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tlsBIO.c (BioWrite, BioRead): changed Tcl_Read/Write to
+	Tcl_ReadRaw/TclWriteRaw.
+
+	* tls.c: added use of Tcl_GetTopChannel after Tcl_GetChannel and
+	got return value from Tcl_StackChannel.
+
+	* tests/tlsIO.test: added some handshaking that shouldn't be
+	necessary, but we crash otherwise (needs more testing).
+
+	* tlsIO.c: added support for "corrected" stacked channels.  All
+	the above channels are in TCL_CHANNEL_VERSION_2 #ifdefs.
+
 2000-06-05  Scott Stanton  <stanton@ajubasolutions.com>
 
 	* Makefile.in: Fixed broken test target.
