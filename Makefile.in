@@ -11,7 +11,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.2 2000/01/20 01:48:19 aborr Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.3 2000/01/22 05:19:58 aborr Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -62,7 +62,7 @@ SSL_LIB_DIR =		@SSL_LIB_DIR@
 SSL_INCLUDE_DIR =	@SSL_INCLUDE_DIR@
 SSL_INCLUDE_DIR_NATIVE = @SSL_INCLUDE_DIR_NATIVE@
 SSL_INCLUDES =		-I$(SSL_INCLUDE_DIR_NATIVE)
-SSL_CFLAGS =		-DNO_PATENTS -DPRE_OPENSSL_0_9_4
+SSL_CFLAGS =		-DNO_PATENTS
 
 
 #========================================================================
