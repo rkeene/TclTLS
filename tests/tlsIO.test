@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.4 2000/06/05 22:33:26 aborr Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.5 2000/06/05 22:57:58 stanton Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -70,11 +70,13 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 # Load the tls package
 package require tls
 
-set serverCert [file join $::tcltest::testsDirectory certs server.pem]
-set clientCert [file join $::tcltest::testsDirectory certs client.pem]
-set caCert [file join $::tcltest::testsDirectory certs cacert.pem]
-set serverKey [file join $::tcltest::testsDirectory certs skey.pem]
-set clientKey [file join $::tcltest::testsDirectory certs ckey.pem]
+set certsDir [file join [file dirname [info script]] certs] 
+
+set serverCert [file join $certsDir server.pem]
+set clientCert [file join $certsDir client.pem]
+set caCert [file join $certsDir cacert.pem]
+set serverKey [file join $certsDir skey.pem]
+set clientKey [file join $certsDir ckey.pem]
 
 # Some tests require the testthread command
 
