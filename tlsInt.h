@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.11 2004/02/04 04:02:19 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.12 2004/03/24 05:22:53 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -66,7 +66,7 @@
 #endif
 
 #define SSL_ERROR(ssl,err)	\
-	    ((char*)ERR_reason_error_string(SSL_get_error((ssl),(err))))
+    ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
 /*
  * OpenSSL BIO Routines
  */

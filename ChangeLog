@@ -1,3 +1,9 @@
+2004-03-23  Dan Razzell <research@starfishsystems.ca>
+	* tls.c:
+	* tlsBIO.c:
+	* tlsIO.c:
+	* tlsInt.h:	Fixed type match warnings.
+
 2004-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* tls.c (Tls_Init):   replaced older TEA config with newer

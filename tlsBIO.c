@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.7 2004/02/04 04:02:19 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.8 2004/03/24 05:22:53 razzell Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -129,7 +129,7 @@ BioPuts	(bio, str)
     BIO *bio;
     CONST char *str;
 {
-    return BioWrite(bio, str, strlen(str));
+    return BioWrite(bio, str, (int) strlen(str));
 }
 
 static long

@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.13 2002/02/04 22:46:31 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.14 2004/03/24 05:22:53 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -122,7 +122,7 @@ Tcl_ChannelType *Tls_ChannelType()
 	 *     against an older variant.
 	 */
 
-	int size = sizeof(Tcl_ChannelType); /* Base size */
+	unsigned int size = sizeof(Tcl_ChannelType); /* Base size */
 
 	/*
 	 * Size of a procedure pointer. We assume that all procedure
