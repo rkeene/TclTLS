@@ -3,9 +3,9 @@
  * some modifications:
  *	Copyright (C) 2000 Ajuba Solutions
  *	Copyright (C) 2002 ActiveState Corporation
- *	Copyright (C) 2003 Starfish Systems 
+ *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.19 2004/02/04 04:02:19 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.20 2004/02/13 02:09:21 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -221,12 +221,15 @@ InfoCallback(SSL *ssl, int where, int ret)
  *
  * VerifyCallback --
  *
- *	monitors SSL cerificate validation process
+ *	Monitors SSL certificate validation process.
  *	This is called whenever a certificate is inspected
- *	 or decided invalid
+ *	or decided invalid.
  *
  * Results:
- *	ok - let SSL handle it
+ *	A callback bound to the socket may return one of:
+ *	    0			- the certificate is deemed invalid
+ *	    1			- the certificate is deemed valid
+ *	    empty string	- no change to certificate validation
  *
  * Side effects:
  *	The err field of the currently operative State is set
@@ -236,8 +239,9 @@ InfoCallback(SSL *ssl, int where, int ret)
 static int
 VerifyCallback(int ok, X509_STORE_CTX *ctx)
 {
-    Tcl_Obj *cmdPtr;
-    char *errStr;
+    Tcl_Obj *cmdPtr, *result;
+    char *errStr, *string;
+    int length;
     SSL   *ssl		= (SSL*)X509_STORE_CTX_get_app_data(ctx);
     X509  *cert		= X509_STORE_CTX_get_current_cert(ctx);
     State *statePtr	= (State*)SSL_get_app_data(ssl);
@@ -284,14 +288,18 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
 
     Tcl_IncrRefCount( cmdPtr);
     if (Tcl_GlobalEvalObj(statePtr->interp, cmdPtr) != TCL_OK) {
-	/* it got an error - reject the certificate */
+	/* It got an error - reject the certificate.		*/
 	Tcl_BackgroundError( statePtr->interp);
 	ok = 0;
     } else {
-	if (Tcl_GetIntFromObj( statePtr->interp,
-		    Tcl_GetObjResult( statePtr->interp), &ok) != TCL_OK) {
-	    Tcl_BackgroundError( statePtr->interp);
-	    ok = 0;
+	result = Tcl_GetObjResult(statePtr->interp);
+	string = Tcl_GetStringFromObj(result, &length);
+	/* An empty result leaves verification unchanged.	*/
+	if (length > 0) {
+	    if (Tcl_GetIntFromObj(statePtr->interp, result, &ok) != TCL_OK) {
+		Tcl_BackgroundError(statePtr->interp);
+		ok = 0;
+	    }
 	}
     }
     Tcl_DecrRefCount( cmdPtr);
@@ -299,7 +307,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     Tcl_Release( (ClientData) statePtr);
     Tcl_Release( (ClientData) statePtr->interp);
 
-    return(ok);	/* leave the disposition as SSL set it */
+    return(ok);	/* By default, leave verification unchanged.	*/
 }
 
 /*
@@ -309,9 +317,6 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
  *
  *	Calls callback with $fd and $msg - so the callback can decide
  *	what to do with errors.
- *
- * Results:
- *	ok - let SSL handle it
  *
  * Side effects:
  *	The err field of the currently operative State is set

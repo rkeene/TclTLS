@@ -5,9 +5,7 @@
 <head>
 <meta http-equiv="Content-Type"
 content="text/html; charset=iso-8859-1">
-<meta name="Author"
-content="Matt Newman &lt;matt@novadigm.com&gt;">
-<meta name="Copyright" content="1999 Matt Newman.">
+<meta name="Copyright" content="1999 Matt Newman / 2004 Starfish Systems">
 <title>TLS (SSL) Tcl Commands</title>
 </head>
 
@@ -116,8 +114,8 @@ used directly.</p>
     <dt>&nbsp;</dt>
     <dt><a name="tls::status"><strong>tls::status</strong>
     <em>?-local? channel</em></a></dt>
-    <dd>Returns the current security status of a SSL channel. The
-        result is a list of key value pairs describing the
+    <dd>Returns the current security status of an SSL channel. The
+        result is a list of key-value pairs describing the
         connected peer. If the result is an empty list then the
         SSL handshake has not yet completed.
         If <em>-local</em> is given, then the certificate information
@@ -156,7 +154,7 @@ used directly.</p>
 
 <blockquote>
     <dl>
-        <dt>-<strong>cadir</strong> <em>dir</em></dt>
+        <dt><strong>-cadir</strong> <em>dir</em></dt>
         <dd>Provide the directory containing the CA certificates.</dd>
         <dt><strong>-cafile </strong><em>filename</em></dt>
         <dd>Provide the CA file.</dd>
@@ -165,14 +163,12 @@ used directly.</p>
         <dt><strong>-cipher </strong><em>string</em></dt>
         <dd>Provide the cipher suites to use. Syntax is as per
             OpenSSL.</dd>
-        <dt><strong>-command</strong><em> callback</em></dt>
+        <dt><strong>-command</strong> <em>callback</em></dt>
         <dd>If specified, this callback will be invoked at several points
             during the OpenSSL handshake.  It can pass errors and tracing
             information, and it can allow Tcl scripts to perform
             their own validation of the certificate in place of the
             default validation provided by OpenSSL.
-            The callback should return an integer whose interpretation
-            depends on context.
             <br>
             See <a href="#CALLBACK OPTIONS">CALLBACK OPTIONS</a> for
             further discussion.</dd>
@@ -183,9 +179,10 @@ used directly.</p>
         <dd>This will force this channel to share the same <em><strong>SSL_CTX</strong></em>
             structure as the specified <em>channel</em>, and
             therefore share callbacks etc.</dd>
-        <dt><strong>-password</strong><em> callback</em></dt>
+        <dt><strong>-password</strong> <em>callback</em></dt>
         <dd>If supplied, this callback will be invoked when OpenSSL needs
-            to obtain a password, typically for a certificate.
+            to obtain a password, typically to unlock the private key of
+	    a certificate.
             The callback should return a string which represents the
             password to be used.
             <br>
@@ -236,13 +233,113 @@ to handle intermediate processing by the OpenSSL library, using the
 <strong>tls::socket</strong> or <strong>tls::import</strong>.
 </p>
 
+<blockquote>
+<dl>
+
+    <dt><strong>-command</strong> <em>callback</em></dt>
+    <dd>
+	Invokes the specified <em>callback</em> script at
+	several points during the OpenSSL handshake.
+	Except as indicated below, values returned from the
+	callback are ignored.
+	Arguments appended to the script upon callback take one of the
+	following forms:
+
+	<br>
+	<br>
+
+	<dl>
+
+<!--	This form of callback is disabled.
+
+	<dt>
+	  <strong>error</strong> <em>channel message</em>
+	</dt>
+	<dd>
+	  The <em>message</em> argument contains an error message generated
+	  by the OpenSSL function
+	  <code>ERR_reason_error_string()</code>.
+	</dd>
+
+	<br>
+-->
+
+	<dt>
+	  <strong>info</strong> <em>channel major minor message</em>
+	</dt>
+	<dd>
+	  This form of callback is invoked by the OpenSSL function
+	  <code>SSL_CTX_set_info_callback()</code>.
+	  <br>
+	  The <em>major</em> and <em>minor</em> arguments are used to
+	  represent the state information bitmask.
+	  <dl>
+	  <dt>Possible values for <em>major</em> are:</dt>
+	  <dd><code>handshake, alert, connect, accept</code>.</dd>
+	  <dt>Possible values for <em>minor</em> are:</dt>
+	  <dd><code>start, done, read, write, loop, exit</code>.</dd>
+	  </dl>
+	  The <em>message</em> argument is a descriptive string which may
+	  be generated either by
+	  <code>SSL_state_string_long()</code> or by
+	  <code>SSL_alert_desc_string_long()</code>,
+	  depending on context.
+	</dd>
+
+	<br>
+
+	<dt>
+	  <strong>verify</strong> <em>channel depth cert status error</em>
+	</dt>
+	<dd>
+	  This form of callback is invoked by the OpenSSL function
+	  <code>SSL_set_verify()</code>.
+	  <br>
+	  The <em>depth</em> argument is an integer representing the
+	  current depth on the certificate chain, with
+	  <code>0</code> as the subject certificate and higher values
+	  denoting progressively more indirect issuer certificates.
+	  <br>
+	  The <em>cert</em> argument is a list of key-value pairs similar
+	  to those returned by
+	  <a href="#tls::status"><strong>tls::status</strong></a>.
+	  <br>
+	  The <em>status</em> argument is an integer representing the
+	  current validity of the certificate.
+	  A value of <code>0</code> means the certificate is deemed invalid.
+	  A value of <code>1</code> means the certificate is deemed valid.
+	  <br>
+	  The <em>error</em> argument supplies the message, if any, generated
+	  by
+	  <code>X509_STORE_CTX_get_error()</code>.
+	  <br>
+	  <br>
+	  The callback may override normal validation processing by explicitly
+	  returning one of the above <em>status</em> values.
+	</dd>
+
+	</dl>
+    </dd>
+
+    <br>
+
+    <dt><strong>-password</strong> <em>callback</em></dt>
+    <dd>
+	Invokes the specified <em>callback</em> script when OpenSSL needs to
+	obtain a password.  The callback should return a string which
+	represents the password to be used.
+	No arguments are appended to the script upon callback.
+    </dd>
+</dl>
+</blockquote>
+
 <p>
-Reference implementations of these callbacks are provided in the distribution
-as <strong>tls::callback</strong> and <strong>tls::password</strong>.
-Note that these are <em>sample</em> implementations only.  In a more realistic
-deployment you would substitute your own callbacks, typically by configuring
-the <em>-command</em> and <em>-password</em> options on each channel with
-scripts to be executed when the callbacks are invoked.
+Reference implementations of these callbacks are provided in the
+distribution as <strong>tls::callback</strong> and
+<strong>tls::password</strong> respectively.  Note that these are
+<em>sample</em> implementations only.  In a more realistic deployment
+you would specify your own callback scripts on each TLS channel
+using the <em>-command</em> and <em>-password</em> options.
 </p>
 
 <p>
@@ -252,16 +349,30 @@ The default behavior when the <em>-password</em> option is not specified is for
 TLS to process the associated library callbacks by attempting to call
 <strong>tls::password</strong>.
 The difference between these two behaviors is a consequence of maintaining
-compatibility with earlier implementations.  The use of implied callbacks
-is not recommended.
+compatibility with earlier implementations.
 </p>
 
 <p>
-The <strong>tls::debug</strong> variable provides some additional control
-over the default commands.  Its value is zero by default.  Higher values
-produce more diagnostic output.  Setting this value greater than zero
-will also force the default verify method in <strong>tls::callback</strong>
-to accept the certificate, even if it is invalid.
+The <strong>tls::debug</strong> variable provides some additional
+control over these reference callbacks.  Its value is zero by default.
+Higher values produce more diagnostic output, and will also force the
+verify method in <strong>tls::callback</strong> to accept the
+certificate, even when it is invalid.
+</p>
+
+<p>
+<em>
+The use of the reference callbacks <strong>tls::callback</strong> and
+<strong>tls::password</strong> is not recommended.  They may be removed
+from future releases.
+</em>
+</p>
+
+<p>
+<em>
+The use of the variable <strong>tls::debug</strong> is not recommended.
+It may be removed from future releases.
+</em>
 </p>
 
 <h3><a name="HTTPS EXAMPLE">HTTPS EXAMPLE</a></h3>
@@ -272,7 +383,8 @@ inclusion in Tcl 8.2.1, but is also provided in the tls directory
 if needed. A sample server.pem is provided with the TLS release,
 courtesy of the <strong>OpenSSL</strong> project.</p>
 
-<pre><code>package require http
+<pre><code>
+package require http
 package require tls
 
 http::register https 443 [list ::tls::socket -require 1 -cafile ./server.pem]
@@ -304,6 +416,7 @@ href="http://www.openssl.org/"><strong>OpenSSL</strong></a></p>
 
 <pre>
 Copyright &copy; 1999 Matt Newman.
+Copyright &copy; 2004 Starfish Systems.
 </pre>
 </body>
 </html>
