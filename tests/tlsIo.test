@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.10 2000/06/03 03:17:58 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.11 2000/06/03 03:35:36 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -674,7 +674,9 @@ test socket-3.1 {socket conflict} {socket stdio} {
     set f [open script w]
     puts $f {
     	package require tls
-	set f [tls::socket -server accept 2828]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2828 \]"
+    puts $f {
 	puts ready
 	gets stdin
 	close $f
@@ -682,14 +684,16 @@ test socket-3.1 {socket conflict} {socket stdio} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r+]
     gets $f
-    set x [list [catch {tls::socket -server accept 2828} msg] \
+    set x [list [catch {tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+    	-server accept 2828} msg] \
 		$msg]
     puts $f bye
     close $f
     set x
 } {1 {couldn't open socket: address already in use}}
 
-test socket-3.2 {server with several clients} {socket stdio pcCrash} {
+test socket-3.2 {server with several clients} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
@@ -698,7 +702,9 @@ test socket-3.2 {server with several clients} {socket stdio pcCrash} {
 	set t2 [after 31000 "set x timed_out"]
 	set t3 [after 32000 "set x timed_out"]
 	set counter 0
-	set s [tls::socket -server accept 2828]
+    }
+    puts $f "set s \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2828 \]"
+    puts $f {
 	proc accept {s a p} {
 	    fileevent $s readable [list echo $s]
 	    fconfigure $s -buffering line
@@ -726,11 +732,17 @@ test socket-3.2 {server with several clients} {socket stdio pcCrash} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r+]
     set x [gets $f]
-    set s1 [tls::socket 127.0.0.1 2828]
+    set s1 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2828]
     fconfigure $s1 -buffering line
-    set s2 [tls::socket 127.0.0.1 2828]
+    set s2 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2828]
     fconfigure $s2 -buffering line
-    set s3 [tls::socket 127.0.0.1 2828]
+    set s3 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2828]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
 	puts $s1 hello,s1
@@ -748,13 +760,15 @@ test socket-3.2 {server with several clients} {socket stdio pcCrash} {
     set x
 } {ready done}
 
-test socket-4.1 {server with several clients} {socket stdio pcCrash} {
+test socket-4.1 {server with several clients} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
     	package require tls
 	gets stdin
-	set s [tls::socket 127.0.0.1 2828]
+    }
+    puts $f "set s \[tls::socket -certfile $clientCert -cafile $caCert -keyfile $clientKey 127.0.0.1 2828 \]"
+    puts $f {
 	fconfigure $s -buffering line
 	for {set i 0} {$i < 100} {incr i} {
 	    puts $s hello
@@ -788,7 +802,9 @@ test socket-4.1 {server with several clients} {socket stdio pcCrash} {
     set t1 [after 30000 "set x timed_out"]
     set t2 [after 31000 "set x timed_out"]
     set t3 [after 32000 "set x timed_out"]
-    set s [tls::socket -server accept 2828]
+    set s [tls::socket \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+    	-server accept 2828]
     puts $p1 open
     puts $p2 open
     puts $p3 open
@@ -875,7 +891,7 @@ test socket-6.1 {accept callback error} {socket stdio pcCrash} {
     set x
 } {{divide by zero}}
 
-test socket-7.1 {testing socket specific options} {socket stdio pcCrash} {
+test socket-7.1 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
@@ -941,6 +957,7 @@ test socket-7.2 {testing socket specific options} {socket stdio} {
 
 test socket-7.3 {testing socket specific options} {socket} {
     set s [tls::socket \
+	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
     	-server accept 2822]
     set l [fconfigure $s]
     close $s
@@ -948,8 +965,9 @@ test socket-7.3 {testing socket specific options} {socket} {
     llength $l
 } 12
 
-test socket-7.4 {testing socket specific options} {socket pcCrash} {
+test socket-7.4 {testing socket specific options} {socket} {
     set s [tls::socket \
+	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
     	-server accept 2823]
     proc accept {s a p} {
 	global x
@@ -957,6 +975,7 @@ test socket-7.4 {testing socket specific options} {socket pcCrash} {
 	close $s
     }
     set s1 [tls::socket \
+	-certfile $clientCert -cafile $caCert -keyfile $clientKey \
     	[info hostname] 2823]
     set timer [after 10000 "set x timed_out"]
     vwait x
@@ -967,7 +986,7 @@ test socket-7.4 {testing socket specific options} {socket pcCrash} {
     lappend l [lindex $x 2] [llength $x]
 } {2823 3}
 
-test socket-7.5 {testing socket specific options} {socket unixOrPc pcCrash} {
+test socket-7.5 {testing socket specific options} {socket unixOrPc} {
     set s [tls::socket \
 	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
     	-server accept 2829]
@@ -988,7 +1007,7 @@ test socket-7.5 {testing socket specific options} {socket unixOrPc pcCrash} {
     lappend l [lindex $x 0] [lindex $x 2] [llength $x]
 } {127.0.0.1 2829 3}
 
-test socket-8.1 {testing -async flag on sockets} {empty socket pcCrash} {
+test socket-8.1 {testing -async flag on sockets} {empty socket} {
     # NOTE: This test may fail on some Solaris 2.4 systems. If it does,
     # check that you have these patches installed (using showrev -p):
     #
