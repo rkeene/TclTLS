@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.9 2000/06/03 03:00:22 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.10 2000/06/03 03:17:58 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -880,7 +880,9 @@ test socket-7.1 {testing socket specific options} {socket stdio pcCrash} {
     set f [open script w]
     puts $f {
 	package require tls
-	tls::socket -server accept 2820
+    }
+    puts $f "tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2820"
+    puts $f {
 	proc accept args {
 	    global x
 	    set x done
@@ -893,7 +895,9 @@ test socket-7.1 {testing socket specific options} {socket stdio pcCrash} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f
-    set s [tls::socket 127.0.0.1 2820]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2820]
     set p [fconfigure $s -peername]
     close $s
     close $f
@@ -902,12 +906,15 @@ test socket-7.1 {testing socket specific options} {socket stdio pcCrash} {
     lappend l [string compare [lindex $p 2] 2820]
     lappend l [llength $p]
 } {0 0 3}
-test socket-7.2 {testing socket specific options} {socket stdio pcCrash} {
+
+test socket-7.2 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
-	tls::socket -server accept 2821
+    }
+    puts $f "tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2821"
+    puts $f {
 	proc accept args {
 	    global x
 	    set x done
@@ -920,7 +927,9 @@ test socket-7.2 {testing socket specific options} {socket stdio pcCrash} {
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f
-    set s [tls::socket 127.0.0.1 2821]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2821]
     set p [fconfigure $s -sockname]
     close $s
     close $f
@@ -929,21 +938,26 @@ test socket-7.2 {testing socket specific options} {socket stdio pcCrash} {
     lappend l [lindex $p 0]
     lappend l [expr [lindex $p 2] == 2821]
 } {3 127.0.0.1 0}
+
 test socket-7.3 {testing socket specific options} {socket} {
-    set s [tls::socket -server accept 2822]
+    set s [tls::socket \
+    	-server accept 2822]
     set l [fconfigure $s]
     close $s
     update
     llength $l
 } 12
+
 test socket-7.4 {testing socket specific options} {socket pcCrash} {
-    set s [tls::socket -server accept 2823]
+    set s [tls::socket \
+    	-server accept 2823]
     proc accept {s a p} {
 	global x
 	set x [fconfigure $s -sockname]
 	close $s
     }
-    set s1 [tls::socket [info hostname] 2823]
+    set s1 [tls::socket \
+    	[info hostname] 2823]
     set timer [after 10000 "set x timed_out"]
     vwait x
     after cancel $timer
