@@ -12,6 +12,9 @@ dnl installation to configure the system for the local environment.
 
 AC_INIT(tls.h)
 
+AC_CONFIG_AUX_DIR(config)
+CONFIGDIR=${srcdir}/config
+AC_SUBST(CONFIGDIR)
 
 #--------------------------------------------------------------------
 # Set package name and version numbers here.  The NODOT_VERSION is
