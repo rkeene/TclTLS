@@ -1,4 +1,4 @@
-# Commands tested in this file: socket.
+# Commands tested in this file: socket.                          -*- tcl -*-
 #
 # This file contains a collection of tests for one or more of the Tcl
 # built-in commands.  Sourcing this file into Tcl runs the tests and
@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.21 2004/02/11 22:41:25 razzell Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.22 2004/12/23 23:51:40 patthoyts Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------

@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.22 2004/12/23 22:21:43 patthoyts Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.23 2004/12/23 23:51:37 patthoyts Exp $
 
 
 #========================================================================
@@ -204,8 +204,13 @@ install-doc: doc
 #	done
 
 test: binaries libraries
-	echo "load $(PKG_LIB_FILE); source $(srcdir)/tls.tcl; set argv $(TESTFLAGS); source $(srcdir)/tests/all.tcl" | $(TCLSH)
-#	$(TCLSH) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TESTFLAGS)
+	echo "load $(PKG_LIB_FILE); \
+	  if {![file exists tls.tcl]} { \
+	      file copy [file join $(srcdir) tls.tcl] tls.tcl \
+	  } ;\
+	  source [file join $(srcdir) tls.tcl]; \
+	  set argv $(TESTFLAGS); \
+	  source [file join $(srcdir) tests all.tcl]" | $(TCLSH)
 
 shell: binaries libraries
 	@$(TCLSH) $(SCRIPT)
