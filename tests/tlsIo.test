@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.7 2000/06/03 00:20:02 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.8 2000/06/03 02:30:03 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -160,7 +160,6 @@ if {$doTestsWithRemoteServer} {
 	fconfigure $commandSocket -translation crlf -buffering line
     }
 }
-puts stdout "commandSocket: $commandSocket"
 
 # Some tests are run only if we are doing testing against a remote server.
 set ::tcltest::testConstraints(doTestsWithRemoteServer) $doTestsWithRemoteServer
@@ -955,13 +954,17 @@ test socket-7.4 {testing socket specific options} {socket pcCrash} {
 } {2823 3}
 
 test socket-7.5 {testing socket specific options} {socket unixOrPc pcCrash} {
-    set s [tls::socket -server accept 2829]
+    set s [tls::socket \
+	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
+    	-server accept 2829]
     proc accept {s a p} {
 	global x
 	set x [fconfigure $s -sockname]
 	close $s
     }
-    set s1 [tls::socket 127.0.0.1 2829]
+    set s1 [tls::socket \
+	-certfile $clientCert -cafile $caCert -keyfile $clientKey \
+    	127.0.0.1 2829]
     set timer [after 10000 "set x timed_out"]
     vwait x
     after cancel $timer
@@ -971,7 +974,7 @@ test socket-7.5 {testing socket specific options} {socket unixOrPc pcCrash} {
     lappend l [lindex $x 0] [lindex $x 2] [llength $x]
 } {127.0.0.1 2829 3}
 
-test socket-8.1 {testing -async flag on sockets} {socket pcCrash} {
+test socket-8.1 {testing -async flag on sockets} {empty socket pcCrash} {
     # NOTE: This test may fail on some Solaris 2.4 systems. If it does,
     # check that you have these patches installed (using showrev -p):
     #
@@ -986,14 +989,18 @@ test socket-8.1 {testing -async flag on sockets} {socket pcCrash} {
     # problem, please email jyl@eng.sun.com. We have not observed this
     # failure on Solaris 2.5, so another option (instead of installing
     # these patches) is to upgrade to Solaris 2.5.
-    set s [tls::socket -server accept 2830]
+    set s [tls::socket \
+	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
+    	-server accept 2830]
     proc accept {s a p} {
 	global x
 	puts $s bye
 	close $s
 	set x done
     }
-    set s1 [tls::socket -async [info hostname] 2830]
+    set s1 [tls::socket \
+	-certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	-async [info hostname] 2830]
     vwait x
     set z [gets $s1]
     close $s
@@ -1001,7 +1008,7 @@ test socket-8.1 {testing -async flag on sockets} {socket pcCrash} {
     set z
 } bye
 
-test socket-9.1 {testing spurious events} {socket pcCrash} {
+test socket-9.1 {testing spurious events} {empty socket pcCrash} {
     set len 0
     set spurious 0
     set done 0
@@ -1034,7 +1041,7 @@ test socket-9.1 {testing spurious events} {socket pcCrash} {
     list $spurious $len
 } {0 50}
 
-test socket-9.2 {testing async write, fileevents, flush on close} {socket pcCrash} {
+test socket-9.2 {testing async write, fileevents, flush on close} {empty socket pcCrash} {
     set firstblock ""
     for {set i 0} {$i < 5} {incr i} {set firstblock "a$firstblock$firstblock"}
     set secondblock ""
@@ -1083,7 +1090,7 @@ test socket-9.2 {testing async write, fileevents, flush on close} {socket pcCras
     set count
 } 65566
 
-test socket-9.3 {testing EOF stickyness} {socket pcCrash} {
+test socket-9.3 {testing EOF stickyness} {empty socket pcCrash} {
     proc count_to_eof {s} {
 	global count done timer
 	set l [gets $s]
@@ -1128,9 +1135,13 @@ removeFile script
 test socket-10.1 {testing socket accept callback error handling} {socket pcCrash} {
     set goterror 0
     proc bgerror args {global goterror; set goterror 1}
-    set s [tls::socket -server accept 2898]
+    set s [tls::socket \
+	-certfile $serverCert -cafile $caCert -keyfile $serverKey \
+    	-server accept 2898]
     proc accept {s a p} {close $s; error}
-    set c [tls::socket 127.0.0.1 2898]
+     set c [tls::socket \
+	-certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	127.0.0.1 2898]
     vwait goterror
     close $s
     close $c
@@ -1138,11 +1149,16 @@ test socket-10.1 {testing socket accept callback error handling} {socket pcCrash
 } 1
 
 test socket-11.1 {tcp connection} {socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
 	set socket9_1_test_server [tls::socket -server accept \
-		-certfile [file join [pwd] certs server.pem] \
-		-cafile [file join [pwd] certs caFile.pem] \
-		-keyfile [file join [pwd] certs skey.pem] \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
 		2834]
 	proc accept {s a p} {
 	    puts $s done
@@ -1160,6 +1176,11 @@ test socket-11.1 {tcp connection} {socket doTestsWithRemoteServer} {
 } done
 
 test socket-11.2 {client specifies its port} {socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     if {[info exists port]} {
 	incr port
     } else {
@@ -1167,9 +1188,9 @@ test socket-11.2 {client specifies its port} {socket doTestsWithRemoteServer} {
     }
     sendCommand {
 	set socket9_2_test_server [tls::socket -server accept \
-		-certfile [file join [pwd] certs server.pem] \
-		-cafile [file join [pwd] certs caFile.pem] \
-		-keyfile [file join [pwd] certs skey.pem] \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
 	    2835]
 	proc accept {s a p} {
 	    puts $s $p
@@ -1191,7 +1212,9 @@ test socket-11.2 {client specifies its port} {socket doTestsWithRemoteServer} {
 } ok
 test socket-11.3 {trying to connect, no server} {socket doTestsWithRemoteServer} {
     set status ok
-    if {![catch {set s [tls::socket $remoteServerIp 2836]}]} {
+    if {![catch {set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIp 2836]}]} {
 	if {![catch {gets $s}]} {
 	    set status broken
 	}
@@ -1199,9 +1222,22 @@ test socket-11.3 {trying to connect, no server} {socket doTestsWithRemoteServer}
     }
     set status
 } ok
+
 test socket-11.4 {remote echo, one line} {socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
-	set socket10_6_test_server [tls::socket -server accept 2836]
+    	global serverCert
+	global caCert
+	global serverKey
+	set socket10_6_test_server [tls::socket \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		-server accept 2836]
 	proc accept {s a p} {
 	    fileevent $s readable [list echo $s]
 	    fconfigure $s -buffering line -translation crlf
@@ -1215,7 +1251,9 @@ test socket-11.4 {remote echo, one line} {socket doTestsWithRemoteServer} {
 	    }
 	}
     }
-    set f [tls::socket $remoteServerIP 2836]
+    set f [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fconfigure $f -translation crlf -buffering line
     puts $f hello
     set r [gets $f]
@@ -1223,9 +1261,19 @@ test socket-11.4 {remote echo, one line} {socket doTestsWithRemoteServer} {
     sendCommand {close $socket10_6_test_server}
     set r
 } hello
+
 test socket-11.5 {remote echo, 50 lines} {socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
-	set socket10_7_test_server [tls::socket -server accept 2836]
+	set socket10_7_test_server [tls::socket -server accept \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		2836]
 	proc accept {s a p} {
 	    fileevent $s readable [list echo $s]
 	    fconfigure $s -buffering line -translation crlf
@@ -1239,7 +1287,9 @@ test socket-11.5 {remote echo, 50 lines} {socket doTestsWithRemoteServer} {
 	    }
 	}
     }
-    set f [tls::socket $remoteServerIP 2836]
+    set f [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fconfigure $f -translation crlf -buffering line
     for {set cnt 0} {$cnt < 50} {incr cnt} {
 	puts $f "hello, $cnt"
@@ -1251,15 +1301,21 @@ test socket-11.5 {remote echo, 50 lines} {socket doTestsWithRemoteServer} {
     sendCommand {close $socket10_7_test_server}
     set cnt
 } 50
+
 # Macintosh sockets can have more than one server per port
 if {$tcl_platform(platform) == "macintosh"} {
     set conflictResult {0 2836}
 } else {
     set conflictResult {1 {couldn't open socket: address already in use}}
 }
+
 test socket-11.6 {socket conflict} {socket doTestsWithRemoteServer} {
-    set s1 [tls::socket -server accept 2836]
-    if {[catch {set s2 [tls::socket -server accept 2836]} msg]} {
+    set s1 [tls::socket \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+	    -server accept 2836]
+    if {[catch {set s2 [tls::socket \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+	    -server accept 2836]} msg]} {
 	set result [list 1 $msg]
     } else {
 	set result [list 0 [lindex [fconfigure $s2 -sockname] 2]]
@@ -1268,9 +1324,14 @@ test socket-11.6 {socket conflict} {socket doTestsWithRemoteServer} {
     close $s1
     set result
 } $conflictResult
+
 test socket-11.7 {server with several clients} {socket doTestsWithRemoteServer} {
     sendCommand {
-	set socket10_9_test_server [tls::socket -server accept 2836]
+	set socket10_9_test_server [tls::socket \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+		-server accept 2836]
 	proc accept {s a p} {
 	    fconfigure $s -buffering line
 	    fileevent $s readable [list echo $s]
@@ -1284,11 +1345,17 @@ test socket-11.7 {server with several clients} {socket doTestsWithRemoteServer} 
 	    }
 	}
     }
-    set s1 [tls::socket $remoteServerIP 2836]
+    set s1 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fconfigure $s1 -buffering line
-    set s2 [tls::socket $remoteServerIP 2836]
+    set s2 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fconfigure $s2 -buffering line
-    set s3 [tls::socket $remoteServerIP 2836]
+    set s3 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
 	puts $s1 hello,s1
@@ -1304,19 +1371,39 @@ test socket-11.7 {server with several clients} {socket doTestsWithRemoteServer} 
     sendCommand {close $socket10_9_test_server}
     set i
 } 100    
-test socket-11.8 {client with several servers} {socket doTestsWithRemoteServer} {
+
+test socket-11.8 {client with several servers} {knownBug socket doTestsWithRemoteServer} {
+	# this one seems to hang -- awb 6/2/2000
     sendCommand {
-	set s1 [tls::socket -server "accept 4003" 4003]
-	set s2 [tls::socket -server "accept 4004" 4004]
-	set s3 [tls::socket -server "accept 4005" 4005]
+	set s1 [tls::socket \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+		-server "accept 4003" 4003]
+	set s2 [tls::socket \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+		-server "accept 4004" 4004]
+	set s3 [tls::socket \
+		-certfile [file join [pwd] certs server.pem] \
+		-cafile [file join [pwd] certs caFile.pem] \
+		-keyfile [file join [pwd] certs skey.pem] \
+		-server "accept 4005" 4005]
 	proc accept {mp s a p} {
 	    puts $s $mp
 	    close $s
 	}
     }
-    set s1 [tls::socket $remoteServerIP 4003]
-    set s2 [tls::socket $remoteServerIP 4004]
-    set s3 [tls::socket $remoteServerIP 4005]
+    set s1 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 4003]
+    set s2 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 4004]
+    set s3 [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 4005]
     set l ""
     lappend l [gets $s1] [gets $s1] [eof $s1] [gets $s2] [gets $s2] [eof $s2] \
 	[gets $s3] [gets $s3] [eof $s3]
@@ -1330,16 +1417,28 @@ test socket-11.8 {client with several servers} {socket doTestsWithRemoteServer} 
     }
     set l
 } {4003 {} 1 4004 {} 1 4005 {} 1}
-test socket-11.9 {accept callback error} {socket doTestsWithRemoteServer} {
-    set s [tls::socket -server accept 2836]
+
+test socket-11.9 {accept callback error} {socket pcCrash doTestsWithRemoteServer} {
+    set s [tls::socket \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+	    -server accept 2836]
     proc accept {s a p} {expr 10 / 0}
     proc bgerror args {
 	global x
 	set x $args
     }
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     if {[catch {sendCommand {
 	    set peername [fconfigure $callerSocket -peername]
-	    set s [tls::socket [lindex $peername 0] 2836]
+	    set s [tls::socket \
+		-certfile $clientCert \
+		-cafile $caCert \
+		-keyfile $clientKey \
+	    	[lindex $peername 0] 2836]
 	    close $s
     	 }} msg]} {
 	close $s
@@ -1352,12 +1451,24 @@ test socket-11.9 {accept callback error} {socket doTestsWithRemoteServer} {
     rename bgerror {}
     set x
 } {{divide by zero}}
+
 test socket-11.10 {testing socket specific options} {socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
-	set socket10_12_test_server [tls::socket -server accept 2836]
+	set socket10_12_test_server [tls::socket \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		-server accept 2836]
 	proc accept {s a p} {close $s}
     }
-    set s [tls::socket $remoteServerIP 2836]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     set p [fconfigure $s -peername]
     set n [fconfigure $s -sockname]
     set l ""
@@ -1366,9 +1477,19 @@ test socket-11.10 {testing socket specific options} {socket doTestsWithRemoteSer
     sendCommand {close $socket10_12_test_server}
     set l
 } {2836 3 3}
-test socket-11.11 {testing spurious events} {socket doTestsWithRemoteServer} {
+
+test socket-11.11 {testing spurious events} {empty socket doTestsWithRemoteServer} {
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
-	set socket10_13_test_server [tls::socket -server accept 2836]
+	set socket10_13_test_server [tls::socket \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		-server accept 2836]
 	proc accept {s a p} {
 	    fconfigure $s -translation "auto lf"
 	    after 100 writesome $s
@@ -1397,7 +1518,9 @@ test socket-11.11 {testing spurious events} {socket doTestsWithRemoteServer} {
 	    incr len [string length $l]
 	}
     }
-    set c [tls::socket $remoteServerIP 2836]
+    set c [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    $remoteServerIP 2836]
     fileevent $c readable "readlittle $c"
     set timer [after 10000 "set done timed_out"]
     vwait done
@@ -1405,6 +1528,7 @@ test socket-11.11 {testing spurious events} {socket doTestsWithRemoteServer} {
     sendCommand {close $socket10_13_test_server}
     list $spurious $len
 } {0 2690}
+
 test socket-11.12 {testing EOF stickyness} {socket doTestsWithRemoteServer} {
     set counter 0
     set done 0
@@ -1425,19 +1549,31 @@ test socket-11.12 {testing EOF stickyness} {socket doTestsWithRemoteServer} {
 	set done {timed_out, EOF is not sticky}
 	close $c
     }
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
-	set socket10_14_test_server [tls::socket -server accept 2836]
+	set socket10_14_test_server [tls::socket \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		-server accept 2836]
 	proc accept {s a p} {
 	    after 100 close $s
 	}
     }
-    set c [tls::socket $remoteServerIP 2836]
+    set c [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+    	$remoteServerIP 2836]
     fileevent $c readable "count_up $c"
     set after_id [after 1000 timed_out]
     vwait done
     sendCommand {close $socket10_14_test_server}
     set done
 } {EOF is sticky}
+
 test socket-11.13 {testing async write, async flush, async close} \
 	{socket doTestsWithRemoteServer} {
     proc readit {s} {
@@ -1449,6 +1585,11 @@ test socket-11.13 {testing async write, async flush, async close} \
 	    set done 1
 	}
     }
+    sendCommand "set caCert $caCert"
+    sendCommand "set serverCert $serverCert"
+    sendCommand "set clientCert $clientCert"
+    sendCommand "set serverKey $serverKey"
+    sendCommand "set clientKey $clientKey"
     sendCommand {
 	set firstblock ""
 	for {set i 0} {$i < 5} {incr i} {
@@ -1458,7 +1599,11 @@ test socket-11.13 {testing async write, async flush, async close} \
 	for {set i 0} {$i < 16} {incr i} {
 	    set secondblock "b$secondblock$secondblock"
 	}
-	set l [tls::socket -server accept 2845]
+	set l [tls::socket \
+		-certfile $serverCert \
+		-cafile $caCert \
+		-keyfile $serverKey \
+		-server accept 2845]
 	proc accept {s a p} {
 	    fconfigure $s -blocking 0 -translation lf -buffersize 16384 \
 		-buffering line
@@ -1480,7 +1625,9 @@ test socket-11.13 {testing async write, async flush, async close} \
 	    close $s
 	}
     }
-    set s [tls::socket $remoteServerIP 2845]
+    set s [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+    	$remoteServerIP 2845]
     fconfigure $s -blocking 0 -trans lf -buffering line
     set count 0
     puts $s hello
@@ -1515,7 +1662,10 @@ test socket-12.1 {testing inheritance of server sockets} \
     puts $f [list set tcltest $::tcltest::tcltest]
     puts $f {
 	package require tcltest
-	set f [tls::socket -server accept 2828]
+	package require tls
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2828 \]"
+    puts $f {
 	proc accept { file addr port } {
 	    close $file
 	}
@@ -1545,6 +1695,7 @@ test socket-12.1 {testing inheritance of server sockets} \
     removeFile script2
     set x
 } {server socket was not inherited}
+
 test socket-12.2 {testing inheritance of client sockets} \
 	{socket doTestsWithRemoteServer} {
     removeFile script1
@@ -1567,7 +1718,10 @@ test socket-12.2 {testing inheritance of client sockets} \
     set f [open script2 w]
     puts $f [list set tcltest $::tcltest::tcltest]
     puts $f {
-	set f [tls::socket 127.0.0.1 2829]
+    	package require tls
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 127.0.0.1 2829 \]"
+    puts $f {
 	exec $::tcltest::tcltest script1 &
 	puts $f testing
 	flush $f
@@ -1631,6 +1785,7 @@ test socket-12.2 {testing inheritance of client sockets} \
     removeFile script2
     set x
 } {client socket was not inherited}
+
 test socket-12.3 {testing inheritance of accepted sockets} \
 	{socket doTestsWithRemoteServer} {
     removeFile script1
@@ -1646,7 +1801,10 @@ test socket-12.3 {testing inheritance of accepted sockets} \
     set f [open script2 w]
     puts $f [list set tcltest $::tcltest::tcltest]
     puts $f {
-	set server [tls::socket -server accept 2930]
+    	package require tls
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2930 \]"
+    puts $f {
 	proc accept { file host port } {
 	    global tcltest
 	    puts $file {test data on socket}
@@ -1665,7 +1823,9 @@ test socket-12.3 {testing inheritance of accepted sockets} \
     after 1000 set ok_to_proceed 1
     vwait ok_to_proceed
 
-    set f [tls::socket 127.0.0.1 2930]
+    set f [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    127.0.0.1 2930]
     fconfigure $f -buffering full -blocking 0
     fileevent $f readable [list getdata $f]
 

@@ -9,7 +9,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: remote.tcl,v 1.1 2000/06/03 00:20:02 awb Exp $
+# RCS: @(#) $Id: remote.tcl,v 1.2 2000/06/03 02:30:03 awb Exp $
 
 # load tls package
 package require tls
@@ -22,7 +22,7 @@ set command(0) ""
 set callerSocket ""
 
 # Detect whether we should print out connection messages etc.
-set VERBOSE 1
+# set VERBOSE 1
 if {![info exists VERBOSE]} {
     set VERBOSE 0
 }
@@ -35,8 +35,21 @@ proc __doCommands__ {l s} {
 	puts $l
 	puts "---"
     }
+    if {0} {
+	set fd [open remoteServer.log a]
+	catch {puts $fd "skey: $serverKey"}
+	puts $fd "--- Server executing the following for socket $s:"
+	puts $fd $l
+	puts $fd "---"
+	close $fd
+    }
     set callerSocket $s
     if {[catch {uplevel #0 $l} msg]} {
+    	if {0} {
+	    set fd [open remoteServer.log a]
+	    puts $fd "error: $msg"
+	    close $fd
+	}
 	list error $msg
     } else {
 	list success $msg
