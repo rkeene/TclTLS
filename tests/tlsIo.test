@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.2 2000/06/02 19:17:11 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.3 2000/06/02 20:45:38 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -285,6 +285,7 @@ if [info exists port] {
 } else { 
     set port [expr 2048 + [pid]%1024]
 }
+
 test socket-2.2 {tcp connection with client port specified} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
@@ -320,6 +321,7 @@ test socket-2.2 {tcp connection with client port specified} {socket stdio pcCras
     close $f
     set x
 } [list ready "hello $port"]
+
 test socket-2.3 {tcp connection with client interface specified} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
@@ -352,6 +354,7 @@ test socket-2.3 {tcp connection with client interface specified} {socket stdio p
     close $f
     set x
 } {ready {hello 127.0.0.1}}
+
 test socket-2.4 {tcp connection with server interface specified} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
@@ -590,6 +593,7 @@ test socket-3.1 {socket conflict} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
+    	package require tls
 	set f [tls::socket -server accept 2828]
 	puts ready
 	gets stdin
@@ -609,6 +613,7 @@ test socket-3.2 {server with several clients} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
     puts $f {
+    	package require tls
 	set t1 [after 30000 "set x timed_out"]
 	set t2 [after 31000 "set x timed_out"]
 	set t3 [after 32000 "set x timed_out"]
@@ -663,12 +668,13 @@ test socket-3.2 {server with several clients} {socket stdio pcCrash} {
     set x
 } {ready done}
 
-test socket-4.1 {server with several clients} {socket stdio} {
+test socket-4.1 {server with several clients} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
     puts $f {
+    	package require tls
 	gets stdin
-	set s [socket 127.0.0.1 2828]
+	set s [tls::socket 127.0.0.1 2828]
 	fconfigure $s -buffering line
 	for {set i 0} {$i < 100} {incr i} {
 	    puts $s hello
@@ -725,6 +731,7 @@ test socket-4.1 {server with several clients} {socket stdio} {
     close $p3
     set l
 } {{p1 bye done} {p2 bye done} {p3 bye done}}
+
 test socket-4.2 {byte order problems, socket numbers, htons} {socket} {
     set x ok
     if {[catch {tls::socket -server dodo 0x3000} msg]} {
@@ -788,10 +795,11 @@ test socket-6.1 {accept callback error} {socket stdio pcCrash} {
     set x
 } {{divide by zero}}
 
-test socket-7.1 {testing socket specific options} {socket stdio} {
+test socket-7.1 {testing socket specific options} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
     puts $f {
+	package require tls
 	tls::socket -server accept 2820
 	proc accept args {
 	    global x
