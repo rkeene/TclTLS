@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.9 2000/05/30 22:18:01 aborr Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.10 2000/06/05 20:20:36 aborr Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -241,10 +241,8 @@ install-doc: doc
 	    # done
 
 test: binaries libraries
-	( echo \
-	  pkg_mkIndex . $(tls_LIB_FILE) \;\
-	  exit; ) | \
-	$(TCLSH_PROG)
+	sed -e "s#\@RELPATH\@#.#" -e "s#\@tls_LIB_FILE\@#$(tls_LIB_FILE)#" \
+	< $(srcdir)/pkgIndex.tcl.in > pkgIndex.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
 	LD_LIBRARY_PATH=$(BUILD_DIR):$(TCL_BIN_DIR):$(LD_LIBRARY_PATH) \
 	TCLLIBPATH=. \
