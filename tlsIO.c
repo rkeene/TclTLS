@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.3 2000/05/31 21:24:24 welch Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.4 2000/06/01 19:26:02 stanton Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -126,19 +126,15 @@ CloseProc(ClientData instanceData,	/* The socket to close. */
              Tcl_Interp *interp)	/* For error reporting - unused. */
 {
     State *statePtr = (State *) instanceData;
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 2
-    Tcl_Channel chanPtr = Tls_GetParent(statePtr);
-#else
-    Tcl_Channel chanPtr = statePtr->self; /* 'self' already refers to our parent */
-#endif
 
     dprintf(stderr,"\nCloseProc(0x%x)", statePtr);
+
     /*
-     * Remove event handler to the channel, this could
+     * Remove event handler to underlying channel, this could
      * be because we are closing for real, or being "unstacked".
      */
 
-    Tcl_DeleteChannelHandler( chanPtr,
+    Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
 	ChannelHandler, (ClientData) statePtr);
 
     if (statePtr->timer != (Tcl_TimerToken)NULL) {
@@ -386,34 +382,27 @@ WatchProc(ClientData instanceData,	/* The socket state. */
                                          * TCL_WRITABLE and TCL_EXCEPTION. */
 {
     State *statePtr = (State *) instanceData;
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 2
-    Tcl_Channel chanPtr = Tls_GetParent(statePtr);
-#else
-    /*
-     * We set up the channel handler on the main channel, not the
-     * hidden channel.  The main channel gets notified by the underlying
-     * drivers, so we don't need to put the handler anywhere else.
-     * Also, because our state refers to the main channel, it is only
-     * safe to have our handler registered on that same channel.
-     */
-    Tcl_Channel chanPtr = statePtr->self;
-#endif
 
     if (mask == statePtr->watchMask)
 	return;
 
     if (statePtr->watchMask) {
 	/*
-	 * Remove event handler to the channel, this could
+	 * Remove event handler to underlying channel, this could
 	 * be because we are closing for real, or being "unstacked".
 	 */
-	Tcl_DeleteChannelHandler( chanPtr, ChannelHandler, (ClientData) statePtr);
+
+	Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
+		ChannelHandler, (ClientData) statePtr);
     }
     statePtr->watchMask = mask;
     if (statePtr->watchMask) {
-	/* Setup active monitor for events on underlying Channel */
-	Tcl_CreateChannelHandler( chanPtr, statePtr->watchMask,
-				ChannelHandler, (ClientData) statePtr);
+	/*
+	 * Setup active monitor for events on underlying Channel.
+	 */
+
+	Tcl_CreateChannelHandler(Tls_GetParent(statePtr),
+		statePtr->watchMask, ChannelHandler, (ClientData) statePtr);
     }
 }
 
@@ -493,13 +482,6 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
     if (BIO_pending(statePtr->bio)) {
 	mask |= TCL_READABLE;
     }
-#ifdef notdef
-    /*
-     * Tcl_NotifyChannel already runs through the list of stacked
-     * channels doing chained notifications.  No need to do this.
-     */
-    Tcl_NotifyChannel(statePtr->self, mask);
-#endif
 
     if (statePtr->timer != (Tcl_TimerToken)NULL) {
 	Tcl_DeleteTimerHandler(statePtr->timer);
@@ -509,8 +491,8 @@ dprintf(stderr, "HANDLER(0x%x)\n", mask);
 	/*
 	 * Data is waiting, flush it out in short time
 	 */
-	statePtr->timer = Tcl_CreateTimerHandler (TLS_TCL_DELAY, ChannelHandlerTimer,
-					   (ClientData) statePtr);
+	statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
+		ChannelHandlerTimer, (ClientData) statePtr);
     }
     Tcl_Release( (ClientData)statePtr);
 }
