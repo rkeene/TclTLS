@@ -1,0 +1,10 @@
+2000-05-31  Brent Welch <welch@scriptics.com>
+
+	* tls.c: Change the ChannelHandler to be registered on the main
+	channel as oppsed to the "parent", or superceeded, channel.  This
+	is because the socket driver notifies the main channel, and there are
+	times with the main channel gets closed, but the superceded one
+	is not yet closed.  If the channel handler gets triggered in this
+	half-open state it is associated with the superceeded channedl, but
+	uses its private pointer to the main channel, which is mostly destroyed.
+	* Eliminated the redundant call to Tcl_NotifyChannel from TlsWatchProc
