@@ -7,18 +7,18 @@
 # Copyright (c) 1998-2000 by Ajuba Solutions.
 # All rights reserved.
 # 
-# RCS: @(#) $Id: all.tcl,v 1.3 2000/06/05 22:57:58 stanton Exp $
+# RCS: @(#) $Id: all.tcl,v 1.4 2000/06/05 23:11:37 aborr Exp $
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
     package require tcltest
     namespace import ::tcltest::*
 }
 
-#  set ::tcltest::testSingleFile false
-#  set ::tcltest::testsDirectory [file dir [info script]]
+set ::tcltest::testSingleFile false
+set ::tcltest::testsDirectory [file dir [info script]]
 
 # We need to ensure that the testsDirectory is absolute
-#  ::tcltest::normalizePath ::tcltest::testsDirectory
+::tcltest::normalizePath ::tcltest::testsDirectory
 
 puts stdout "Tests running in interp:  [info nameofexecutable]"
 puts stdout "Tests running in working dir:  $::tcltest::testsDirectory"
