@@ -1,3 +1,15 @@
+2004-12-17  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* win/makefile.vc:  Added the MSVC build system (from the Tcl
+	* win/rules.vc:     sampleextension).
+	* win/nmakehlp.c:
+	* win/tls.rc        Added Windows resource file.
+	
+	* tls.tcl:          From patch #948155, added support for
+	                    alternate socket commands.
+	* tls.c:            Quieten some MSVC warnings. Prefer ckalloc
+	                    over Tcl_Alloc. (David Graveraux).
+
 2004-06-29  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* tls.c:            Fixup to build against tcl 8.3.3. Handle

@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.23 2004/06/29 11:07:08 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.24 2004/12/17 16:01:44 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -39,6 +39,8 @@
 	(((key) == NULL) ? (char *) NULL : \
 		Tcl_TranslateFileName(interp, (key), (dsp)))
 #define REASON()	ERR_reason_error_string(ERR_get_error())
+
+static void	InfoCallback _ANSI_ARGS_ ((CONST SSL *ssl, int where, int ret));
 
 static int	CiphersObjCmd _ANSI_ARGS_ ((ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
@@ -116,7 +118,7 @@ int channelTypeVersion;
 #endif
 
 /*
- * Per OpenSSL 0.9.4 Compat
+ * Pre OpenSSL 0.9.4 Compat
  */
 
 #ifndef STACK_OF
@@ -141,9 +143,9 @@ int channelTypeVersion;
  *-------------------------------------------------------------------
  */
 static void
-InfoCallback(SSL *ssl, int where, int ret)
+InfoCallback(CONST SSL *ssl, int where, int ret)
 {
-    State *statePtr = (State*)SSL_get_app_data(ssl);
+    State *statePtr = (State*)SSL_get_app_data((SSL *)ssl);
     Tcl_Obj *cmdPtr;
     char *major; char *minor;
 
@@ -736,7 +738,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     if (CAdir && !*CAdir)	CAdir	= NULL;
 
     /* new SSL state */
-    statePtr		= (State *) Tcl_Alloc((unsigned) sizeof(State));
+    statePtr		= (State *) ckalloc((unsigned) sizeof(State));
     statePtr->self	= (Tcl_Channel)NULL;
     statePtr->timer	= (Tcl_TimerToken)NULL;
 
@@ -853,7 +855,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     SSL_set_verify(statePtr->ssl, verify, VerifyCallback);
 
-    SSL_CTX_set_info_callback(statePtr->ctx, (void (*)())InfoCallback);
+    SSL_CTX_set_info_callback(statePtr->ctx, InfoCallback);
 
     /* Create Tcl_Channel BIO Handler */
     statePtr->p_bio	= BIO_new_tcl(statePtr, BIO_CLOSE);
@@ -1332,7 +1334,7 @@ Tls_Free( char *blockPtr )
     State *statePtr = (State *)blockPtr;
 
     Tls_Clean(statePtr);
-    Tcl_Free(blockPtr);
+    ckfree(blockPtr);
 }
 
 /*
