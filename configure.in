@@ -34,8 +34,8 @@ AC_SUBST(CONFIGDIR)
 PACKAGE=tls
 
 MAJOR_VERSION=1
-MINOR_VERSION=4
-PATCHLEVEL=1
+MINOR_VERSION=5
+PATCHLEVEL=0
 
 VERSION=${MAJOR_VERSION}.${MINOR_VERSION}${PATCHLEVEL}
 NODOT_VERSION=${MAJOR_VERSION}${MINOR_VERSION}
@@ -60,7 +60,7 @@ eval AC_DEFINE_UNQUOTED(PACKAGE, "${PACKAGE}")
 
 OPENSSL="1"
 
-AC_ARG_ENABLE(bsafe, [  --enable-bsafe  Use RSA BSAFE SSL-C libraries instead of the default OpenSSL libraries.], OPENSSL="", OPENSSL="1")
+AC_ARG_ENABLE(bsafe, [  --enable-bsafe          Use RSA BSAFE SSL-C libs.  Default is to use OpenSSL libs], OPENSSL="", OPENSSL="1")
 
 #--------------------------------------------------------------------
 # Establish the location of the root directory for OpenSSL.
@@ -71,7 +71,7 @@ AC_ARG_ENABLE(bsafe, [  --enable-bsafe  Use RSA BSAFE SSL-C libraries instead of
 #--------------------------------------------------------------------
 
 if test -n "${OPENSSL}"; then
-    SSL_DIR='/usr/local/openssl'
+    SSL_DIR='/usr/local/ssl'
     AC_DEFINE(NO_IDEA)
     AC_DEFINE(NO_RC5)
 else
@@ -107,7 +107,7 @@ if test -z "${OPENSSL}"; then
     AC_MSG_RESULT(${PLATFORM})
 fi
 
-AC_ARG_WITH(ssl-dir, [  --with-ssl-dir=DIR  SSL root directory], SSL_DIR=$withval)
+AC_ARG_WITH(ssl-dir, [  --with-ssl-dir=DIR      SSL root directory], SSL_DIR=$withval)
 
 if test ! -d "${SSL_DIR}"; then
     AC_ERROR(${SSL_DIR} is not a valid directory)
@@ -139,7 +139,7 @@ AC_SUBST(SSL_INCLUDE_DIR)
 # Determine if we should use the patented encryption code
 #--------------------------------------------------------------------
 
-AC_ARG_ENABLE(patents, [  enable or disable patented code.  Default is patented code enabled.], PATENTS=${enableval}, PATENTS=yes)  
+AC_ARG_ENABLE(patents, [  --enable-patents        Use patented code.  Default is enabled], PATENTS=${enableval}, PATENTS=yes)  
 
 if test ${PATENTS} = no; then
     AC_DEFINE("NO_PATENTS")
@@ -169,7 +169,7 @@ if test -n "${OPENSSL}"; then
 
     AC_MSG_CHECKING(if libgcc is needed to resolve openssl symbols)
 
-    AC_ARG_WITH(gcclib, [  --with-gcclib         link with libgcc to resolve symbols in a gcc-built openssl library], GCCLIB="-lgcc", GCCLIB="")
+    AC_ARG_WITH(gcclib, [  --with-gcclib           link with libgcc to resolve symbols in a gcc-built openssl library], GCCLIB="-lgcc", GCCLIB="")
 
     if test "x${GCCLIB}" = "x" ; then
         AC_MSG_RESULT(no)
@@ -245,7 +245,7 @@ AC_SUBST(SSL_INCLUDE_DIR_NATIVE)
 SC_PATH_TCLCONFIG
 SC_LOAD_TCLCONFIG
 
-SC_PRIVATE_TCL_HEADERS
+SC_PUBLIC_TCL_HEADERS
 
 #--------------------------------------------------------------------
 # A few miscellaneous platform-specific items:
