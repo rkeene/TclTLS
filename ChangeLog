@@ -1,5 +1,8 @@
 2000-08-16  Jeff Hobbs  <hobbs@scriptics.com>
 
+	* tests/ciphers.test: improved ability to change constraint
+	setting for whether user compiled against RSA or OpenSSL libs.
+
 	* tls.c (Tls_Init): corrected interpretation of version number
 	(patchlevel and release/serial were swapped).
 
