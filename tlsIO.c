@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.2 2000/07/12 01:54:26 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.3 2000/07/21 05:32:57 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -59,14 +59,14 @@ static void	TlsChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
 #ifdef TCL_CHANNEL_VERSION_2
 static Tcl_ChannelType tlsChannelType = {
     "tls",		/* Type name. */
-    TCL_CHANNEL_VERSION_2,	/* A NG channel */
-    TlsCloseProc,		/* Close proc. */
-    TlsInputProc,		/* Input proc. */
-    TlsOutputProc,		/* Output proc. */
+    TCL_CHANNEL_VERSION_2,	/* A v2 channel (8.3.2/8.4a2+) */
+    TlsCloseProc,	/* Close proc. */
+    TlsInputProc,	/* Input proc. */
+    TlsOutputProc,	/* Output proc. */
     NULL,		/* Seek proc. */
     NULL,		/* Set option proc. */
     TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,		/* Initialize notifier. */
+    TlsWatchProc,	/* Initialize notifier. */
     TlsGetHandleProc,	/* Get file handle out of channel. */
     NULL,		/* Close2Proc. */
     TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
@@ -77,13 +77,13 @@ static Tcl_ChannelType tlsChannelType = {
 static Tcl_ChannelType tlsChannelType = {
     "tls",		/* Type name. */
     TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
-    TlsCloseProc,		/* Close proc. */
-    TlsInputProc,		/* Input proc. */
-    TlsOutputProc,		/* Output proc. */
+    TlsCloseProc,	/* Close proc. */
+    TlsInputProc,	/* Input proc. */
+    TlsOutputProc,	/* Output proc. */
     NULL,		/* Seek proc. */
     NULL,		/* Set option proc. */
     TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,		/* Initialize notifier. */
+    TlsWatchProc,	/* Initialize notifier. */
     TlsGetHandleProc,	/* Get file handle out of channel. */
 };
 #endif
@@ -157,18 +157,15 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 
     dprintf(stderr,"\nTlsCloseProc(0x%x)", statePtr);
 
+#ifndef TCL_CHANNEL_VERSION_2
     /*
      * Remove event handler to underlying channel, this could
      * be because we are closing for real, or being "unstacked".
      */
-#ifndef TCL_CHANNEL_VERSION_2
+
     Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
 	TlsChannelHandler, (ClientData) statePtr);
 #endif
-    if (statePtr->timer != (Tcl_TimerToken)NULL) {
-	Tcl_DeleteTimerHandler (statePtr->timer);
-	statePtr->timer = (Tcl_TimerToken)NULL;
-    }
 
     Tls_Clean(statePtr);
     Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free);
@@ -713,14 +710,16 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 	    err = SSL_connect(statePtr->ssl);
 	}
 	/*SSL_write(statePtr->ssl, (char*)&err, 0);	HACK!!! */
-	if (err > 0)
+	if (err > 0) {
 	    BIO_flush(statePtr->bio);
+	}
 
 	if (err <= 0) {
 	    int rc = SSL_get_error(statePtr->ssl, err);
 
 	    if (rc == SSL_ERROR_SSL) {
-		Tls_Error(statePtr, (char*)ERR_reason_error_string(ERR_get_error()));
+		Tls_Error(statePtr,
+			(char *)ERR_reason_error_string(ERR_get_error()));
 		*errorCodePtr = ECONNABORTED;
 		return -1;
 	    } else if (BIO_should_retry(statePtr->bio)) {
@@ -739,7 +738,8 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 	    if (statePtr->flags & TLS_TCL_SERVER) {
 		err = SSL_get_verify_result(statePtr->ssl);
 		if (err != X509_V_OK) {
-		    Tls_Error(statePtr, (char*)X509_verify_cert_error_string(err));
+		    Tls_Error(statePtr,
+			    (char *)X509_verify_cert_error_string(err));
 		    *errorCodePtr = ECONNABORTED;
 		    return -1;
 		}

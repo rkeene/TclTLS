@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-1999 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.6.2.1 2000/07/11 04:58:46 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.6.2.2 2000/07/21 05:32:56 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -31,27 +31,29 @@
  */
 
 #define F2N( key, dsp) \
-	(((key) == NULL)?(char*)NULL:Tcl_TranslateFileName( interp, (key), (dsp)))
+	(((key) == NULL) ? (char *) NULL : \
+		Tcl_TranslateFileName(interp, (key), (dsp)))
 #define REASON()	ERR_reason_error_string(ERR_get_error())
 
-static int	CiphersObjCmd _ANSI_ARGS_ ((ClientData clientData, Tcl_Interp *interp,
-			   int objc, Tcl_Obj *CONST objv[]));
+static int	CiphersObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
-static int	HandshakeObjCmd _ANSI_ARGS_ ((ClientData clientData, Tcl_Interp *interp,
-			   int objc, Tcl_Obj *CONST objv[]));
+static int	HandshakeObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
-static int	ImportObjCmd _ANSI_ARGS_ ((ClientData clientData, Tcl_Interp *interp,
-			   int objc, Tcl_Obj *CONST objv[]));
+static int	ImportObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
-static int	StatusObjCmd _ANSI_ARGS_ ((ClientData clientData, Tcl_Interp *interp,
-			   int objc, Tcl_Obj *CONST objv[]));
+static int	StatusObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 static SSL_CTX *CTX_Init _ANSI_ARGS_((Tcl_Interp *interp, int proto, char *key,
-			    char *cert, char *CAdir, char *CAfile, char *ciphers));
+			char *cert, char *CAdir, char *CAfile, char *ciphers));
 
 #define TLS_PROTO_SSL2	0x01
 #define TLS_PROTO_SSL3	0x02
 #define TLS_PROTO_TLS1	0x04
 #define ENABLED(flag, mask)	(((flag) & (mask)) == (mask))
+
 /*
  * Static data structures
  */
@@ -551,7 +553,7 @@ HandshakeObjCmd(clientData, interp, objc, objv)
                 "\": not a TLS channel", NULL);
         return TCL_ERROR;
     }
-    statePtr = (State *)Tcl_GetChannelInstanceData( chan);
+    statePtr = (State *)Tcl_GetChannelInstanceData(chan);
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	int err;
@@ -561,10 +563,12 @@ HandshakeObjCmd(clientData, interp, objc, objv)
 	    Tcl_ResetResult(interp);
 	    Tcl_SetErrno(err);
 
-	    if (!errStr || *errStr == 0)
+	    if (!errStr || *errStr == 0) {
 	        errStr = Tcl_PosixError(interp);
+	    }
 
-	    Tcl_AppendResult(interp, "handshake failed: ", errStr, (char*)NULL);
+	    Tcl_AppendResult(interp, "handshake failed: ", errStr,
+		    (char *) NULL);
 	    return TCL_ERROR;
 	}
     }
@@ -1088,7 +1092,15 @@ Tls_Free( char *blockPtr )
 void
 Tls_Clean(State *statePtr)
 {
-    /* we're assuming here that we're single-threaded */
+    /*
+     * we're assuming here that we're single-threaded
+     */
+
+    if (statePtr->timer != (Tcl_TimerToken) NULL) {
+	Tcl_DeleteTimerHandler(statePtr->timer);
+	statePtr->timer = NULL;
+    }
+
     if (statePtr->ssl) {
 	SSL_shutdown(statePtr->ssl);
 	SSL_free(statePtr->ssl);
@@ -1097,11 +1109,6 @@ Tls_Clean(State *statePtr)
     if (statePtr->callback) {
 	Tcl_DecrRefCount(statePtr->callback);
 	statePtr->callback = NULL;
-    }
-
-    if (statePtr->timer != (Tcl_TimerToken)NULL) {
-	Tcl_DeleteTimerHandler (statePtr->timer);
-	statePtr->timer = NULL;
     }
 }
 

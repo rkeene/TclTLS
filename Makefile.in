@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.13 2000/06/21 21:00:56 wart Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.13.2.1 2000/07/21 05:32:56 hobbs Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -95,6 +95,7 @@ includedir = @includedir@
 oldincludedir = /usr/include
 
 DESTDIR =
+RELPATH = @RELPATH@
 
 pkgdatadir = $(datadir)/@PACKAGE@@VERSION@
 pkglibdir = $(libdir)/@PACKAGE@@VERSION@
@@ -210,6 +211,9 @@ doc:
 install: all install-binaries install-libraries install-doc
 
 install-binaries: binaries install-lib-binaries install-bin-binaries
+	sed -e "s#\@RELPATH\@#$(RELPATH)#" \
+	-e "s#\@tls_LIB_FILE\@#$(tls_LIB_FILE)#" \
+	< $(srcdir)/pkgIndex.tcl.in > pkgIndex.tcl
 	$(INSTALL_DATA) pkgIndex.tcl $(pkglibdir)
 
 #========================================================================

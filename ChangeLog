@@ -1,3 +1,25 @@
+2000-07-20  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tests/tlsIO.test: corrected various tests to be correct for TLS
+	stacked channels (as opposed to the standard sockets the test
+	suite was adopted from).  Key differences are that TLS cannot
+	operate in one process without all channels being non-blocking, or
+	the handshake will block, and handshaking must be forced in some
+	cases.  Also, handshakes don't seem to complete unless the client
+	has placed at least one byte for the server to read in the channel.
+
+	* tests/remote.tcl: corrected the finding of tests certificates
+
+	* tlsIO.c (TlsCloseProc): removed deleting of timer handler as
+	that is handled by Tls_Clean.
+
+	* tls.tcl (tls::_accept): corrected the internal _accept to
+	trickle callback errors to the user.
+
+	* Makefile.in: made the install-binaries target regenerate the
+	pkgIndex.tcl correctly.  The test target probably shouldn't screw
+	it up, but this is to be on the safe side.
+
 2000-07-17  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* pkgIndex.tcl.in:
