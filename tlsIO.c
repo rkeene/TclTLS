@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.3 2000/07/21 05:32:57 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.7.2.4 2000/07/26 22:15:07 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -168,7 +168,7 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 #endif
 
     Tls_Clean(statePtr);
-    Tcl_EventuallyFree( (ClientData)statePtr, Tls_Free);
+    Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
     return TCL_OK;
 }
 
@@ -193,10 +193,10 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 
 static int
 TlsInputProc(ClientData instanceData,	/* Socket state. */
-             char *buf,			/* Where to store data read. */
-             int bufSize,		/* How much space is available
-                                         * in the buffer? */
-             int *errorCodePtr)		/* Where to store error code. */
+	char *buf,			/* Where to store data read. */
+	int bufSize,			/* How much space is available
+					 * in the buffer? */
+	int *errorCodePtr)		/* Where to store error code. */
 {
     State *statePtr = (State *) instanceData;
     int bytesRead;			/* How many bytes were read? */
@@ -214,6 +214,18 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     if (statePtr->flags & TLS_TCL_INIT) {
 	statePtr->flags &= ~(TLS_TCL_INIT);
     }
+    /*
+     * We need to clear the SSL error stack now because we sometimes reach
+     * this function with leftover errors in the stack.  If BIO_read
+     * returns -1 and intends EAGAIN, there is a leftover error, it will be
+     * misconstrued as an error, not EAGAIN.
+     *
+     * Alternatively, we may want to handle the <0 return codes from
+     * BIO_read specially (as advised in the RSA docs).  TLS's lower level BIO
+     * functions play with the retry flags though, and this seems to work
+     * correctly.  Similar fix in TlsOutputProc. - hobbs
+     */
+    ERR_clear_error();
     bytesRead = BIO_read(statePtr->bio, buf, bufSize);
     dprintf(stderr,"\nBIO_read -> %d", bytesRead);
 
@@ -223,22 +235,19 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	if (err == SSL_ERROR_SSL) {
 	    Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, bytesRead));
 	    *errorCodePtr = ECONNABORTED;
-	    goto input;
 	} else if (BIO_should_retry(statePtr->bio)) {
 	    dprintf(stderr,"RE! ");
 	    *errorCodePtr = EAGAIN;
-	    goto input;
-	}
-	if (Tcl_GetErrno() == ECONNRESET) {
-	    /* Soft EOF */
-	    bytesRead = 0;
-	    goto input;
 	} else {
 	    *errorCodePtr = Tcl_GetErrno();
-	    goto input;
+	    if (*errorCodePtr == ECONNRESET) {
+		/* Soft EOF */
+		*errorCodePtr = 0;
+		bytesRead = 0;
+	    }
 	}
     }
-input:
+    input:
     dprintf(stderr, "\nInput(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
     return bytesRead;
 }
@@ -263,7 +272,7 @@ input:
 
 static int
 TlsOutputProc(ClientData instanceData,	/* Socket state. */
-              char *buf,			/* The data buffer. */
+              char *buf,		/* The data buffer. */
               int toWrite,		/* How many bytes to write? */
               int *errorCodePtr)	/* Where to store error code. */
 {
@@ -272,7 +281,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 
     *errorCodePtr = 0;
 
-    dprintf(stderr,"\nBIO_write(%d)", toWrite);
+    dprintf(stderr,"\nBIO_write(0x%x, %d)", statePtr, toWrite);
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	written = Tls_WaitForConnect(statePtr, errorCodePtr);
@@ -289,45 +298,59 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	written = 0;
 	goto output;
     } else {
+	/*
+	 * We need to clear the SSL error stack now because we sometimes reach
+	 * this function with leftover errors in the stack.  If BIO_write
+	 * returns -1 and intends EAGAIN, there is a leftover error, it will be
+	 * misconstrued as an error, not EAGAIN.
+	 *
+	 * Alternatively, we may want to handle the <0 return codes from
+	 * BIO_write specially (as advised in the RSA docs).  TLS's lower level
+	 * BIO functions play with the retry flags though, and this seems to
+	 * work correctly.  Similar fix in TlsInputProc. - hobbs
+	 */
+	ERR_clear_error();
 	written = BIO_write(statePtr->bio, buf, toWrite);
-	dprintf(stderr,"\nBIO_write(%d) -> [%d]", toWrite, written);
+	dprintf(stderr,"\nBIO_write(0x%x, %d) -> [%d]",
+		statePtr, toWrite, written);
     }
-    if (written < 0 || written == 0) {
+    if (written <= 0) {
 	switch ((err = SSL_get_error(statePtr->ssl, written))) {
-	case SSL_ERROR_NONE:
-	    if (written <= 0) {
+	    case SSL_ERROR_NONE:
+		if (written < 0) {
+		    written = 0;
+		}
+		break;
+	    case SSL_ERROR_WANT_WRITE:
+		dprintf(stderr," write W BLOCK");
+		break;
+	    case SSL_ERROR_WANT_READ:
+		dprintf(stderr," write R BLOCK");
+		break;
+	    case SSL_ERROR_WANT_X509_LOOKUP:
+		dprintf(stderr," write X BLOCK");
+		break;
+	    case SSL_ERROR_ZERO_RETURN:
+		dprintf(stderr," closed\n");
 		written = 0;
-		goto output;
-	    }
-	    break;
-	case SSL_ERROR_WANT_WRITE:
-	    dprintf(stderr,"write W BLOCK\n");
-	    break;
-	case SSL_ERROR_WANT_READ:
-	    dprintf(stderr,"write R BLOCK\n");
-	    break;
-	case SSL_ERROR_WANT_X509_LOOKUP:
-	    dprintf(stderr,"write X BLOCK\n");
-	    break;
-	case SSL_ERROR_ZERO_RETURN:
-	    dprintf(stderr,"closed\n");
-	    written = 0;
-	    goto output;
-	case SSL_ERROR_SYSCALL:
-	    *errorCodePtr = Tcl_GetErrno();
-	    dprintf(stderr,"[%d] syscall errr: %d\n", written, Tcl_GetErrno());
-	    written = -1;
-	    goto output;
-	case SSL_ERROR_SSL:
-	    Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, written));
-	    *errorCodePtr = ECONNABORTED;
-	    written = -1;
-	    goto output;
-	default:
-	    dprintf(stderr,"unknown err: %d\n", err);
+		break;
+	    case SSL_ERROR_SYSCALL:
+		*errorCodePtr = Tcl_GetErrno();
+		dprintf(stderr," [%d] syscall errr: %d",
+			written, *errorCodePtr);
+		written = -1;
+		break;
+	    case SSL_ERROR_SSL:
+		Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, written));
+		*errorCodePtr = ECONNABORTED;
+		written = -1;
+		break;
+	    default:
+		dprintf(stderr," unknown err: %d\n", err);
+		break;
 	}
     }
-output:
+    output:
     dprintf(stderr, "\nOutput(%d) -> %d", toWrite, written);
     return written;
 }

@@ -1,3 +1,18 @@
+2000-07-26  Jeff Hobbs  <hobbs@scriptics.com>
+
+	* tls.c (ImportObjCmd): removed unnecessary use of 'bio' arg.
+	(Tls_Init): check return value of SSL_library_init.  Also lots of
+	whitespace cleanup (more like Tcl Eng style guide), but not all
+	code was cleaned up.
+
+	* tlsBIO.c: minor whitespace cleanup
+
+	* tlsIO.c: minor whitespace cleanup.
+	(TlsInputProc, TlsOutputProc): Added ERR_clear_error before calls
+	to BIO_read or BIO_write, because we could otherwise end up
+	pulling an error off the stack that didn't belong to us.  Also
+	cleanup up excessive use of gotos.
+
 2000-07-20  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tests/tlsIO.test: corrected various tests to be correct for TLS

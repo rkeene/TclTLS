@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.2.2.3 2000/07/21 05:32:57 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsBIO.c,v 1.2.2.4 2000/07/26 22:15:07 hobbs Exp $
  *
  * Provides BIO layer to interface openssl to Tcl.
  */
@@ -38,10 +38,10 @@ BIO_new_tcl(statePtr, flags)
 {
     BIO *bio;
 
-    bio = BIO_new(&BioMethods);
-    bio->ptr = (char*)statePtr;
-    bio->init = 1;
-    bio->shutdown = flags;
+    bio			= BIO_new(&BioMethods);
+    bio->ptr		= (char*)statePtr;
+    bio->init		= 1;
+    bio->shutdown	= flags;
 
     return bio;
 }
@@ -58,30 +58,31 @@ BioWrite (bio, buf, bufLen)
     char *buf;
     int bufLen;
 {
-    Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
+    Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
     int ret;
 
     dprintf(stderr,"\nBioWrite(0x%x, <buf>, %d) [0x%x]", bio, bufLen, chan);
 
 #ifdef TCL_CHANNEL_VERSION_2
-    ret = Tcl_WriteRaw( chan, buf, bufLen);
+    ret = Tcl_WriteRaw(chan, buf, bufLen);
 #else
-    ret = Tcl_Write( chan, buf, bufLen);
+    ret = Tcl_Write(chan, buf, bufLen);
 #endif
 
     dprintf(stderr,"\n[0x%x] BioWrite(%d) -> %d [%d.%d]", chan, bufLen, ret,
-		Tcl_Eof( chan), Tcl_GetErrno());
+	    Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY);
 
     if (ret == 0) {
-	if (!Tcl_Eof( chan)) {
+	if (!Tcl_Eof(chan)) {
 	    BIO_set_retry_write(bio);
 	    ret = -1;
 	}
     }
-    if (BIO_should_read(bio))
+    if (BIO_should_read(bio)) {
 	BIO_set_retry_read(bio);
+    }
     return ret;
 }
 
@@ -99,24 +100,25 @@ BioRead (bio, buf, bufLen)
     if (buf == NULL) return 0;
 
 #ifdef TCL_CHANNEL_VERSION_2
-    ret = Tcl_ReadRaw( chan, buf, bufLen);
+    ret = Tcl_ReadRaw(chan, buf, bufLen);
 #else
-    ret = Tcl_Read( chan, buf, bufLen);
+    ret = Tcl_Read(chan, buf, bufLen);
 #endif
 
     dprintf(stderr,"\n[0x%x] BioRead(%d) -> %d [%d.%d]", chan, bufLen, ret,
-	Tcl_Eof(chan), Tcl_GetErrno());
+	    Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
 
     if (ret == 0) {
-	if (!Tcl_Eof( chan)) {
+	if (!Tcl_Eof(chan)) {
 	    BIO_set_retry_read(bio);
 	    ret = -1;
 	}
     }
-    if (BIO_should_write(bio))
+    if (BIO_should_write(bio)) {
 	BIO_set_retry_write(bio);
+    }
     return ret;
 }
 
@@ -125,7 +127,7 @@ BioPuts	(bio, str)
     BIO *bio;
     char *str;
 {
-    return BioWrite( bio, str, strlen(str));
+    return BioWrite(bio, str, strlen(str));
 }
 
 static long
@@ -177,7 +179,7 @@ BioCtrl	(bio, cmd, num, ptr)
 	break;
     case BIO_CTRL_EOF:
 	dprintf(stderr, "BIO_CTRL_EOF\n");
-	ret = Tcl_Eof( chan);
+	ret = Tcl_Eof(chan);
 	break;
     case BIO_CTRL_PENDING:
 	ret = (Tcl_InputBuffered(chan) ? 1 : 0);
@@ -194,7 +196,7 @@ BioCtrl	(bio, cmd, num, ptr)
 #ifdef TCL_CHANNEL_VERSION_2
 	    Tcl_WriteRaw(chan, "", 0) >= 0
 #else
-	    Tcl_Flush( chan) == TCL_OK
+	    Tcl_Flush(chan) == TCL_OK
 #endif
 	    ) {
 	    ret = 1;
