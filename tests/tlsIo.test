@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.1 2000/06/02 18:47:38 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.2 2000/06/02 19:17:11 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -467,8 +467,9 @@ test socket-2.7 {echo server, one line} {socket stdio pcCrash} {
     list $x $y
 } {{hello abcdefghijklmnop} done}
 
-test socket-2.8 {echo server, loop 50 times, single connection} {socket stdio} {
+test socket-2.8 {echo server, loop 50 times, single connection} {socket stdio pcCrash} {
     makeFile {
+    	package require tls
 	set f [tls::socket -server accept 2835]
 	proc accept {s a p} {
             fileevent $s readable [list echo $s]
@@ -514,7 +515,7 @@ test socket-2.9 {socket conflict} {socket stdio} {
     set s [tls::socket -server accept 2828]
     removeFile script
     set f [open script w]
-    puts -nonewline $f {tls::socket -server accept 2828}
+    puts -nonewline $f {package require tls; tls::socket -server accept 2828}
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f
@@ -524,7 +525,13 @@ test socket-2.9 {socket conflict} {socket stdio} {
     set x
 } {1 {couldn't open socket: address already in use
     while executing
-"socket -server accept 2828"
+"::socket -server {tls::_accept {-server 1} accept} 2828"
+    ("eval" body line 1)
+    invoked from within
+"eval ::socket $sopts"
+    (procedure "tls::socket" line 62)
+    invoked from within
+"tls::socket -server accept 2828"
     (file "script" line 1)}}
 
 test socket-2.10 {close on accept, accepted socket lives} {socket pcCrash} {
@@ -755,10 +762,11 @@ test socket-5.3 {byte order problems, socket numbers, htons} \
     set x
 } {couldn't open socket: not owner}
 
-test socket-6.1 {accept callback error} {socket stdio} {
+test socket-6.1 {accept callback error} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
     puts $f {
+    	package require tls
 	gets stdin
 	tls::socket 127.0.0.1 2848
     }
@@ -806,10 +814,11 @@ test socket-7.1 {testing socket specific options} {socket stdio} {
     lappend l [string compare [lindex $p 2] 2820]
     lappend l [llength $p]
 } {0 0 3}
-test socket-7.2 {testing socket specific options} {socket stdio} {
+test socket-7.2 {testing socket specific options} {socket stdio pcCrash} {
     removeFile script
     set f [open script w]
     puts $f {
+	package require tls
 	tls::socket -server accept 2821
 	proc accept args {
 	    global x
@@ -1602,6 +1611,7 @@ test socket-13.1 {Testing use of shared socket between two threads} \
     threadReap
 
     makeFile {
+    	package require tls
 	set f [tls::socket -server accept 2828]
 	proc accept {s a p} {
             fileevent $s readable [list echo $s]
