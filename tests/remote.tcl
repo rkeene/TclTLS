@@ -9,7 +9,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: remote.tcl,v 1.5 2000/07/27 01:58:19 hobbs Exp $
+# RCS: @(#) $Id: remote.tcl,v 1.6 2004/02/11 22:41:25 razzell Exp $
 
 # load tls package
 package require tls
@@ -174,7 +174,7 @@ if {$serverIsSilent == 0} {
 set certsDir	[file join [file dirname [info script]] certs]
 set serverCert	[file join $certsDir server.pem]
 set caCert	[file join $certsDir cacert.pem]
-set serverKey	[file join $certsDir skey.pem]
+set serverKey	[file join $certsDir server.key]
 if {[catch {set serverSocket \
 	[tls::socket -myaddr $serverAddress -server __accept__ \
 	-cafile $caCert -certfile $serverCert -keyfile $serverKey \

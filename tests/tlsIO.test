@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.20 2003/12/15 18:46:20 razzell Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.21 2004/02/11 22:41:25 razzell Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -213,7 +213,7 @@ if {$doTestsWithRemoteServer == 1} {
 	}
 
 	if {[catch {puts $commandSocket $c} msg]} {
-	    error "remote server disappaered: $msg"
+	    error "remote server disappeared: $msg"
 	}
 	if {[catch {puts $commandSocket "--Marker--Marker--Marker--"} msg]} {
 	    error "remote server disappeared: $msg"
@@ -247,8 +247,8 @@ if {$doTestsWithRemoteServer == 1} {
 	    set serverCert	[file join $certsDir server.pem]
 	    set clientCert	[file join $certsDir client.pem]
 	    set caCert		[file join $certsDir cacert.pem]
-	    set serverKey	[file join $certsDir skey.pem]
-	    set clientKey	[file join $certsDir ckey.pem]
+	    set serverKey	[file join $certsDir server.key]
+	    set clientKey	[file join $certsDir client.key]
 	}
     }
 }
