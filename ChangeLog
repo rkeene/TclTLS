@@ -1,3 +1,11 @@
+2004-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.c (Tls_Init):   replaced older TEA config with newer
+	* config/* (removed):
+	* pkgIndex.tcl.in, strncasecmp.c (removed):
+	* Makefile.in, aclocal.m4, configure, configure.in:
+	* tclconfig/README.txt, tclconfig/install-sh, tclconfig/tcl.m4:
+
 2004-03-17  Dan Razzell <research@starfishsystems.ca>
 
 	* tlsX509.c:	Add support for long serial numbers per RFC 3280.

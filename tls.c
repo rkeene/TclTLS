@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.20 2004/02/13 02:09:21 razzell Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.21 2004/03/19 21:05:16 hobbs Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -1477,7 +1477,7 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
     Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd,
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
-    return Tcl_PkgProvide(interp, PACKAGE, VERSION);
+    return Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 /*
