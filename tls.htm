@@ -1,3 +1,5 @@
+<!doctype html public "-//W3C//DTD HTML 4.0 Transitional//EN">
+
 <html>
 
 <head>
@@ -6,7 +8,6 @@ content="text/html; charset=iso-8859-1">
 <meta name="Author"
 content="Matt Newman &lt;matt@novadigm.com&gt;">
 <meta name="Copyright" content="1999 Matt Newman.">
-<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
 <title>TLS (SSL) Tcl Commands</title>
 </head>
 
@@ -31,10 +32,11 @@ content="Matt Newman &lt;matt@novadigm.com&gt;">
             <dd><b>tls::status </b><em>?-local? channel</em></dd>
             <dd><b>tls::import</b><em> channel ?options?</em></dd>
             <dd><b>tls::ciphers </b><em>protocol ?verbose?</em></dd>
+            <dd><b>tls::version</b></dd>
         </dl>
     </dd>
     <dd><a href="#COMMANDS">COMMANDS</a></dd>
-    <dd><a href="#CONFIGURATION OPTIONS">CONFIGURATION OPTIONS</a></dd>
+    <dd><a href="#CALLBACK OPTIONS">CALLBACK OPTIONS</a></dd>
     <dd><a href="#HTTPS EXAMPLE">HTTPS EXAMPLE</a></dd>
     <dd><a href="#SEE ALSO">SPECIAL CONSIDERATIONS</a></dd>
     <dd><a href="#SEE ALSO">SEE ALSO</a></dd>
@@ -61,7 +63,9 @@ port</em><br>
 <br>
 <a href="#tls::import"><b>tls::import </b><i>channel ?options?</i></a><br>
 <a href="#tls::ciphers protocol ?verbose?"><strong>tls::ciphers</strong>
-<em>protocol ?verbose?</em></a></p>
+<em>protocol ?verbose?</em></a><br>
+<a href="#tls::version"><b>tls::version</b></a>
+</p>
 
 <h3><a name="DESCRIPTION">DESCRIPTION</a></h3>
 
@@ -152,20 +156,26 @@ used directly.</p>
 
 <blockquote>
     <dl>
-        <dt><strong>-cafile </strong><em>filename</em></dt>
-        <dd>Provide the CA file.</dd>
         <dt>-<strong>cadir</strong> <em>dir</em></dt>
         <dd>Provide the directory containing the CA certificates.</dd>
+        <dt><strong>-cafile </strong><em>filename</em></dt>
+        <dd>Provide the CA file.</dd>
         <dt><strong>-certfile</strong> <em>filename</em></dt>
         <dd>Provide the certificate to use.</dd>
         <dt><strong>-cipher </strong><em>string</em></dt>
         <dd>Provide the cipher suites to use. Syntax is as per
             OpenSSL.</dd>
         <dt><strong>-command</strong><em> callback</em></dt>
-        <dd>This callback is invoked to pass errors, tracing
-            information and to allow Tcl scripts to perform
-            additional verification of the certificate, which can
-            override the default validation in OpenSSL.</dd>
+        <dd>If specified, this callback will be invoked at several points
+            during the OpenSSL handshake.  It can pass errors and tracing
+            information, and it can allow Tcl scripts to perform
+            their own validation of the certificate in place of the
+            default validation provided by OpenSSL.
+            The callback should return an integer whose interpretation
+            depends on context.
+            <br>
+            See <a href="#CALLBACK OPTIONS">CALLBACK OPTIONS</a> for
+            further discussion.</dd>
         <dt><strong>-keyfile</strong> <em>filename</em></dt>
         <dd>Provide the private key file. (<strong>default</strong>:
             value of -certfile)</dd>
@@ -173,6 +183,14 @@ used directly.</p>
         <dd>This will force this channel to share the same <em><strong>SSL_CTX</strong></em>
             structure as the specified <em>channel</em>, and
             therefore share callbacks etc.</dd>
+        <dt><strong>-password</strong><em> callback</em></dt>
+        <dd>If supplied, this callback will be invoked when OpenSSL needs
+            to obtain a password, typically for a certificate.
+            The callback should return a string which represents the
+            password to be used.
+            <br>
+            See <a href="#CALLBACK OPTIONS">CALLBACK OPTIONS</a> for
+            further discussion.</dd>
         <dt><strong>-request </strong><em>bool</em></dt>
         <dd>Request a certificate from peer during SSL handshake.
             (<strong>default</strong>: <em>true</em>)</dd>
@@ -182,8 +200,7 @@ used directly.</p>
             must also be set to true. (<strong>default</strong>: <em>false</em>)</dd>
         <dt><strong>-server</strong> <em>bool</em></dt>
         <dd>Handshake as server if true, else handshake as
-            client.(<strong>default</strong>: <em>false</em>) <em>[Not
-            available to tls::socket]</em></dd>
+            client.(<strong>default</strong>: <em>false</em>)</dd>
         <dt><strong>-ssl2</strong> <em>bool</em></dt>
         <dd>Enable use of SSL v2. (<strong>default</strong>: <em>true</em>
             unless -DNO_PATENTS was specified in build)</dd>
@@ -205,25 +222,47 @@ used directly.</p>
         case the result is a Tcl list.</dd>
 </dl>
 
-<h3><a name="CONFIGURATION OPTIONS">CONFIGURATION OPTIONS</a></h3>
+<dl>
+    <dt><a name="tls::version"><strong>tls::version</strong></a></dt>
+    <dd>Returns the version string defined by OpenSSL.</dd>
+</dl>
 
-<p>In addition to the options listed above you can set the <strong>tls::debug</strong>
-flag to a non-zero value to see the output from the default
-command callback (<strong>tls::callback</strong>) which shows the
-progression of the SSL handshake. Setting this value to greated
-than 1 will cause the default verify method in <strong>tls::callback</strong>
-to always accept the certificate, even if it is invalid.</p>
+<h3><a name="CALLBACK OPTIONS">CALLBACK OPTIONS</a></h3>
 
-<p>In a real-world deployment you should substitute your own
-callback in place of <strong>tls::callback</strong>, via the <em>-command
-</em>option to <strong>tls::socket</strong> or <strong>tls::import</strong>.</p>
+<p>
+As indicated above, individual channels can be given their own callbacks
+to handle intermediate processing by the OpenSSL library, using the
+<em>-command</em> and <em>-password</em> options passed to either of
+<strong>tls::socket</strong> or <strong>tls::import</strong>.
+</p>
 
-<p>When the TLS layer needs to obtain a password, typically for a
-certificate, the software will invoke a Tcl command called <strong>tls::password</strong>,
-which should return a string which represents the password to be
-used. A default implementation is provided, which simply returns<em>
-&quot;secret&quot;</em> - you should redefine this procedure
-after issuing the <em>package require tls</em>.</p>
+<p>
+Reference implementations of these callbacks are provided in the distribution
+as <strong>tls::callback</strong> and <strong>tls::password</strong>.
+Note that these are <em>sample</em> implementations only.  In a more realistic
+deployment you would substitute your own callbacks, typically by configuring
+the <em>-command</em> and <em>-password</em> options on each channel with
+scripts to be executed when the callbacks are invoked.
+</p>
+
+<p>
+The default behavior when the <em>-command</em> option is not specified is for
+TLS to process the associated library callbacks internally.
+The default behavior when the <em>-password</em> option is not specified is for
+TLS to process the associated library callbacks by attempting to call
+<strong>tls::password</strong>.
+The difference between these two behaviors is a consequence of maintaining
+compatibility with earlier implementations.  The use of implied callbacks
+is not recommended.
+</p>
+
+<p>
+The <strong>tls::debug</strong> variable provides some additional control
+over the default commands.  Its value is zero by default.  Higher values
+produce more diagnostic output.  Setting this value greater than zero
+will also force the default verify method in <strong>tls::callback</strong>
+to accept the certificate, even if it is invalid.
+</p>
 
 <h3><a name="HTTPS EXAMPLE">HTTPS EXAMPLE</a></h3>
 
@@ -264,6 +303,7 @@ href="http://www.openssl.org/"><strong>OpenSSL</strong></a></p>
 <hr>
 
 <pre>
-Copyright © 1999 Matt Newman.</pre>
+Copyright &copy; 1999 Matt Newman.
+</pre>
 </body>
 </html>

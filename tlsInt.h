@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.8 2000/08/18 19:17:14 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.9 2003/05/15 20:44:46 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -95,6 +95,7 @@ typedef struct State {
 
     Tcl_Interp *interp;	/* interpreter in which this resides */
     Tcl_Obj *callback;	/* script called for tracing, verifying and errors */
+    Tcl_Obj *password;	/* script called for certificate password */
 
     int vflags;		/* verify flags */
     SSL *ssl;		/* Struct for SSL processing */

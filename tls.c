@@ -3,8 +3,9 @@
  * some modifications:
  *	Copyright (C) 2000 Ajuba Solutions
  *	Copyright (C) 2002 ActiveState Corporation
+ *	Copyright (C) 2003 Starfish Systems
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.14 2002/02/04 22:46:31 hobbs Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.15 2003/05/15 20:44:46 razzell Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -50,7 +51,11 @@ static int	ImportObjCmd _ANSI_ARGS_ ((ClientData clientData,
 
 static int	StatusObjCmd _ANSI_ARGS_ ((ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
-static SSL_CTX *CTX_Init _ANSI_ARGS_((Tcl_Interp *interp, int proto, char *key,
+
+static int	VersionObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+
+static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers));
 
 #define TLS_PROTO_SSL2	0x01
@@ -172,7 +177,6 @@ InfoCallback(SSL *ssl, int where, int ret)
 	else					minor = "unknown";
     }
 
-
     Tcl_ListObjAppendElement( statePtr->interp, cmdPtr, 
 	    Tcl_NewStringObj( "info", -1));
 
@@ -189,7 +193,7 @@ InfoCallback(SSL *ssl, int where, int ret)
 	Tcl_ListObjAppendElement( statePtr->interp, cmdPtr,
 	    Tcl_NewStringObj( SSL_state_string_long(ssl), -1) );
     } else if (where & SSL_CB_ALERT) {
-	char *cp = SSL_alert_desc_string_long(ret);
+	char *cp = (char *) SSL_alert_desc_string_long(ret);
 
 	Tcl_ListObjAppendElement( statePtr->interp, cmdPtr,
 	    Tcl_NewStringObj( cp, -1) );
@@ -360,9 +364,9 @@ Tls_Error(State *statePtr, char *msg)
  *
  * PasswordCallback -- 
  *
- *	Called when a password is needed to unpack RSA and PEM keys
- *	Evals the tcl proc:  tls::password and returns the result as
- *	the password
+ *	Called when a password is needed to unpack RSA and PEM keys.
+ *	Evals any bound password script and returns the result as
+ *	the password string.
  *-------------------------------------------------------------------
  */
 #ifdef PRE_OPENSSL_0_9_4
@@ -379,10 +383,38 @@ PasswordCallback(char *buf, int size, int verify)
 static int
 PasswordCallback(char *buf, int size, int verify, void *udata)
 {
-    Tcl_Interp *interp = (Tcl_Interp*)udata;
+    State *statePtr	= (State *) udata;
+    Tcl_Interp *interp	= statePtr->interp;
+    Tcl_Obj *cmdPtr;
+    int result;
 
-    if (Tcl_Eval(interp, "tls::password") == TCL_OK) {
-	CONST char *ret = Tcl_GetStringResult(interp);
+    if (statePtr->password == NULL) {
+	if (Tcl_Eval(interp, "tls::password") == TCL_OK) {
+	    char *ret = (char *) Tcl_GetStringResult(interp);
+            strncpy(buf, ret, size);
+	    return strlen(ret);
+	} else {
+	    return -1;
+	}
+    }
+
+    cmdPtr = Tcl_DuplicateObj(statePtr->password);
+
+    Tcl_Preserve((ClientData) statePtr->interp);
+    Tcl_Preserve((ClientData) statePtr);
+
+    Tcl_IncrRefCount(cmdPtr);
+    result = Tcl_GlobalEvalObj(interp, cmdPtr);
+    if (result != TCL_OK) {
+	Tcl_BackgroundError(statePtr->interp);
+    }
+    Tcl_DecrRefCount(cmdPtr);
+
+    Tcl_Release((ClientData) statePtr);
+    Tcl_Release((ClientData) statePtr->interp);
+
+    if (result == TCL_OK) {
+	char *ret = (char *) Tcl_GetStringResult(interp);
         strncpy(buf, ret, size);
 	return strlen(ret);
     } else {
@@ -608,6 +640,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     State *statePtr;		/* client state for ssl socket */
     SSL_CTX *ctx	= NULL;
     Tcl_Obj *script	= NULL;
+    Tcl_Obj *password	= NULL;
     int idx;
     int flags		= TLS_TCL_INIT;
     int server		= 0;	/* is connection incoming or outgoing? */
@@ -657,13 +690,14 @@ ImportObjCmd(clientData, interp, objc, objv)
 	if (opt[0] != '-')
 	    break;
 
-	OPTSTR( "-cafile", CAfile);
 	OPTSTR( "-cadir", CAdir);
+	OPTSTR( "-cafile", CAfile);
 	OPTSTR( "-certfile", cert);
 	OPTSTR( "-cipher", ciphers);
 	OPTOBJ( "-command", script);
 	OPTSTR( "-keyfile", key);
 	OPTSTR( "-model", model);
+	OPTOBJ( "-password", password);
 	OPTBOOL( "-require", require);
 	OPTBOOL( "-request", request);
 	OPTBOOL( "-server", server);
@@ -672,7 +706,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-ssl3", ssl3);
 	OPTBOOL( "-tls1", tls1);
 
-	OPTBAD( "option", "-cafile, -cadir, -certfile, -cipher, -command, -keyfile, -model, -require, -request, -ssl2, -ssl3, -server, or -tls1");
+	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -keyfile, -model, -password, -require, -request, -server, -ssl2, -ssl3, or -tls1");
 
 	return TCL_ERROR;
     }
@@ -691,33 +725,6 @@ ImportObjCmd(clientData, interp, objc, objv)
     if (CAfile && !*CAfile)	CAfile	= NULL;
     if (CAdir && !*CAdir)	CAdir	= NULL;
 
-    if (model != NULL) {
-	int mode;
-	/* Get the "model" context */
-	chan = Tcl_GetChannel(interp, model, &mode);
-	if (chan == (Tcl_Channel) NULL) {
-	    return TCL_ERROR;
-	}
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	    /*
-	     * Make sure to operate on the topmost channel
-	     */
-	    chan = Tcl_GetTopChannel(chan);
-	}
-	if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
-	    Tcl_AppendResult(interp, "bad channel \"",
-		    Tcl_GetChannelName(chan), "\": not a TLS channel", NULL);
-	    return TCL_ERROR;
-	}
-	statePtr = (State *) Tcl_GetChannelInstanceData(chan);
-	ctx = statePtr->ctx;
-    } else {
-	if ((ctx = CTX_Init(interp, proto, key, cert, CAdir, CAfile, ciphers))
-	    == (SSL_CTX*)0) {
-	    return TCL_ERROR;
-	}
-    }
-
     /* new SSL state */
     statePtr		= (State *) Tcl_Alloc((unsigned) sizeof(State));
     statePtr->self	= (Tcl_Channel)NULL;
@@ -729,14 +736,64 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     statePtr->interp	= interp;
     statePtr->callback	= (Tcl_Obj *)0;
+    statePtr->password	= (Tcl_Obj *)0;
 
     statePtr->vflags	= verify;
     statePtr->ssl	= (SSL*)0;
-    statePtr->ctx	= ctx;
+    statePtr->ctx	= (SSL_CTX*)0;
     statePtr->bio	= (BIO*)0;
     statePtr->p_bio	= (BIO*)0;
 
     statePtr->err	= "";
+
+    /* allocate script */
+    if (script) {
+	char *tmp = Tcl_GetStringFromObj(script, NULL);
+	if (tmp && *tmp) {
+	    statePtr->callback = Tcl_DuplicateObj(script);
+	    Tcl_IncrRefCount(statePtr->callback);
+	}
+    }
+
+    /* allocate password */
+    if (password) {
+	char *tmp = Tcl_GetStringFromObj(password, NULL);
+	if (tmp && *tmp) {
+	    statePtr->password = Tcl_DuplicateObj(password);
+	    Tcl_IncrRefCount(statePtr->password);
+	}
+    }
+
+    if (model != NULL) {
+	int mode;
+	/* Get the "model" context */
+	chan = Tcl_GetChannel(interp, model, &mode);
+	if (chan == (Tcl_Channel) NULL) {
+	    Tls_Free((char *) statePtr);
+	    return TCL_ERROR;
+	}
+	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	    /*
+	     * Make sure to operate on the topmost channel
+	     */
+	    chan = Tcl_GetTopChannel(chan);
+	}
+	if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
+	    Tcl_AppendResult(interp, "bad channel \"",
+		    Tcl_GetChannelName(chan), "\": not a TLS channel", NULL);
+	    Tls_Free((char *) statePtr);
+	    return TCL_ERROR;
+	}
+	ctx = ((State *)Tcl_GetChannelInstanceData(chan))->ctx;
+    } else {
+	if ((ctx = CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers))
+	    == (SSL_CTX*)0) {
+	    Tls_Free((char *) statePtr);
+	    return TCL_ERROR;
+	}
+    }
+
+    statePtr->ctx = ctx;
 
     /*
      * We need to make sure that the channel works in binary (for the
@@ -765,20 +822,6 @@ ImportObjCmd(clientData, interp, objc, objv)
         return TCL_ERROR;
     }
 
-    /* allocate script */
-    if (script) {
-	char *tmp = Tcl_GetStringFromObj(script, NULL);
-	if (tmp && *tmp) {
-	    statePtr->callback = Tcl_DuplicateObj(script);
-	    Tcl_IncrRefCount(statePtr->callback);
-	}
-    }
-    /* This is only needed because of a bug in OpenSSL, where the
-     * ssl->verify_callback is not referenced!!! (Must be done
-     * *before* SSL_new() is called!
-     */
-    SSL_CTX_set_verify(statePtr->ctx, verify, VerifyCallback);
-
     /*
      * SSL Initialization
      */
@@ -798,11 +841,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     SSL_set_app_data(statePtr->ssl, (VOID *)statePtr);	/* point back to us */
 
-    /*
-     * The following is broken - we need is to set the
-     * verify_mode, but the library ignores the verify_callback!!!
-     */
-    /*SSL_set_verify(statePtr->ssl, verify, VerifyCallback);*/
+    SSL_set_verify(statePtr->ssl, verify, VerifyCallback);
 
     SSL_CTX_set_info_callback(statePtr->ctx, InfoCallback);
 
@@ -842,8 +881,8 @@ ImportObjCmd(clientData, interp, objc, objv)
  */
 
 static SSL_CTX *
-CTX_Init(interp, proto, key, cert, CAdir, CAfile, ciphers)
-    Tcl_Interp *interp;
+CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
+    State *statePtr;
     int proto;
     char *key;
     char *cert;
@@ -851,6 +890,7 @@ CTX_Init(interp, proto, key, cert, CAdir, CAfile, ciphers)
     char *CAfile;
     char *ciphers;
 {
+    Tcl_Interp *interp = statePtr->interp;
     SSL_CTX *ctx = NULL;
     Tcl_DString ds;
     Tcl_DString ds1;
@@ -899,7 +939,7 @@ CTX_Init(interp, proto, key, cert, CAdir, CAfile, ciphers)
     SSL_CTX_set_default_passwd_cb(ctx, PasswordCallback);
 
 #ifndef BSAFE
-    SSL_CTX_set_default_passwd_cb_userdata(ctx, (void *)interp);
+    SSL_CTX_set_default_passwd_cb_userdata(ctx, (void *)statePtr);
 #endif
 
 #ifndef NO_DH
@@ -930,6 +970,8 @@ CTX_Init(interp, proto, key, cert, CAdir, CAfile, ciphers)
         if (SSL_CTX_use_PrivateKey_file(ctx, F2N( key, &ds),
 					SSL_FILETYPE_PEM) <= 0) {
 	    Tcl_DStringFree(&ds);
+	    /* flush the passphrase which might be left in the result */
+	    Tcl_SetResult(interp, NULL, TCL_STATIC);
             Tcl_AppendResult(interp,
                              "unable to set public key file ", key, " ",
                              REASON(), (char *) NULL);
@@ -1052,7 +1094,8 @@ StatusObjCmd(clientData, interp, objc, objv)
 	objPtr = Tcl_NewListObj(0, NULL);
     }
 
-    Tcl_ListObjAppendElement (interp, objPtr, Tcl_NewStringObj ("sbits", -1));
+    Tcl_ListObjAppendElement (interp, objPtr,
+	    Tcl_NewStringObj ("sbits", -1));
     Tcl_ListObjAppendElement (interp, objPtr,
 	    Tcl_NewIntObj (SSL_get_cipher_bits (statePtr->ssl, NULL)));
 
@@ -1064,6 +1107,34 @@ StatusObjCmd(clientData, interp, objc, objv)
 		Tcl_NewStringObj(SSL_get_cipher(statePtr->ssl), -1));
     }
     Tcl_SetObjResult( interp, objPtr);
+    return TCL_OK;
+}
+
+/*
+ *-------------------------------------------------------------------
+ *
+ * VersionObjCmd -- return version string from OpenSSL.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	None.
+ *
+ *-------------------------------------------------------------------
+ */
+static int
+VersionObjCmd(clientData, interp, objc, objv)
+    ClientData clientData;	/* Not used. */
+    Tcl_Interp *interp;
+    int objc;
+    Tcl_Obj	*CONST objv[];
+{
+    Tcl_Obj *objPtr;
+
+    objPtr = Tcl_NewStringObj(OPENSSL_VERSION_TEXT, -1);
+
+    Tcl_SetObjResult(interp, objPtr);
     return TCL_OK;
 }
 
@@ -1127,9 +1198,17 @@ Tls_Clean(State *statePtr)
 	SSL_free(statePtr->ssl);
 	statePtr->ssl = NULL;
     }
+    if (statePtr->ctx) {
+	SSL_CTX_free(statePtr->ctx);
+	statePtr->ctx = NULL;
+    }
     if (statePtr->callback) {
 	Tcl_DecrRefCount(statePtr->callback);
 	statePtr->callback = NULL;
+    }
+    if (statePtr->password) {
+	Tcl_DecrRefCount(statePtr->password);
+	statePtr->password = NULL;
     }
 }
 
@@ -1222,6 +1301,9 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
     Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd,
+	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+
+    Tcl_CreateObjCommand(interp, "tls::version", VersionObjCmd,
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
     return Tcl_PkgProvide(interp, PACKAGE, VERSION);

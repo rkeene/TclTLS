@@ -1,3 +1,24 @@
+2003-05-15  Dan Razzell	<research@starfishsystems.ca>
+
+	* tls.tcl:
+	* tlsInt.h:
+	* tls.c: add support for binding a password callback to the socket.
+	Now each socket can have its own command and password callbacks instead
+	of being forced to have all password management pass through a common
+	procedure.  The common password procedure is retained for compatibility
+	but its use should be DEPRECATED.
+	Add version command to return OpenSSL version string.
+	Remove unstable workarounds needed for verify in obsolete versions of
+	OpenSSL.
+	Fix memory leak. [Request #640660]
+	More casts to eliminate compiler warnings.
+
+	* tls.htm: document password callback.
+	Correct technical and typographic errors.
+
+	* README.txt: identify versions of OpenSSL which fix known problems.
+	General warning of security problems in older versions of OpenSSL.
+
 2002-02-04  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* tls.htm:

@@ -1,7 +1,7 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.3 2000/07/27 01:58:18 hobbs Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.4 2003/05/15 20:44:46 razzell Exp $
 #
 namespace eval tls {
     variable logcmd tclLog
@@ -34,12 +34,12 @@ proc tls::socket {args} {
 	set args [lreplace $args $idx [expr {$idx+1}]]
 
 	set usage "wrong # args: should be \"tls::socket -server command ?options? port\""
-	set options "-cadir, -cafile, -certfile, -cipher, -keyfile, -myaddr, -request, -require, -ssl2, -ssl3, or -tls1"
+	set options "-cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -password, -request, -require, -ssl2, -ssl3, or -tls1"
     } else {
 	set server 0
 
 	set usage "wrong # args: should be \"tls::socket ?options? host port\""
-	set options "-async, -cadir, -cafile, -certfile, -cipher, -keyfile, -myaddr, -myport, -request, -require, -ssl2, -ssl3, or -tls1"
+	set options "-async, -cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -myport, -password, -request, -require, -ssl2, -ssl3, or -tls1"
     }
     set argc [llength $args]
     set sopts {}
@@ -48,15 +48,16 @@ proc tls::socket {args} {
     for {set idx 0} {$idx < $argc} {incr idx} {
 	set arg [lindex $args $idx]
 	switch -glob -- $server,$arg {
-	    0,-myport	-
-	    *,-myaddr	{lappend sopts $arg [lindex $args [incr idx]]}
 	    0,-async	{lappend sopts $arg}
-	    *,-cipher	-
+	    0,-myaddr	-
+	    *,-myport	{lappend sopts $arg [lindex $args [incr idx]]}
 	    *,-cadir	-
 	    *,-cafile	-
 	    *,-certfile	-
-	    *,-keyfile	-
+	    *,-cipher	-
 	    *,-command	-
+	    *,-keyfile	-
+	    *,-password	-
 	    *,-request	-
 	    *,-require	-
 	    *,-ssl2	-
@@ -137,9 +138,8 @@ proc tls::_accept { iopts callback chan ipaddr port } {
 # Sample callback for hooking: -
 #
 # error
-# info
-# password
 # verify
+# info
 #
 proc tls::callback {option args} {
     variable debug
@@ -206,11 +206,13 @@ proc tls::xhandshake {chan} {
 	}
     }
 }
+
 proc tls::password {} {
     log 0 "TLS/Password: did you forget to set your passwd!"
     # Return the worlds best kept secret password.
     return "secret"
 }
+
 proc tls::log {level msg} {
     variable debug
     variable logcmd
