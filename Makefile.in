@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.10 2000/06/05 20:20:36 aborr Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.11 2000/06/06 01:16:34 stanton Exp $
 
 
 lib_BINARIES=$(tls_LIB_FILE)
@@ -229,23 +229,21 @@ install-libraries: libraries
 #========================================================================
 
 install-doc: doc
-	# $(mkinstalldirs) $(mandir)/man1
-	# $(mkinstalldirs) $(mandir)/man3
-	# $(mkinstalldirs) $(mandir)/mann
-	# @echo "Installing documentation in $(mandir)"
-	# @for i in $(srcdir)/*.n; \
-	    # do \
-	    # echo "Installing $$i"; \
-	    # rm -f $(mandir)/mann/$$i; \
-	    # $(INSTALL_DATA) $$i $(mandir)/mann ; \
-	    # done
+#	$(mkinstalldirs) $(mandir)/man1
+#	$(mkinstalldirs) $(mandir)/man3
+#	$(mkinstalldirs) $(mandir)/mann
+#	@echo "Installing documentation in $(mandir)"
+#	@for i in $(srcdir)/*.n; \
+#	    do \
+# 		echo "Installing $$i"; \
+# 		rm -f $(mandir)/mann/$$i; \
+# 		$(INSTALL_DATA) $$i $(mandir)/mann ; \
+#	    done
 
 test: binaries libraries
 	sed -e "s#\@RELPATH\@#.#" -e "s#\@tls_LIB_FILE\@#$(tls_LIB_FILE)#" \
 	< $(srcdir)/pkgIndex.tcl.in > pkgIndex.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
 	LD_LIBRARY_PATH=$(BUILD_DIR):$(TCL_BIN_DIR):$(LD_LIBRARY_PATH) \
-	TCLLIBPATH=. \
 	PATH="$(BUILD_DIR)":"$(TCL_BIN_DIR)":"$(PATH)" \
 	$(TCLSH_PROG) `@CYGPATH@ $(srcdir)/tests/all.tcl` $(TCLTESTARGS)
 
