@@ -68,6 +68,14 @@ AC_SUBST(SSL_LIB_DIR)
 AC_SUBST(SSL_INCLUDE_DIR)
 
 #--------------------------------------------------------------------
+# Determine if we should use the patented encryption code
+#--------------------------------------------------------------------
+
+AC_ARG_WITH(patents, [  --with-patents=yes|no    Turn on/off the patented encryption code.  Default is no patents], SSL_CFLAGS="", SSL_CFLAGS="-DNO_PATENTS")
+
+AC_SUBST(SSL_CFLAGS)
+
+#--------------------------------------------------------------------
 # Check whether --enable-gcc or --disable-gcc was given.  Do this 
 # before AC_CYGWIN is called so the compiler can be fully tested by
 # built-in autoconf tools.  This macro also calls AC_PROG_CC to set
