@@ -18,7 +18,7 @@
 # Copyright (c) 2003 Pat Thoyts
 #
 #-------------------------------------------------------------------------
-# RCS: @(#)$Id: makefile.vc,v 1.1 2004/12/17 16:02:05 patthoyts Exp $
+# RCS: @(#)$Id: makefile.vc,v 1.2 2005/01/14 16:07:11 patthoyts Exp $
 #-------------------------------------------------------------------------
 
 !if !defined(MSDEVDIR) && !defined(MSVCDIR) && !defined(VCToolkitInstallDir)
@@ -180,6 +180,8 @@ SSL_LIB_DIR     = $(OPENSSL)\lib
 
 SSL_LIBS        =-libpath:"$(SSL_LIB_DIR)" ssleay32s.lib libeay32s.lib
 
+SSL_CFLAGS      =-DNO_IDEA=1 -DNO_RC5=1
+
 !if !exist("$(SSL_LIB_DIR)\ssleay32s.lib")
 MSG = ^
 You must provide the path to your OpenSSL library....
@@ -263,7 +265,7 @@ INCLUDES	= $(TCL_INCLUDES) -I"$(WINDIR)" -I"$(GENERICDIR)" \
 		  -I"$(SSL_INCLUDE_DIR)"
 BASE_CLFAGS	= $(cflags) $(cdebug) $(crt) $(INCLUDES)
 CON_CFLAGS	= $(cflags) $(cdebug) $(crt) -DCONSOLE
-TCL_CFLAGS	= -DUSE_TCL_STUBS \
+TCL_CFLAGS	= -DUSE_TCL_STUBS -DBUILD_$(PROJECT) $(SSL_CFLAGS) \
 		  -DPACKAGE_VERSION="\"$(DOTVERSION)\"" \
                   -DPACKAGE_NAME="\"$(PROJECT)\"" \
 		  $(BASE_CLFAGS) $(OPTDEFINES)
