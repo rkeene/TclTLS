@@ -1,5 +1,7 @@
 2000-06-05  Scott Stanton  <stanton@ajubasolutions.com>
 
+	* Makefile.in: Fixed broken test target.
+
 	* tlsInt.h: 
 	* tls.c: Cleaned up declarations of Tls_Clean to avoid errors on
 	Windows (lint).
