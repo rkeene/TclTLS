@@ -9,7 +9,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: remote.tcl,v 1.2 2000/06/03 02:30:03 awb Exp $
+# RCS: @(#) $Id: remote.tcl,v 1.3 2000/06/03 05:01:32 awb Exp $
 
 # load tls package
 package require tls
@@ -96,6 +96,7 @@ proc __accept__ {s a p} {
     if {$VERBOSE} {
 	puts "Server accepts new connection from $a:$p on $s"
     }
+    tls::handshake $s
     fileevent $s readable [list __readAndExecute__ $s]
     fconfigure $s -buffering line -translation crlf
 }
