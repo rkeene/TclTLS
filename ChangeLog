@@ -1,3 +1,9 @@
+2000-06-05  Scott Stanton  <stanton@ajubasolutions.com>
+
+	* tlsInt.h: 
+	* tls.c: Cleaned up declarations of Tls_Clean to avoid errors on
+	Windows (lint).
+
 2000-06-05  Brent Welch <welch@ajubasolutions.com>
 
 	* tls.c, tlsIO.c:  Split Tls_Free into Tls_Clean, which does
