@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIo.test,v 1.4 2000/06/02 21:44:59 awb Exp $
+# RCS: @(#) $Id: tlsIo.test,v 1.5 2000/06/02 21:50:44 awb Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -331,13 +331,15 @@ test socket-2.2 {tcp connection with client port specified} {socket stdio} {
     set x
 } [list ready "hello $port"]
 
-test socket-2.3 {tcp connection with client interface specified} {socket stdio pcCrash} {
+test socket-2.3 {tcp connection with client interface specified} {socket stdio} {
     removeFile script
     set f [open script w]
     puts $f {
 	package require tls
 	set timer [after 2000 "set x done"]
-        set f [tls::socket  -server accept 2830]
+    }
+    puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 2830 \]"
+    puts $f {
 	proc accept {file addr port} {
             global x
             puts "[gets $file] $addr"
@@ -352,7 +354,9 @@ test socket-2.3 {tcp connection with client interface specified} {socket stdio p
     close $f
     set f [open "|[list $::tcltest::tcltest script]" r]
     gets $f x
-    if {[catch {tls::socket -myaddr 127.0.0.1 127.0.0.1 2830} sock]} {
+    if {[catch {tls::socket -myaddr 127.0.0.1 \
+	-certfile $clientCert -cafile $caCert \
+	-keyfile $clientKey 127.0.0.1 2830} sock]} {
         set x $sock
     } else {
         puts $sock hello
