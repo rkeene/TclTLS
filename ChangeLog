@@ -1,3 +1,8 @@
+2004-12-23  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* Makefile.in:      Removed spurious copying of tls.tcl into the
+	                    build directory.
+
 2004-12-22  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* configure.in:     Incremented minor version to 1.5.1

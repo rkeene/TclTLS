@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.21 2004/06/29 10:38:38 patthoyts Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.22 2004/12/23 22:21:43 patthoyts Exp $
 
 
 #========================================================================
@@ -229,9 +229,6 @@ $(PKG_LIB_FILE): $(PKG_OBJECTS)
 	-rm -f $(PKG_LIB_FILE)
 	${MAKE_LIB}
 	$(RANLIB) $(PKG_LIB_FILE)
-	@for i in $(PKG_TCL_SOURCES); do \
-	    $(INSTALL_DATA) $(srcdir)/$$i $(top_builddir)/ ; \
-	done
 
 #========================================================================
 # We need to enumerate the list of .c to .o lines here.
