@@ -5,9 +5,9 @@ exec tclsh8.3 "$0" ${1+"$@"}
 package require tls
 
 set dir			[file join [file dirname [info script]] ../tests/certs]
-set OPTS(-cafile)	[file join $dir cacert.pem]
+set OPTS(-cafile)	[file join $dir ca.pem]
 set OPTS(-cert)		[file join $dir server.pem]
-set OPTS(-key)		[file join $dir skey.pem]
+set OPTS(-key)		[file join $dir server.key]
 
 set OPTS(-port)	2468
 set OPTS(-debug) 1
