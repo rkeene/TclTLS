@@ -1,3 +1,8 @@
+2001-03-14  Jeff Hobbs  <jeffh@gimlet.activestate.com>
+
+	* tls.c (Tls_Init): add do/while for random number initialization
+	to work around some OSes quirks.  (Ralph.Billes@teltech.com.au)
+
 2000-09-07  Jeff Hobbs  <hobbs@scriptics.com>
 
 	* tlsIO.c (Tls_ChannelType): set typeName field of channel type to
