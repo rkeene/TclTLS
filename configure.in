@@ -11,7 +11,7 @@ dnl commercial use. Licensing information for BSAFE SSL-C may be
 dnl obtained from RSA Data Scurity Inc., San Mateo, California, USA.
 dnl Their home page on the web is "www.rsasecurity.com". 
 #
-# RCS: @(#) $Id: configure.in,v 1.21 2005/02/09 00:58:26 hobbs2 Exp $
+# RCS: @(#) $Id: configure.in,v 1.22 2006/06/22 14:03:23 patthoyts Exp $
 
 
 #--------------------------------------------------------------------
@@ -20,7 +20,7 @@ dnl Their home page on the web is "www.rsasecurity.com".
 
 AC_INIT([tls], [1.5.1])
 
-TEA_INIT([3.2])
+TEA_INIT([3.5])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
@@ -174,7 +174,7 @@ TEA_MAKE_LIB
 if test -n "${OPENSSL}"; then
     if test "${TEA_PLATFORM}" = "windows" ; then
         if test "$GCC" = "yes"; then
-            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lssleay32.lib -llibeay32.lib])
+            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lssleay32 -llibeay32])
         else
             TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE} ssleay32.lib libeay32.lib])
         fi
