@@ -1,3 +1,9 @@
+2007-02-28  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* win/makefile.vc: Rebase the DLL sensibly. Additional libs for 
+	static link of openssl.
+	* tls.tcl: bug #1579837 - TIP 278 bug (possibly) - fixed.
+
 2006-03-30  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* tclconfig/*:  Updated to TEA 3.5 in response to bug 1460491
