@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.15 2004/06/29 11:07:08 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.16 2007/06/22 21:20:38 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -336,6 +336,12 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 
     dprintf(stderr,"\nBIO_read(%d)", bufSize);
 
+    if (statePtr->flags & TLS_TCL_CALLBACK) {
+       /* don't process any bytes while verify callback is running */
+       bytesRead = 0;
+       goto input;
+    }
+
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (bytesRead <= 0) {
@@ -413,6 +419,13 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     *errorCodePtr = 0;
 
     dprintf(stderr,"\nBIO_write(0x%x, %d)", (unsigned int) statePtr, toWrite);
+
+    if (statePtr->flags & TLS_TCL_CALLBACK) {
+       /* don't process any bytes while verify callback is running */
+       written = -1;
+       *errorCodePtr = EAGAIN;
+       goto output;
+    }
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	written = Tls_WaitForConnect(statePtr, errorCodePtr);
@@ -580,6 +593,12 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
                                          * TCL_WRITABLE and TCL_EXCEPTION. */
 {
     State *statePtr = (State *) instanceData;
+
+    dprintf(stderr, "TlsWatchProc(0x%x)\n", mask);
+
+    /* Pretend to be dead as long as the verify callback is running. 
+     * Otherwise that callback could be invoked recursively. */
+    if (statePtr->flags & TLS_TCL_CALLBACK) { return; }
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
 	Tcl_Channel     downChan;

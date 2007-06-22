@@ -1,3 +1,15 @@
+2007-06-22  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tlsIO.c (TlsInputProc, TlsOutputProc, TlsWatchProc): 
+	* tls.c (VerifyCallback): add an state flag in the verify callback
+	that prevents possibly recursion (on 'update'). [Bug 1652380]
+
+	* tests/ciphers.test: reworked to make test output cleaner to
+	understand missing ciphers (if any)
+
+	* Makefile.in, tclconfig/tcl.m4: update to TEA 3.6
+	* configure, configure.in:       using autoconf-2.59
+
 2007-02-28  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* win/makefile.vc: Rebase the DLL sensibly. Additional libs for 

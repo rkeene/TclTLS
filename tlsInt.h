@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.14 2004/06/29 11:07:08 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.15 2007/06/22 21:20:38 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -90,6 +90,8 @@
 #define TLS_TCL_SERVER	(1<<1)	/* Server-Side */
 #define TLS_TCL_INIT	(1<<2)	/* Initializing connection */
 #define TLS_TCL_DEBUG	(1<<3)	/* Show debug tracing */
+#define TLS_TCL_CALLBACK	(1<<4)	/* In a callback, prevent update
+					 * looping problem. [Bug 1652380] */
 
 #define TLS_TCL_DELAY (5)
 
@@ -103,7 +105,7 @@ typedef struct State {
     Tcl_Channel self;	/* this socket channel */
     Tcl_TimerToken timer;
 
-    int flags;		/* currently only CHANNEL_ASYNC */
+    int flags;		/* see State.flags above  */
     int watchMask;	/* current WatchProc mask */
     int mode;		/* current mode of parent channel */
 

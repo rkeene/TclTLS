@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.24 2004/12/17 16:01:44 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.25 2007/06/22 21:20:38 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -288,6 +288,8 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     Tcl_Preserve( (ClientData) statePtr->interp);
     Tcl_Preserve( (ClientData) statePtr);
 
+    statePtr->flags |= TLS_TCL_CALLBACK;
+
     Tcl_IncrRefCount( cmdPtr);
     if (Tcl_GlobalEvalObj(statePtr->interp, cmdPtr) != TCL_OK) {
 	/* It got an error - reject the certificate.		*/
@@ -305,6 +307,8 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
 	}
     }
     Tcl_DecrRefCount( cmdPtr);
+
+    statePtr->flags &= ~(TLS_TCL_CALLBACK);
 
     Tcl_Release( (ClientData) statePtr);
     Tcl_Release( (ClientData) statePtr->interp);
@@ -739,23 +743,11 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     /* new SSL state */
     statePtr		= (State *) ckalloc((unsigned) sizeof(State));
-    statePtr->self	= (Tcl_Channel)NULL;
-    statePtr->timer	= (Tcl_TimerToken)NULL;
+    memset(statePtr, 0, sizeof(State));
 
     statePtr->flags	= flags;
-    statePtr->watchMask	= 0;
-    statePtr->mode	= 0;
-
     statePtr->interp	= interp;
-    statePtr->callback	= (Tcl_Obj *)0;
-    statePtr->password	= (Tcl_Obj *)0;
-
     statePtr->vflags	= verify;
-    statePtr->ssl	= (SSL*)0;
-    statePtr->ctx	= (SSL_CTX*)0;
-    statePtr->bio	= (BIO*)0;
-    statePtr->p_bio	= (BIO*)0;
-
     statePtr->err	= "";
 
     /* allocate script */
