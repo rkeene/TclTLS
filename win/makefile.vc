@@ -15,16 +15,20 @@
 # Copyright (c) 1998-2000 Ajuba Solutions.
 # Copyright (c) 2001 ActiveState Corporation.
 # Copyright (c) 2001-2002 David Gravereaux.
-# Copyright (c) 2003 Pat Thoyts
+# Copyright (c) 2003-2006 Pat Thoyts
 #
 #-------------------------------------------------------------------------
-# RCS: @(#)$Id: makefile.vc,v 1.3 2007/02/28 23:33:41 patthoyts Exp $
+# RCS: @(#)$Id: makefile.vc,v 1.4 2007/09/06 21:01:55 patthoyts Exp $
 #-------------------------------------------------------------------------
 
-!if !defined(MSDEVDIR) && !defined(MSVCDIR) && !defined(VCToolkitInstallDir)
+# Check to see we are configured to build with MSVC (MSDEVDIR or MSVCDIR)
+# or with the MS Platform SDK (MSSDK). Visual Studio .NET 2003 and 2005 define
+# VCINSTALLDIR instead. The MSVC Toolkit release defines yet another.
+!if !defined(MSDEVDIR) && !defined(MSVCDIR) && !defined(MSSDK) && !defined(VCINSTALLDIR) && !defined(VCToolkitInstallDir)
 MSG = ^
-You will need to run vcvars32.bat from Developer Studio, first, to setup^
-the environment.  Jump to this line to read the new instructions.
+You need to run vcvars32.bat from Developer Studio or setenv.bat from the^
+Platform SDK first to setup the environment.  Jump to this line to read^
+the build instructions.
 !error $(MSG)
 !endif
 
@@ -72,7 +76,7 @@ the environment.  Jump to this line to read the new instructions.
 #		staticpkg = Effects the static option only to switch
 #			   tclshXX.exe to have the dde and reg extension linked
 #			   inside it.
-#		threads =  Turns on full multithreading support.
+#		nothreads = Turns off multithreading support (not recommended)
 #		thrdalloc = Use the thread allocator (shared global free pool).
 #		symbols =  Adds symbols for step debugging.
 #		profile =  Adds profiling hooks.  Map file is assumed.
@@ -88,11 +92,12 @@ the environment.  Jump to this line to read the new instructions.
 #		memdbg   = Enables the debugging memory allocator.
 #		compdbg  = Enables byte compilation logging.
 #
-#	MACHINE=(IX86|IA64|ALPHA)
+#	MACHINE=(IX86|IA64|ALPHA|AMD64)
 #		Set the machine type used for the compiler, linker, and
 #		resource compiler.  This hook is needed to tell the tools
 #		when alternate platforms are requested.  IX86 is the default
-#		when not specified.
+#		when not specified. If the CPU environment variable has been
+#		set (ie: recent Platform SDK) then MACHINE is set from CPU.
 #
 #	TMP_DIR=<path>
 #	OUT_DIR=<path>
@@ -154,6 +159,9 @@ Please `cd` to its location first.
 #-------------------------------------------------------------------------
 
 PROJECT = tls
+
+# Uncomment the following line if this is a Tk extension.
+#PROJECT_REQUIRES_TK=1
 !include "rules.vc"
 
 DOTVERSION      = 1.5.1
@@ -172,11 +180,15 @@ DLLOBJS = \
 #-------------------------------------------------------------------------
 
 !ifndef OPENSSL
-OPENSSL = c:\opt
+OPENSSL = c:\opt\openssl
 !endif
 
+!ifndef SSL_INCLUDE_DIR
 SSL_INCLUDE_DIR = $(OPENSSL)\include
+!endif
+!ifndef SSL_LIB_DIR
 SSL_LIB_DIR     = $(OPENSSL)\lib
+!endif
 
 SSL_LIBS        =-libpath:"$(SSL_LIB_DIR)" ssleay32s.lib libeay32s.lib
 
@@ -184,6 +196,7 @@ SSL_CFLAGS      =-DNO_IDEA=1 -DNO_RC5=1
 
 !if !exist("$(SSL_LIB_DIR)\ssleay32s.lib")
 MSG = ^
+Failed to locate "$(SSL_LIB_DIR)\ssleay32s.lib"
 You must provide the path to your OpenSSL library....
 !error $(MSG)
 !endif
@@ -225,50 +238,57 @@ COMPATDIR	= $(ROOT)\compat
 !if !$(DEBUG)
 !if $(OPTIMIZING)
 ### This cranks the optimization level to maximize speed
-cdebug	= -O2 -Op -Gs
+cdebug	= $(OPTIMIZATIONS)
 !else
 cdebug	=
 !endif
-!else if "$(MACHINE)" == "IA64"
+!else if "$(MACHINE)" == "IA64" #|| "$(MACHINE)" == "AMD64"
 ### Warnings are too many, can't support warnings into errors.
-cdebug	= -Z7 -Od -GZ
+cdebug	= -Zi -Od $(DEBUGFLAGS)
 !else
-cdebug	= -Z7 -WX -Od -GZ
+cdebug	= -Zi -WX $(DEBUGFLAGS)
 !endif
 
 ### Declarations common to all compiler options
-cflags = -nologo -c -W3 -YX -Fp$(TMP_DIR)^\
+cwarn = -D _CRT_SECURE_NO_DEPRECATE -D _CRT_NONSTDC_NO_DEPRECATE
+cflags = -nologo -c $(COMPILERFLAGS) $(cwarn) -Fp$(TMP_DIR)^\
 
-!if $(PENT_0F_ERRATA)
-cflags = $(cflags) -QI0f
-!endif
-
-!if $(ITAN_B_ERRATA)
-cflags = $(cflags) -QIA64_Bx
+# Warning level
+!if $(FULLWARNINGS)
+cflags = $(cflags) -W4
+!else
+cflags = $(cflags) -W3
 !endif
 
 !if $(MSVCRT)
-!if $(DEBUG)
+!if $(DEBUG) && !$(UNCHECKED)
 crt = -MDd
 !else
 crt = -MD
 !endif
 !else
-!if $(DEBUG)
+!if $(DEBUG) && !$(UNCHECKED)
 crt = -MTd
 !else
 crt = -MT
 !endif
 !endif
 
+!if !$(STATIC_BUILD)
+cflags = $(cflags) -DUSE_TCL_STUBS
+!if defined(TKSTUBLIB)
+cflags = $(cflags) -DUSE_TK_STUBS
+!endif
+!endif
+
 INCLUDES	= $(TCL_INCLUDES) -I"$(WINDIR)" -I"$(GENERICDIR)" \
 		  -I"$(SSL_INCLUDE_DIR)"
-BASE_CLFAGS	= $(cflags) $(cdebug) $(crt) $(INCLUDES)
+BASE_CFLAGS	= $(cflags) $(cdebug) $(crt) $(INCLUDES)
 CON_CFLAGS	= $(cflags) $(cdebug) $(crt) -DCONSOLE
-TCL_CFLAGS	= -DUSE_TCL_STUBS -DBUILD_$(PROJECT) $(SSL_CFLAGS) \
+TCL_CFLAGS	= -DPACKAGE_NAME="\"$(PROJECT)\"" \
 		  -DPACKAGE_VERSION="\"$(DOTVERSION)\"" \
-                  -DPACKAGE_NAME="\"$(PROJECT)\"" \
-		  $(BASE_CLFAGS) $(OPTDEFINES)
+                  $(SSL_CFLAGS) \
+		  $(BASE_CFLAGS) $(OPTDEFINES)
 
 #---------------------------------------------------------------------
 # Link flags
@@ -276,12 +296,19 @@ TCL_CFLAGS	= -DUSE_TCL_STUBS -DBUILD_$(PROJECT) $(SSL_CFLAGS) \
 
 !if $(DEBUG)
 ldebug	= -debug:full -debugtype:cv
+!if $(MSVCRT)
+ldebug = $(ldebug) -nodefaultlib:msvcrt
+!endif
 !else
 ldebug	= -release -opt:ref -opt:icf,3
 !endif
 
 ### Declarations common to all linker options
-lflags	= -nologo -machine:$(MACHINE) $(ldebug)
+lflags	= -nologo -machine:$(MACHINE) $(LINKERFLAGS) $(ldebug)
+
+!if $(FULLWARNINGS)
+lflags = $(lflags) -warn:3
+!endif
 
 !if $(PROFILE)
 lflags	= $(lflags) -profile
@@ -302,7 +329,20 @@ lflags	= $(lflags) -ws:aggressive
 dlllflags = $(lflags) -dll
 conlflags = $(lflags) -subsystem:console
 guilflags = $(lflags) -subsystem:windows
-baselibs  = $(TCLSTUBLIB) $(SSL_LIBS) ws2_32.lib user32.lib gdi32.lib advapi32.lib
+!if !$(STATIC_BUILD)
+baselibs  = $(TCLSTUBLIB)
+!if defined(TKSTUBLIB)
+baselibs  = $(baselibs) $(TKSTUBLIB)
+!endif
+!endif
+
+# Avoid 'unresolved external symbol __security_cookie' errors.
+# c.f. http://support.microsoft.com/?id=894573
+!if "$(MACHINE)" == "IA64" || "$(MACHINE)" == "AMD64"
+baselibs   = $(baselibs) bufferoverflowU.lib
+!endif
+
+baselibs  = $(baselibs) $(SSL_LIBS) ws2_32.lib user32.lib gdi32.lib advapi32.lib
 
 #---------------------------------------------------------------------
 # TclTest flags
@@ -328,7 +368,7 @@ test: setup $(PROJECT)
         set TCL_LIBRARY=$(ROOT)/library
         $(TCLSH) <<
 load $(PRJLIB:\=/)
-source [file normalize [file join $(LIBDIR) tls.tcl]]
+source [file join $(LIBDIR) tls.tcl]
 cd "$(ROOT)/tests"
 set argv "$(TESTFLAGS)"
 source all.tcl
@@ -353,10 +393,17 @@ setup:
 
 # See <tcl>/win/coffbase.txt for extension base addresses.
 $(PRJLIB): $(DLLOBJS)
+!if $(STATIC_BUILD)
+	$(lib32) -nologo -out:$@ @<<
+$**
+<<
+!else
 	$(link32) $(dlllflags) -base:0x10780000 -out:$@ $(baselibs) @<<
 $**
 <<
+	$(_VC_MANIFEST_EMBED_DLL)
 	-@del $*.exp
+!endif
 
 $(PRJSTUBLIB): $(PRJSTUBOBJS)
 	$(lib32) -nologo -out:$@ $(PRJSTUBOBJS)
@@ -382,9 +429,9 @@ $<
 
 {$(WINDIR)}.rc{$(TMP_DIR)}.res:
 	$(rc32) -fo $@ -r -i "$(GENERICDIR)" -D__WIN32__ \
-                -DCOMMAVERSION=$(DOTVERSION:.=,),0 \
-                -DDOTVERSION=\"$(DOTVERSION)\" \
-                -DVERSION=\"$(VERSION)$(SUFX)\" \
+		-DCOMMAVERSION=$(DOTVERSION:.=,),0 \
+		-DDOTVERSION=\"$(DOTVERSION)\" \
+		-DVERSION=\"$(VERSION)$(SUFX)\" \
 !if $(DEBUG)
 	-d DEBUG \
 !endif
@@ -398,6 +445,18 @@ $<
 
 .SUFFIXES:
 .SUFFIXES:.c .rc
+
+#-------------------------------------------------------------------------
+# Explicit dependency rules
+#
+#-------------------------------------------------------------------------
+
+$(OUT_DIR)\pkgIndex.tcl: $(ROOT)\pkgIndex.tcl.in
+	nmakehlp -s << $** > $@
+@PACKAGE_VERSION@    $(DOTVERSION)
+@PACKAGE_NAME@       $(PROJECT)
+@PKG_LIB_FILE@       $(PRJLIBNAME)
+<<
 
 #---------------------------------------------------------------------
 # Installation. (EDIT)
@@ -433,6 +492,9 @@ install-docs:
 clean:
 	@if exist $(TMP_DIR)\nul $(RMDIR) $(TMP_DIR)
 	@if exist $(WINDIR)\version.vc del $(WINDIR)\version.vc
+	@if exist $(WINDIR)\vercl.i del $(WINDIR)\vercl.i
+	@if exist $(WINDIR)\vercl.x del $(WINDIR)\vercl.x
+	@if exist $(WINDIR)\_junk.pch del $(WINDIR)\_junk.pch
 
 realclean: clean
 	@if exist $(OUT_DIR)\nul $(RMDIR) $(OUT_DIR)

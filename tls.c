@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.25 2007/06/22 21:20:38 hobbs2 Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.26 2007/09/06 21:01:55 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -406,7 +406,7 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
 	if (Tcl_Eval(interp, "tls::password") == TCL_OK) {
 	    char *ret = (char *) Tcl_GetStringResult(interp);
 	    strncpy(buf, ret, (size_t) size);
-	    return strlen(ret);
+	    return (int)strlen(ret);
 	} else {
 	    return -1;
 	}
@@ -430,7 +430,7 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
     if (result == TCL_OK) {
 	char *ret = (char *) Tcl_GetStringResult(interp);
 	strncpy(buf, ret, (size_t) size);
-	return strlen(ret);
+	return (int)strlen(ret);
     } else {
 	return -1;
     }
@@ -533,7 +533,7 @@ CiphersObjCmd(clientData, interp, objc, objv)
 	sk = SSL_get_ciphers(ssl);
 
 	for (index = 0; index < sk_SSL_CIPHER_num(sk); index++) {
-	    register int i;
+	    register size_t i;
 	    SSL_CIPHER_description( sk_SSL_CIPHER_value( sk, index),
 				    buf, sizeof(buf));
 	    for (i = strlen(buf) - 1; i ; i--) {

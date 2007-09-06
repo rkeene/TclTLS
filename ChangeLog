@@ -1,3 +1,10 @@
+2007-09-06  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* tls.c:           Silence 64 bit integer conversion warnings
+	* win/nmakehlp.c:  Update build system to support AMD64 target
+	* win/makefile.vc: with MSVC8
+	* win/rules.vc:
+
 2007-06-22  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* tlsIO.c (TlsInputProc, TlsOutputProc, TlsWatchProc): 
