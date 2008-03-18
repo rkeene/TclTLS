@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.25 2007/06/22 21:19:12 hobbs2 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.26 2008/03/18 00:40:37 hobbs2 Exp $
 
 
 #========================================================================
@@ -264,8 +264,8 @@ pkgIndex.tcl-auto:
 
 pkgIndex.tcl:
 	(echo 'package ifneeded $(PACKAGE_NAME) $(PACKAGE_VERSION) \
-	    "[list load [file join $$dir $(PKG_LIB_FILE)]] ; \
-	     [list source [file join $$dir tls.tcl]]"'\
+	    "[list source [file join $$dir tls.tcl]] ; \
+	     [list tls::initlib $$dir $(PKG_LIB_FILE)]"'\
 	) > pkgIndex.tcl
 
 #========================================================================

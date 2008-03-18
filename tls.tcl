@@ -1,7 +1,7 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com> 
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.8 2007/02/28 23:33:41 patthoyts Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.9 2008/03/18 00:40:37 hobbs2 Exp $
 #
 namespace eval tls {
     variable logcmd tclLog
@@ -20,6 +20,22 @@ namespace eval tls {
         set socketCmd [info command ::socket]
     }
 }
+
+proc tls::initlib {dir dll} {
+    # Package index cd's into the package directory for loading.
+    # Irrelevant to unixoids, but for Windows this enables the OS to find
+    # the dependent DLL's in the CWD, where they may be.
+    set cwd [pwd]
+    catch {cd $dir}
+    set res [catch {load [file join $dir $dll]} err]
+    catch {cd $cwd}
+    if {$res} {
+	namespace delete tls
+	return -code $res $err
+    }
+    rename tls::initlib {}
+}
+
 #
 # Backwards compatibility, also used to set the default
 # context options
