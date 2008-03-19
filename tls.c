@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.27 2008/03/19 02:34:21 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.28 2008/03/19 19:59:40 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -863,7 +863,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	SSL_set_connect_state(statePtr->ssl);
     }
     SSL_set_bio(statePtr->ssl, statePtr->p_bio, statePtr->p_bio);
-    BIO_set_ssl(statePtr->bio, statePtr->ssl, BIO_CLOSE);
+    BIO_set_ssl(statePtr->bio, statePtr->ssl, BIO_NOCLOSE);
 
     /*
      * End of SSL Init
@@ -1362,8 +1362,14 @@ Tls_Clean(State *statePtr)
 	statePtr->timer = NULL;
     }
 
+    if (statePtr->bio) {
+	/* This will call SSL_shutdown. Bug 1414045 */
+	dprintf(stderr, "BIO_free_all(%p)\n", statePtr->bio);
+	BIO_free_all(statePtr->bio);
+	statePtr->bio = NULL;
+    }
     if (statePtr->ssl) {
-	SSL_shutdown(statePtr->ssl);
+	dprintf(stderr, "SSL_free(%p)\n", statePtr->ssl);
 	SSL_free(statePtr->ssl);
 	statePtr->ssl = NULL;
     }

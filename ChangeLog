@@ -1,3 +1,7 @@
+2008-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.c (Tls_Clean, ImportObjCmd): Fix cleanup mem leak [Bug 1414045]
+
 2008-03-19  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* win/Makefile.vc  Updated the nmake build files with MSVC9 support
@@ -5,6 +9,12 @@
 	* win/nmakehlp.c:
 	* tls.tcl (tls::initlib): Corrected namespace handling.
 	* tls.c: Applied #1890223 to fix handshake on non-blocking sockets
+
+2008-03-17  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.tcl (tls::initlib):     load tls.tcl first and call
+	* Makefile.in (pkgIndex.tcl): tls::initlib to load library to
+	handle cwd changes. [Bug 1888113]
 
 2007-09-06  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
@@ -14,6 +24,8 @@
 	* win/rules.vc:
 
 2007-06-22  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* configure.in, configure, win/makefile.vc (DOTVERSION): bump to 1.6
 
 	* tlsIO.c (TlsInputProc, TlsOutputProc, TlsWatchProc): 
 	* tls.c (VerifyCallback): add an state flag in the verify callback
