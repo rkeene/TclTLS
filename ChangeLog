@@ -1,5 +1,9 @@
 2008-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	*** TLS 1.6 TAGGED ***
+
+	* Makefile.in (dist): update to include win/ and file.srl
+
 	* win/makefile.vc: bump version to 1.6
 	* configure.in: use -L and -R where necessary. [Bug 1742859]
 
