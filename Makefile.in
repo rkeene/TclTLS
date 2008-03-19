@@ -12,7 +12,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: Makefile.in,v 1.26 2008/03/18 00:40:37 hobbs2 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.27 2008/03/19 22:57:03 hobbs2 Exp $
 
 
 #========================================================================
@@ -289,7 +289,7 @@ distclean: clean
 
 COMPEXE		= gzip
 COMPEXT		= gz
-COMPRESS	= tar cvf - $(PKG_DIR) | $(COMPEXE) > $(PKG_DIR).tar.$(COMPEXT)
+COMPRESS	= tar cvf - $(PKG_DIR) | $(COMPEXE) > $(PKG_DIR)-src.tar.$(COMPEXT)
 DIST_ROOT	= /tmp/dist
 DIST_DIR	= $(DIST_ROOT)/$(PKG_DIR)
 
@@ -317,7 +317,11 @@ dist: dist-clean
 	cp -p $(srcdir)/tests/*.{tcl,test} $(DIST_DIR)/tests
 
 	mkdir $(DIST_DIR)/tests/certs
-	cp -p $(srcdir)/tests/certs/*.{pem,key,req,txt} $(DIST_DIR)/tests/certs
+	cp -p $(srcdir)/tests/certs/*.{pem,key,req,txt,srl} \
+		$(DIST_DIR)/tests/certs
+
+	mkdir $(DIST_DIR)/win
+	cp -p $(srcdir)/win/*.{vc,rc,c} $(DIST_DIR)/win
 
 	(cd $(DIST_ROOT); $(COMPRESS);)
 
