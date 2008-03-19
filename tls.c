@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.28 2008/03/19 19:59:40 hobbs2 Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.29 2008/03/19 21:31:24 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -210,7 +210,7 @@ InfoCallback(CONST SSL *ssl, int where, int ret)
     Tcl_Preserve( (ClientData) statePtr);
 
     Tcl_IncrRefCount( cmdPtr);
-    (void) Tcl_GlobalEvalObj(statePtr->interp, cmdPtr);
+    (void) Tcl_EvalObjEx(statePtr->interp, cmdPtr, TCL_EVAL_GLOBAL);
     Tcl_DecrRefCount( cmdPtr);
 
     Tcl_Release( (ClientData) statePtr);
@@ -291,7 +291,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     statePtr->flags |= TLS_TCL_CALLBACK;
 
     Tcl_IncrRefCount( cmdPtr);
-    if (Tcl_GlobalEvalObj(statePtr->interp, cmdPtr) != TCL_OK) {
+    if (Tcl_EvalObjEx(statePtr->interp, cmdPtr, TCL_EVAL_GLOBAL) != TCL_OK) {
 	/* It got an error - reject the certificate.		*/
 	Tcl_BackgroundError( statePtr->interp);
 	ok = 0;
@@ -364,7 +364,7 @@ Tls_Error(State *statePtr, char *msg)
     Tcl_Preserve((ClientData) statePtr);
 
     Tcl_IncrRefCount(cmdPtr);
-    if (Tcl_GlobalEvalObj(statePtr->interp, cmdPtr) != TCL_OK) {
+    if (Tcl_EvalObjEx(statePtr->interp, cmdPtr, TCL_EVAL_GLOBAL) != TCL_OK) {
 	Tcl_BackgroundError(statePtr->interp);
     }
     Tcl_DecrRefCount(cmdPtr);
@@ -403,7 +403,8 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
     int result;
 
     if (statePtr->password == NULL) {
-	if (Tcl_Eval(interp, "tls::password") == TCL_OK) {
+	if (Tcl_EvalEx(interp, "tls::password", -1, TCL_EVAL_GLOBAL)
+		== TCL_OK) {
 	    char *ret = (char *) Tcl_GetStringResult(interp);
 	    strncpy(buf, ret, (size_t) size);
 	    return (int)strlen(ret);
@@ -418,7 +419,7 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
     Tcl_Preserve((ClientData) statePtr);
 
     Tcl_IncrRefCount(cmdPtr);
-    result = Tcl_GlobalEvalObj(interp, cmdPtr);
+    result = Tcl_EvalObjEx(interp, cmdPtr, TCL_EVAL_GLOBAL);
     if (result != TCL_OK) {
 	Tcl_BackgroundError(statePtr->interp);
     }
@@ -660,7 +661,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     SSL_CTX *ctx	= NULL;
     Tcl_Obj *script	= NULL;
     Tcl_Obj *password	= NULL;
-    int idx;
+    int idx, len;
     int flags		= TLS_TCL_INIT;
     int server		= 0;	/* is connection incoming or outgoing? */
     char *key		= NULL;
@@ -755,18 +756,18 @@ ImportObjCmd(clientData, interp, objc, objv)
 
     /* allocate script */
     if (script) {
-	char *tmp = Tcl_GetStringFromObj(script, NULL);
-	if (tmp && *tmp) {
-	    statePtr->callback = Tcl_DuplicateObj(script);
+	(void) Tcl_GetStringFromObj(script, &len);
+	if (len) {
+	    statePtr->callback = script;
 	    Tcl_IncrRefCount(statePtr->callback);
 	}
     }
 
     /* allocate password */
     if (password) {
-	char *tmp = Tcl_GetStringFromObj(password, NULL);
-	if (tmp && *tmp) {
-	    statePtr->password = Tcl_DuplicateObj(password);
+	(void) Tcl_GetStringFromObj(password, &len);
+	if (len) {
+	    statePtr->password = password;
 	    Tcl_IncrRefCount(statePtr->password);
 	}
     }
@@ -794,7 +795,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	ctx = ((State *)Tcl_GetChannelInstanceData(chan))->ctx;
     } else {
 	if ((ctx = CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers))
-	    == (SSL_CTX*)0) {
+		== (SSL_CTX*)0) {
 	    Tls_Free((char *) statePtr);
 	    return TCL_ERROR;
 	}
