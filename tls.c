@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.29 2008/03/19 21:31:24 hobbs2 Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.30 2008/03/19 22:06:13 hobbs2 Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -58,6 +58,9 @@ static int	VersionObjCmd _ANSI_ARGS_ ((ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
 static int	MiscObjCmd _ANSI_ARGS_ ((ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+
+static int	UnimportObjCmd _ANSI_ARGS_ ((ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
 static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
@@ -877,6 +880,61 @@ ImportObjCmd(clientData, interp, objc, objv)
 /*
  *-------------------------------------------------------------------
  *
+ * UnimportObjCmd --
+ *
+ *	This procedure is invoked to remove the topmost channel filter.
+ *
+ * Results:
+ *	A standard Tcl result.
+ *
+ * Side effects:
+ *	May modify the behavior of an IO channel.
+ *
+ *-------------------------------------------------------------------
+ */
+
+static int
+UnimportObjCmd(clientData, interp, objc, objv)
+    ClientData clientData;	/* Not used. */
+    Tcl_Interp *interp;
+    int objc;
+    Tcl_Obj *CONST objv[];
+{
+    Tcl_Channel chan;		/* The channel to set a mode on. */
+
+    if (objc != 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "channel");
+	return TCL_ERROR;
+    }
+
+    chan = Tcl_GetChannel(interp, Tcl_GetString(objv[1]), NULL);
+    if (chan == (Tcl_Channel) NULL) {
+	return TCL_ERROR;
+    }
+
+    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
+	/*
+	 * Make sure to operate on the topmost channel
+	 */
+	chan = Tcl_GetTopChannel(chan);
+    }
+
+    if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
+	Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
+		"\": not a TLS channel", NULL);
+	return TCL_ERROR;
+    }
+
+    if (Tcl_UnstackChannel(interp, chan) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+
+    return TCL_OK;
+}
+
+/*
+ *-------------------------------------------------------------------
+ *
  * CTX_Init -- construct a SSL_CTX instance
  *
  * Results:
@@ -1474,6 +1532,9 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
     Tcl_CreateObjCommand(interp, "tls::import", ImportObjCmd,
+	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+
+    Tcl_CreateObjCommand(interp, "tls::unimport", UnimportObjCmd,
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
     Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd,

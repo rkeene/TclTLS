@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.22 2004/12/23 23:51:40 patthoyts Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.23 2008/03/19 22:06:13 hobbs2 Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -72,7 +72,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 # The build dir is added as the first element of $PATH
 set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 # Load the tls package
-package require tls 1.5
+package require tls 1.6
 
 set tlsServerPort 8048
 
@@ -339,8 +339,8 @@ test tlsIO-2.1 {tcp connection} {socket stdio} {
 
 if [info exists port] {
     incr port
-} else { 
-    set port [expr $tlsServerPort + [pid]%1024]
+} else {
+    set port [expr {$tlsServerPort + [pid]%1024}]
 }
 
 test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
@@ -1776,7 +1776,7 @@ test tlsIO-12.1 {testing inheritance of server sockets} {socket exec} {
 	vwait forever
     }
     close $f
-	
+
     # Launch script2 and wait 5 seconds
 
     exec $::tcltest::tcltest script2 &
@@ -1978,6 +1978,55 @@ test tlsIO-13.1 {Testing use of shared socket between two threads} \
     set result
 
 } {hello 1}
+
+test tlsIO-14.1 {test tls::unimport} {socket} {
+    list [catch {tls::unimport} msg] $msg
+} {1 {wrong # args: should be "tls::unimport channel"}}
+test tlsIO-14.2 {test tls::unimport} {socket} {
+    list [catch {tls::unimport foo bar} msg] $msg
+} {1 {wrong # args: should be "tls::unimport channel"}}
+test tlsIO-14.3 {test tls::unimport} {socket} {
+    list [catch {tls::unimport bogus} msg] $msg
+} {1 {can not find channel named "bogus"}}
+test tlsIO-14.4 {test tls::unimport} {socket} {
+    # stdin can take different names as the "top" channel
+    list [catch {tls::unimport stdin} msg] \
+	[string match {bad channel "*": not a TLS channel} $msg]
+} {1 1}
+test tlsIO-14.5 {test tls::unimport} {socket} {
+    set len 0
+    set spurious 0
+    set done 0
+    proc readlittle {s} {
+	global spurious done len
+	set l [read $s 1]
+	if {[string length $l] == 0} {
+	    if {![eof $s]} {
+		incr spurious
+	    } else {
+		close $s
+		set done 1
+	    }
+	} else {
+	    incr len [string length $l]
+	}
+    }
+    proc accept {s a p} {
+	fconfigure $s -blocking 0
+	fileevent $s readable [list do_handshake $s readable readlittle \
+		-buffering none]
+    }
+    set s [tls::socket \
+	    -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+	    -server accept 8831]
+    set c [tls::socket \
+	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
+	    [info hostname] 8831]
+    # only the client gets tls::import
+    set res [tls::unimport $c]
+    list $res [catch {close $c} err] $err \
+	[catch {close $s} err] $err
+} {{} 0 {} 0 {}}
 
 # cleanup
 if {[string match sock* $commandSocket] == 1} {

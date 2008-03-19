@@ -29,6 +29,7 @@ content="text/html; charset=iso-8859-1">
             <dd><b>tls::handshake</b><em> channel</em></dd>
             <dd><b>tls::status </b><em>?-local? channel</em></dd>
             <dd><b>tls::import</b><em> channel ?options?</em></dd>
+            <dd><b>tls::unimport</b><em> channel</em></dd>
             <dd><b>tls::ciphers </b><em>protocol ?verbose?</em></dd>
             <dd><b>tls::version</b></dd>
         </dl>
@@ -50,7 +51,7 @@ toolkit.</p>
 <h3><a name="SYNOPSIS">SYNOPSIS</a></h3>
 
 <p><b>package require Tcl 8.2</b><br>
-<b>package require tls 1.5</b><br>
+<b>package require tls 1.6</b><br>
 <br>
 <a href="#tls::init"><b>tls::init </b><i>?options?</i><br>
 </a><a href="#tls::socket"><b>tls::socket </b><em>?options? host
@@ -60,6 +61,7 @@ port</em><br>
 </a><a href="#tls::handshake"><b>tls::handshake</b><em> channel</em></a><br>
 <br>
 <a href="#tls::import"><b>tls::import </b><i>channel ?options?</i></a><br>
+<a href="#tls::unimport"><b>tls::unimport </b><i>channel</i></a><br>
 <a href="#tls::ciphers protocol ?verbose?"><strong>tls::ciphers</strong>
 <em>protocol ?verbose?</em></a><br>
 <a href="#tls::version"><b>tls::version</b></a>
@@ -207,6 +209,13 @@ used directly.</p>
         <dd>Enable use of TLS v1. (<strong>default</strong>: <em>false</em>)</dd>
     </dl>
 </blockquote>
+
+<dl>
+    <dt><a name="tls::unimport"><b>tls::unimport </b><i>channel</i></a></dt>
+    <dd>Provided for symmetry to <strong>tls::import</strong>, this
+      unstacks the SSL-enabling of a regular Tcl channel.  An error
+      is thrown if TLS is not the top stacked channel type.</dd>
+</dl>
 
 <dl>
     <dt><a name="tls::ciphers protocol ?verbose?"><strong>tls::ciphers</strong>
