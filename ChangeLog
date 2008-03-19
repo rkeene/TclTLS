@@ -38,8 +38,6 @@
 
 2007-06-22  Jeff Hobbs  <jeffh@ActiveState.com>
 
-	* configure.in, configure, win/makefile.vc (DOTVERSION): bump to 1.6
-
 	* tlsIO.c (TlsInputProc, TlsOutputProc, TlsWatchProc): 
 	* tls.c (VerifyCallback): add an state flag in the verify callback
 	that prevents possibly recursion (on 'update'). [Bug 1652380]
