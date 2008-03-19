@@ -11,14 +11,14 @@ dnl commercial use. Licensing information for BSAFE SSL-C may be
 dnl obtained from RSA Data Scurity Inc., San Mateo, California, USA.
 dnl Their home page on the web is "www.rsasecurity.com". 
 #
-# RCS: @(#) $Id: configure.in,v 1.23 2007/06/22 21:19:12 hobbs2 Exp $
+# RCS: @(#) $Id: configure.in,v 1.24 2008/03/19 22:38:26 hobbs2 Exp $
 
 
 #--------------------------------------------------------------------
 # macro used to verify that the configure script can find the sources
 #--------------------------------------------------------------------
 
-AC_INIT([tls], [1.5.1])
+AC_INIT([tls], [1.6])
 
 TEA_INIT([3.6])
 
@@ -171,25 +171,25 @@ TEA_MAKE_LIB
 # OpenSSL uses as its default names.
 #--------------------------------------------------------------------
 
-if test -n "${OPENSSL}"; then
-    if test "${TEA_PLATFORM}" = "windows" ; then
-        if test "$GCC" = "yes"; then
-            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lssleay32 -llibeay32])
-        else
-            TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE} ssleay32.lib libeay32.lib])
-        fi
+if test "${TEA_PLATFORM}" = "windows" ; then
+    if test "$GCC" = "yes"; then
+	TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE}])
     else
-	TEA_ADD_LIBS([-L${SSL_LIB_DIR} -lssl -lcrypto ${GCCPATH} ${GCCLIB}])
+	TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE}])
+    fi
+    if test -n "${OPENSSL}"; then
+        TEA_ADD_LIBS([ssleay32.lib libeay32.lib])
+    else
+        TEA_ADD_LIBS([sslc32.lib])
     fi
 else
-    if test "${TEA_PLATFORM}" = "windows" ; then
-        if test "$GCC" = "yes"; then
-            TEA_ADD_LIBS([-L${SSL_LIB_DIR_NATIVE} -lsslc32])
-        else
-            TEA_ADD_LIBS([-libpath:${SSL_LIB_DIR_NATIVE} sslc32.lib])
-        fi
+    # Subst runtime dir here, use -R and -L where necessary. [Bug 1742859]
+    LIB_RUNTIME_DIR=${SSL_LIB_DIR}
+    eval "LD_SEARCH_FLAGS=\"${LD_SEARCH_FLAGS}\""
+    if test -n "${OPENSSL}"; then
+	TEA_ADD_LIBS([${LD_SEARCH_FLAGS} -L${SSL_LIB_DIR} -lssl -lcrypto ${GCCPATH} ${GCCLIB}])
     else
-	TEA_ADD_LIBS([-L${SSL_LIB_DIR} -lsslc])
+	TEA_ADD_LIBS([${LD_SEARCH_FLAGS} -L${SSL_LIB_DIR} -lsslc])
     fi
 fi
 
