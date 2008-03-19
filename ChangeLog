@@ -1,5 +1,10 @@
 2008-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	* aclocal.m4: improve --with-ssl-dir check.
+
+	* tests/tlsIO.test (tlsIO-14.*):   Add tls::unimport for symmetry
+	* tls.htm, tls.c (UnimportObjCmd): to tls::import. [Bug 1203273]
+
 	* tls.c (Tls_Clean, ImportObjCmd): Fix cleanup mem leak [Bug 1414045]
 	Use better Eval APIs, cleaner Tcl_Obj-handling.
 

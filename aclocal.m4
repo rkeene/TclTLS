@@ -13,7 +13,7 @@ builtin(include,tclconfig/tcl.m4)
 #
 # Results:
 #
-#	Adds a --with-ss-dir switch to configure.
+#	Adds a --with-ssl-dir switch to configure.
 #	Result is cached.
 #
 #	Substs the following vars:
@@ -22,27 +22,27 @@ builtin(include,tclconfig/tcl.m4)
 
 AC_DEFUN(TLS_CHECK_SSL, [
 
-#--------------------------------------------------------------------
-# If the variable OPENSSL is set, we will build with the OpenSSL
-# libraries.  If it is not set, then we will use RSA BSAFE SSL-C
-# libraries instead of the default OpenSSL libaries.
-#--------------------------------------------------------------------
+    #--------------------------------------------------------------------
+    # If the variable OPENSSL is set, we will build with the OpenSSL
+    # libraries.  If it is not set, then we will use RSA BSAFE SSL-C
+    # libraries instead of the default OpenSSL libaries.
+    #--------------------------------------------------------------------
 
     AC_ARG_ENABLE(bsafe, [  --enable-bsafe          Use RSA BSAFE SSL-C libs.  Default is to use OpenSSL libs], OPENSSL="", OPENSSL="1")
 
-#--------------------------------------------------------------------
-# Establish the location of the root directory for OpenSSL.
-# If we're not using OpenSSL, set the root for BSAFE SSL-C.
-# If we're using BSAFE, define the BSAFE compiler flag.
-# The "FLAT_INC" flag is used in the BSAFE ssl.h header file and
-# doesn't seem to be referenced anywhere else.
-#--------------------------------------------------------------------
+    #--------------------------------------------------------------------
+    # Establish the location of the root directory for OpenSSL.
+    # If we're not using OpenSSL, set the root for BSAFE SSL-C.
+    # If we're using BSAFE, define the BSAFE compiler flag.
+    # The "FLAT_INC" flag is used in the BSAFE ssl.h header file and
+    # doesn't seem to be referenced anywhere else.
+    #--------------------------------------------------------------------
     if test -n "${OPENSSL}"; then
-	SSL_DIR='/usr/local/ssl'
+	SSL_DIR='/usr /usr/local'
 	AC_DEFINE(NO_IDEA)
 	AC_DEFINE(NO_RC5)
     else
-	SSL_DIR='/use/local/sslc'
+	SSL_DIR='/usr/sslc /usr/local/sslc'
 	AC_DEFINE(BSAFE)
 	AC_DEFINE(FLAT_INC)
     fi
@@ -80,30 +80,6 @@ Please specify its location with --with-ssl-dir])
 	AC_MSG_RESULT([${SSL_DIR}])
     fi
 
-    #--------------------------------------------------------------------
-    # If we're using RSA BSAFE SSL-C, we need to establish what platform
-    # we're running on before we can figure out some paths.
-    # This step isn't necessary if we're using OpenSSL.
-    #--------------------------------------------------------------------
-
-    if test -z "${OPENSSL}"; then
-	AC_MSG_CHECKING(host type)
-	case "`uname -s`" in
-	    *win32* | *WIN32* | *CYGWIN_NT*|*CYGWIN_98*|*CYGWIN_95*)
-		PLATFORM=WIN32
-		;;
-	    *SunOS*)
-		PLATFORM=SOLARIS
-		;;
-	    HP-UX)
-		PLATFORM=HPUX
-		;;
-	    *)
-		PLATFORM=LINUX
-		;;
-	esac
-	AC_MSG_RESULT(${PLATFORM})
-    fi
 
     #--------------------------------------------------------------------
     # The OpenSSL and BSAFE SSL-C directory structures differ.
@@ -116,6 +92,30 @@ Please specify its location with --with-ssl-dir])
 	    AC_ERROR([bad ssl-dir: cannot find openssl/opensslv.h under ${SSL_INCLUDE_DIR}])
 	fi
     else
+	#--------------------------------------------------------------------
+	# If we're using RSA BSAFE SSL-C, we need to establish what platform
+	# we're running on before we can figure out some paths.
+	# This step isn't necessary if we're using OpenSSL.
+	#--------------------------------------------------------------------
+
+	if test -z "${OPENSSL}"; then
+	    AC_MSG_CHECKING([host type])
+	    case "`uname -s`" in
+		*win32* | *WIN32* | *CYGWIN_NT*|*CYGWIN_98*|*CYGWIN_95*)
+		    PLATFORM=WIN32
+		    ;;
+		*SunOS*)
+		    PLATFORM=SOLARIS
+		    ;;
+		HP-UX)
+		    PLATFORM=HPUX
+		    ;;
+		*)
+		    PLATFORM=LINUX
+		    ;;
+	    esac
+	    AC_MSG_RESULT(${PLATFORM})
+	fi
 	SSL_LIB_DIR=${SSL_DIR}/${PLATFORM}/library/lib
 	SSL_INCLUDE_DIR=${SSL_DIR}/${PLATFORM}/library/include
 	if test ! -f "${SSL_INCLUDE_DIR}/crypto.h"; then
@@ -127,13 +127,8 @@ Please specify its location with --with-ssl-dir])
     AC_SUBST(SSL_LIB_DIR)
     AC_SUBST(SSL_INCLUDE_DIR)
 
-    if test "$PLATFORM" = "WIN32" -a "$GCC" != "yes"; then
-        SSL_INCLUDE_DIR_NATIVE=\"`echo ${SSL_INCLUDE_DIR}|sed 's%/%\\\\%g'`\"
-        SSL_LIB_DIR_NATIVE=\"`echo ${SSL_LIB_DIR}|sed 's%/%\\\\%g'`\"
-    else
-        SSL_INCLUDE_DIR_NATIVE=\"`${CYGPATH} ${SSL_INCLUDE_DIR}`\"
-        SSL_LIB_DIR_NATIVE=\"`${CYGPATH} ${SSL_LIB_DIR}`\"
-    fi
+    SSL_INCLUDE_DIR_NATIVE=\"`${CYGPATH} ${SSL_INCLUDE_DIR}`\"
+    SSL_LIB_DIR_NATIVE=\"`${CYGPATH} ${SSL_LIB_DIR}`\"
     AC_SUBST(SSL_INCLUDE_DIR_NATIVE)
     AC_SUBST(SSL_LIB_DIR_NATIVE)
 
@@ -148,10 +143,9 @@ Please specify its location with --with-ssl-dir])
     #--------------------------------------------------------------------
     
     if test -n "${OPENSSL}"; then
-
 	AC_MSG_CHECKING(if libgcc is needed to resolve openssl symbols)
 
-	AC_ARG_WITH(gcclib, [  --with-gcclib	       link with libgcc to resolve symbols in a gcc-built openssl library], GCCLIB="-lgcc", GCCLIB="")
+	AC_ARG_WITH(gcclib, [  --with-gcclib           link with libgcc to resolve symbols in a gcc-built openssl library], GCCLIB="-lgcc", GCCLIB="")
 
 	if test "x${GCCLIB}" = "x" ; then
 	    AC_MSG_RESULT(no)
