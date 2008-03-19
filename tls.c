@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.26 2007/09/06 21:01:55 patthoyts Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.27 2008/03/19 02:34:21 patthoyts Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -608,6 +608,9 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	int err;
 	ret = Tls_WaitForConnect(statePtr, &err);
+	if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
+	    ret = 0;
+	}
 	if (ret < 0) {
 	    CONST char *errStr = statePtr->err;
 	    Tcl_ResetResult(interp);

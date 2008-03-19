@@ -11,7 +11,7 @@
  * this file, and for a DISCLAIMER OF ALL WARRANTIES.
  *
  * ----------------------------------------------------------------------------
- * RCS: @(#) $Id: nmakehlp.c,v 1.2 2007/09/06 21:01:55 patthoyts Exp $
+ * RCS: @(#) $Id: nmakehlp.c,v 1.3 2008/03/19 02:34:21 patthoyts Exp $
  * ----------------------------------------------------------------------------
  */
 
@@ -21,8 +21,14 @@
 #pragma comment (lib, "kernel32.lib")
 #include <stdio.h>
 #include <math.h>
+
+/*
+ * This library is required for x64 builds with _some_ versions of MSVC
+ */
 #if defined(_M_IA64) || defined(_M_AMD64)
+#if _MSC_VER >= 1400 && _MSC_VER < 1500
 #pragma comment(lib, "bufferoverflowU")
+#endif
 #endif
 
 /* ISO hack for dumb VC++ */
@@ -299,7 +305,9 @@ CheckForCompilerFeature(
     return !(strstr(Out.buffer, "D4002") != NULL
              || strstr(Err.buffer, "D4002") != NULL
              || strstr(Out.buffer, "D9002") != NULL
-             || strstr(Err.buffer, "D9002") != NULL);
+             || strstr(Err.buffer, "D9002") != NULL
+             || strstr(Out.buffer, "D2021") != NULL
+             || strstr(Err.buffer, "D2021") != NULL);
 }
 
 int

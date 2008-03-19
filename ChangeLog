@@ -1,3 +1,11 @@
+2008-03-19  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* win/Makefile.vc  Updated the nmake build files with MSVC9 support
+	* win/rules.vc:    and fixed to run the test-suite properly.
+	* win/nmakehlp.c:
+	* tls.tcl (tls::initlib): Corrected namespace handling.
+	* tls.c: Applied #1890223 to fix handshake on non-blocking sockets
+
 2007-09-06  Pat Thoyts  <patthoyts@users.sourceforge.net>
 
 	* tls.c:           Silence 64 bit integer conversion warnings
