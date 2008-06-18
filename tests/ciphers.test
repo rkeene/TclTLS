@@ -25,7 +25,7 @@ package require tls
 # tls was compiled against. (RSA BSAFE SSL-C or OpenSSL).
 #
 set ::tcltest::testConstraints(rsabsafe) 0
-set ::tcltest::testConstraints(openssl) 1
+set ::tcltest::testConstraints(openssl) [string match "OpenSSL*" [tls::version]]
 
 set ::EXPECTEDCIPHERS(rsabsafe) {
     EDH-DSS-RC4-SHA
@@ -78,6 +78,37 @@ set ::EXPECTEDCIPHERS(openssl) {
     RC4-SHA
 }
 
+set ::EXPECTEDCIPHERS(openssl0.9.8) {
+    DHE-RSA-AES256-SHA
+    DHE-DSS-AES256-SHA
+    AES256-SHA
+    EDH-RSA-DES-CBC3-SHA
+    EDH-DSS-DES-CBC3-SHA
+    DES-CBC3-SHA
+    DHE-RSA-AES128-SHA
+    DHE-DSS-AES128-SHA
+    AES128-SHA
+    IDEA-CBC-SHA
+    RC4-SHA
+    RC4-MD5
+    EDH-RSA-DES-CBC-SHA
+    EDH-DSS-DES-CBC-SHA
+    DES-CBC-SHA
+    EXP-EDH-RSA-DES-CBC-SHA
+    EXP-EDH-DSS-DES-CBC-SHA
+    EXP-DES-CBC-SHA
+    EXP-RC2-CBC-MD5
+    EXP-RC4-MD5
+}
+
+set version ""
+if {[string match "OpenSSL*" [tls::version]]} {
+   regexp {OpenSSL ([\d\.]+)} [tls::version] -> version
+}
+if {![info exists ::EXPECTEDCIPHERS(openssl$version)]} {
+    set version ""
+}
+
 proc listcompare {wants haves} {
     array set want {}
     array set have {}
@@ -109,7 +140,7 @@ test ciphers-1.3 {Tls::ciphers for ssl3} {openssl} {
     # This will fail if you compiled against RSA bsafe or with a
     # different set of defines than the default.
     # Change the constraint setting above.
-    listcompare $::EXPECTEDCIPHERS(openssl) [tls::ciphers ssl3]
+    listcompare $::EXPECTEDCIPHERS(openssl$version) [tls::ciphers ssl3]
 } {}
 
 # This version of the test is correct for OpenSSL only.
@@ -119,7 +150,7 @@ test ciphers-1.4 {Tls::ciphers for tls1} {openssl} {
     # This will fail if you compiled against RSA bsafe or with a
     # different set of defines than the default.
     # Change the constraint setting in all.tcl
-    listcompare $::EXPECTEDCIPHERS(openssl) [tls::ciphers tls1]
+    listcompare $::EXPECTEDCIPHERS(openssl$version) [tls::ciphers tls1]
 } {}
 
 

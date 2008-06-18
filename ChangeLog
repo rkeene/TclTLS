@@ -1,3 +1,10 @@
+2008-06-18  Pat Thoyts  <patthoyts@users.sourceforge.net>
+
+	* tests/ciphers.test: Fix for different openssl versions.
+	* win/makefile.vc:    Updates to support tests.
+	* win/rules.vc:
+	* win/nmakehlp.c:
+
 2008-03-19  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	*** TLS 1.6 TAGGED ***
