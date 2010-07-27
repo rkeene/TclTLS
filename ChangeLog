@@ -1,3 +1,8 @@
+2010-07-27  Jeff Hobbs  <jeffh@ActiveState.com>
+
+	* tls.tcl (tls::socket): some socket implementations have a -type
+	support (e.g. for inet6).
+
 2009-04-23  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	* tls.tcl (tls::initlib): add support for Windows starpack
