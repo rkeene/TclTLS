@@ -1,5 +1,7 @@
 2010-08-11  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	*** TLS 1.6.1 TAGGED ***
+
 	* configure: regen with ac-2.59
 	* win/makefile.vc, configure.in: bump version to 1.6.1
 	* tclconfig/tcl.m4: updated to TEA 3.8
