@@ -1,5 +1,9 @@
 2010-08-11  Jeff Hobbs  <jeffh@ActiveState.com>
 
+	* configure: regen with ac-2.59
+	* win/makefile.vc, configure.in: bump version to 1.6.1
+	* tclconfig/tcl.m4: updated to TEA 3.8
+
 	* tls.c (StatusObjCmd): memleak: free peer if loaded. [Bug 3041925]
 
 2010-07-27  Jeff Hobbs  <jeffh@ActiveState.com>
