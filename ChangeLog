@@ -1,3 +1,8 @@
+2012-06-01  Andreas Kupries  <andreask@activestate.com>
+
+	* tls.c: Applied Jeff's patch from
+	  http://www.mail-archive.com/aolserver@listserv.aol.com/msg12356.html
+	
 2010-08-11  Jeff Hobbs  <jeffh@ActiveState.com>
 
 	*** TLS 1.6.1 TAGGED ***

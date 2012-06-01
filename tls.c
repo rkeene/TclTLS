@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.31 2010/08/11 19:50:50 hobbs2 Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.32 2012/06/01 22:59:03 andreas_kupries Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -129,6 +129,45 @@ int channelTypeVersion;
 #define sk_SSL_CIPHER_num(sk)		sk_num((sk))
 #define sk_SSL_CIPHER_value( sk, index)	(SSL_CIPHER*)sk_value((sk), (index))
 #endif
+
+/*
+ * Thread-Safe TLS Code
+ */
+
+#ifdef TCL_THREADS
+#define OPENSSL_THREAD_DEFINES
+#include <openssl/opensslconf.h>
+
+#ifdef OPENSSL_THREADS
+#include <openssl/crypto.h>
+
+/*
+ * Threaded operation requires locking callbacks
+ * Based from /crypto/cryptlib.c of OpenSSL and NSOpenSSL.
+ */
+
+static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
+
+static void          CryptoThreadLockCallback (int mode, int n, const char *file, int line);
+static unsigned long CryptoThreadIdCallback   (void);
+
+static void
+CryptoThreadLockCallback(int mode, int n, const char *file, int line)
+{
+    if (mode & CRYPTO_LOCK) {
+       Tcl_MutexLock(&locks[n]);
+    } else {
+       Tcl_MutexUnlock(&locks[n]);
+    }
+}
+
+static unsigned long
+CryptoThreadIdCallback(void)
+{
+    return (unsigned long) Tcl_GetCurrentThread();
+}
+#endif /* OPENSSL_THREADS */
+#endif /* TCL_THREADS */
 
 
 /*
@@ -1470,6 +1509,9 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 {
     int major, minor, patchlevel, release, i;
     char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+    size_t num_locks;
+#endif
 
     /*
      * The original 8.2.0 stacked channel implementation (and the patch
@@ -1501,6 +1543,24 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 	/* 8.2.0 - 8.3.1 */
 	channelTypeVersion = TLS_CHANNEL_VERSION_1;
     }
+
+    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
+				 (void *(*)(void *, size_t))Tcl_Realloc,
+				 (void(*)(void *))Tcl_Free) == 0) {
+       /* Not using Tcl's mem functions ... not critical */
+    }
+
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+    /* should we consider allocating mutexes? */
+    num_locks = CRYPTO_num_locks();
+    if (num_locks > CRYPTO_NUM_LOCKS) {
+       Tcl_AppendResult(interp, "crypto num locks size error", NULL);
+       return TCL_ERROR;
+    }
+
+    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
+    CRYPTO_set_id_callback(CryptoThreadIdCallback);
+#endif
 
     if (SSL_library_init() != 1) {
 	Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
