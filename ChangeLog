@@ -2,6 +2,10 @@
 
 	* tls.c: Applied Jeff's patch from
 	  http://www.mail-archive.com/aolserver@listserv.aol.com/msg12356.html
+
+	* configure.in: Bump to version 1.6.2.
+	* win/makefile.vc:
+	* configure: regen with ac-2.59
 	
 2010-08-11  Jeff Hobbs  <jeffh@ActiveState.com>
 
