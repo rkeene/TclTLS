@@ -1,3 +1,13 @@
+2012-07-09  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Bump to version 1.6.3.
+	* win/makefile.vc:
+	* configure: regen with ac-2.59
+
+	* tls.c (MiscObjCmd): Fixed non-static string array used in call
+	  of Tcl_GetIndexFromObj(). Memory smash waiting to happen. Thanks
+	  to Brian Griffin for alerting us all to the problem. 
+
 2012-06-01  Andreas Kupries  <andreask@activestate.com>
 
 	* tls.c: Applied Jeff's patch from
