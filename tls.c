@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.33 2012/07/09 23:28:02 andreas_kupries Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.34 2014/04/16 18:33:03 andreas_kupries Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -65,6 +65,8 @@ static int	UnimportObjCmd _ANSI_ARGS_ ((ClientData clientData,
 
 static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers));
+
+static int	TlsLibInit _ANSI_ARGS_ (()) ;
 
 #define TLS_PROTO_SSL2	0x01
 #define TLS_PROTO_SSL3	0x02
@@ -147,6 +149,8 @@ int channelTypeVersion;
  */
 
 static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
+static Tcl_Mutex init_mx;
+static int initialized;
 
 static void          CryptoThreadLockCallback (int mode, int n, const char *file, int line);
 static unsigned long CryptoThreadIdCallback   (void);
@@ -1507,11 +1511,7 @@ int
 Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 					 * to be made available. */
 {
-    int major, minor, patchlevel, release, i;
-    char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
-#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-    size_t num_locks;
-#endif
+    int major, minor, patchlevel, release;
 
     /*
      * The original 8.2.0 stacked channel implementation (and the patch
@@ -1544,48 +1544,10 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 	channelTypeVersion = TLS_CHANNEL_VERSION_1;
     }
 
-    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
-				 (void *(*)(void *, size_t))Tcl_Realloc,
-				 (void(*)(void *))Tcl_Free) == 0) {
-       /* Not using Tcl's mem functions ... not critical */
-    }
-
-#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-    /* should we consider allocating mutexes? */
-    num_locks = CRYPTO_num_locks();
-    if (num_locks > CRYPTO_NUM_LOCKS) {
-       Tcl_AppendResult(interp, "crypto num locks size error", NULL);
-       return TCL_ERROR;
-    }
-
-    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
-    CRYPTO_set_id_callback(CryptoThreadIdCallback);
-#endif
-
-    if (SSL_library_init() != 1) {
+    if (TlsLibInit() != TCL_OK) {
 	Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
 	return TCL_ERROR;
     }
-    SSL_load_error_strings();
-    ERR_load_crypto_strings();
-
-    /*
-     * Seed the random number generator in the SSL library,
-     * using the do/while construct because of the bug note in the
-     * OpenSSL FAQ at http://www.openssl.org/support/faq.html#USER1
-     *
-     * The crux of the problem is that Solaris 7 does not have a 
-     * /dev/random or /dev/urandom device so it cannot gather enough
-     * entropy from the RAND_seed() when TLS initializes and refuses
-     * to go further. Earlier versions of OpenSSL carried on regardless.
-     */
-    srand((unsigned int) time((time_t *) NULL));
-    do {
-	for (i = 0; i < 16; i++) {
-	    rnd_seed[i] = 1 + (char) (255.0 * rand()/(RAND_MAX+1.0));
-	}
-	RAND_seed(rnd_seed, sizeof(rnd_seed));
-    } while (RAND_status() != 1);
 
     Tcl_CreateObjCommand(interp, "tls::ciphers", CiphersObjCmd,
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
@@ -1634,4 +1596,87 @@ int
 Tls_SafeInit (Tcl_Interp* interp)
 {
     return Tls_Init (interp);
+}
+
+
+/*
+ *------------------------------------------------------*
+ *
+ *	TlsLibInit --
+ *
+ *	------------------------------------------------*
+ *	Initializes SSL library once per application
+ *	------------------------------------------------*
+ *
+ *	Side effects:
+ *		initilizes SSL library
+ *
+ *	Result:
+ *		none
+ *
+ *------------------------------------------------------*
+ */
+static int
+TlsLibInit ()
+{
+    int i;
+    char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+    size_t num_locks;
+#endif
+    int status=TCL_OK;
+
+    if (!initialized) {
+	Tcl_MutexLock(&init_mx);
+	if (!initialized) {
+	    initialized = 1;
+
+	    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
+					 (void *(*)(void *, size_t))Tcl_Realloc,
+					 (void(*)(void *))Tcl_Free) == 0) {
+	       /* Not using Tcl's mem functions ... not critical */
+	    }
+
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+	    /* should we consider allocating mutexes? */
+	    num_locks = CRYPTO_num_locks();
+	    if (num_locks > CRYPTO_NUM_LOCKS) {
+		status=TCL_ERROR;
+		goto done;
+	    }
+
+	    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
+	    CRYPTO_set_id_callback(CryptoThreadIdCallback);
+#endif
+
+	    if (SSL_library_init() != 1) {
+	    	status=TCL_ERROR;
+		goto done;
+	    }
+	    SSL_load_error_strings();
+	    ERR_load_crypto_strings();
+
+	    /*
+	     * Seed the random number generator in the SSL library,
+	     * using the do/while construct because of the bug note in the
+	     * OpenSSL FAQ at http://www.openssl.org/support/faq.html#USER1
+	     *
+	     * The crux of the problem is that Solaris 7 does not have a 
+	     * /dev/random or /dev/urandom device so it cannot gather enough
+	     * entropy from the RAND_seed() when TLS initializes and refuses
+	     * to go further. Earlier versions of OpenSSL carried on regardless.
+	     */
+	    srand((unsigned int) time((time_t *) NULL));
+	    do {
+		for (i = 0; i < 16; i++) {
+		    rnd_seed[i] = 1 + (char) (255.0 * rand()/(RAND_MAX+1.0));
+		}
+		RAND_seed(rnd_seed, sizeof(rnd_seed));
+	    } while (RAND_status() != 1);
+	}
+    	done:
+
+	Tcl_MutexUnlock(&init_mx);
+    }
+    return status;
 }
