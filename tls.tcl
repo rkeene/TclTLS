@@ -1,7 +1,7 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com> 
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.12 2010/07/27 17:15:47 hobbs2 Exp $
+# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.13 2014/12/08 19:09:06 andreas_kupries Exp $
 #
 namespace eval tls {
     variable logcmd tclLog
@@ -71,12 +71,12 @@ proc tls::socket {args} {
 	set args [lreplace $args $idx [expr {$idx+1}]]
 
 	set usage "wrong # args: should be \"tls::socket -server command ?options? port\""
-	set options "-cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -password, -request, -require, -ssl2, -ssl3, or -tls1"
+	set options "-cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -password, -request, -require, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2"
     } else {
 	set server 0
 
 	set usage "wrong # args: should be \"tls::socket ?options? host port\""
-	set options "-async, -cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -myport, -password, -request, -require, -ssl2, -ssl3, or -tls1"
+	set options "-async, -cadir, -cafile, -certfile, -cipher, -command, -keyfile, -myaddr, -myport, -password, -request, -require, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2"
     }
     set argc [llength $args]
     set sopts {}
@@ -98,9 +98,12 @@ proc tls::socket {args} {
 	    *,-password	-
 	    *,-request	-
 	    *,-require	-
+            *,-servername -
 	    *,-ssl2	-
 	    *,-ssl3	-
-	    *,-tls1	{lappend iopts $arg [lindex $args [incr idx]]}
+	    *,-tls1	-
+	    *,-tls1.1	-
+	    *,-tls1.2	{lappend iopts $arg [lindex $args [incr idx]]}
 	    -*		{return -code error "bad option \"$arg\": must be one of $options"}
 	    default	{break}
 	}

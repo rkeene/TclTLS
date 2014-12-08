@@ -200,6 +200,11 @@ used directly.</p>
         <dt><strong>-server</strong> <em>bool</em></dt>
         <dd>Handshake as server if true, else handshake as
             client.(<strong>default</strong>: <em>false</em>)</dd>
+        <dt><strong>-servername</strong> <em>host</em></dt>
+        <dd>Only available if the OpenSSL library the package is linked
+	    against supports the TLS hostname extension for 'Server Name
+	    Indication' (SNI). Use to name the logical host we are talking
+	    to and expecting a certificate for</dd>
         <dt><strong>-ssl2</strong> <em>bool</em></dt>
         <dd>Enable use of SSL v2. (<strong>default</strong>: <em>true</em>
             unless -DNO_PATENTS was specified in build)</dd>

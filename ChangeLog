@@ -1,3 +1,14 @@
+2014-12-05  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Bump to version 1.6.4.
+	* win/makefile.vc:
+	* configure: regen with ac-2.59
+	* tls.c: Accepted SF TLS patches #12 and #13 implementing
+	* tls.htm: support for SNI, and TLS 1.1 + 1.2
+	* tlsInt.h:
+	* tlsIO.c:
+	* tls.tcl:
+
 2012-07-09  Andreas Kupries  <andreask@activestate.com>
 
 	* configure.in: Bump to version 1.6.3.

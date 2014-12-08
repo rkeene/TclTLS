@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.16 2007/06/22 21:20:38 hobbs2 Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.17 2014/12/08 19:09:06 andreas_kupries Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -729,6 +729,19 @@ TlsNotifyProc(instanceData, mask)
 	statePtr->timer = (Tcl_TimerToken) NULL;
     }
 
+    if (statePtr->flags & TLS_TCL_CALLBACK) {
+	return 0;
+    }
+
+    if (statePtr->flags & TLS_TCL_INIT
+	    && !SSL_is_init_finished(statePtr->ssl)) {
+	int errorCode;
+	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0
+		&& errorCode == EAGAIN) {
+	    return 0;
+	}
+    }
+
     return mask;
 }
 
@@ -900,6 +913,9 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		    continue;
 		}
 	    } else if (err == 0) {
+		if (Tcl_Eof(statePtr->self)) {
+		    return 0;
+		}
 		dprintf(stderr,"CR! ");
 		*errorCodePtr = ECONNRESET;
 		return -1;
