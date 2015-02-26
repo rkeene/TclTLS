@@ -6,8 +6,8 @@
 	* tls.c: Accepted SF TLS patches #12 and #13 implementing
 	* tls.htm: support for SNI, and TLS 1.1 + 1.2
 	* tlsInt.h:
-	* tlsIO.c:
-	* tls.tcl:
+	* tlsIO.c: This also accepted patch for bug #53.
+	* tls.tcl: Patch available since June, now committed.
 
 2012-07-09  Andreas Kupries  <andreask@activestate.com>
 
