@@ -1,3 +1,11 @@
+2015-05-01  Andreas Kupries  <andreask@activestate.com>
+
+	* configure.in: Bump to version 1.6.5.
+	* win/makefile.vc:
+	* configure: regen with ac-2.59
+	* tls.c: Accepted SF TLS [bug/patch #57](https://sourceforge.net/p/tls/bugs/57/).
+	* tlsIO.c: Accepted core Tcl patch in [ticket](http://core.tcl.tk/tcl/tktview/0f94f855cafed92d0e174b7d835453a02831b4dd).
+
 2014-12-05  Andreas Kupries  <andreask@activestate.com>
 
 	* configure.in: Bump to version 1.6.4.

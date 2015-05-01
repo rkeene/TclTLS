@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.35 2014/12/08 19:09:06 andreas_kupries Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.36 2015/05/01 18:44:34 andreas_kupries Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -1217,7 +1217,14 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
 	return (SSL_CTX *)0;
 #endif
     }
-    SSL_CTX_set_client_CA_list(ctx, SSL_load_client_CA_file( F2N(CAfile, &ds) ));
+
+    /* https://sourceforge.net/p/tls/bugs/57/ */
+    if ( CAfile != NULL ) {
+        STACK_OF(X509_NAME) *certNames = SSL_load_client_CA_file( F2N(CAfile, &ds) );
+	if ( certNames != NULL ) { 
+	    SSL_CTX_set_client_CA_list(ctx, certNames );
+	}
+    }
 
     Tcl_DStringFree(&ds);
     Tcl_DStringFree(&ds1);
