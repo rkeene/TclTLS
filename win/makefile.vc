@@ -18,7 +18,7 @@
 # Copyright (c) 2003-2006 Pat Thoyts
 #
 #-------------------------------------------------------------------------
-# RCS: @(#)$Id: makefile.vc,v 1.12 2015/05/01 18:44:34 andreas_kupries Exp $
+# RCS: @(#)$Id: makefile.vc,v 1.13 2015/06/06 07:03:32 apnadkarni Exp $
 #-------------------------------------------------------------------------
 
 # Check to see we are configured to build with MSVC (MSDEVDIR or MSVCDIR)
@@ -192,13 +192,13 @@ SSL_INCLUDE_DIR = $(OPENSSL)\include
 SSL_LIB_DIR     = $(OPENSSL)\lib
 !endif
 
-SSL_LIBS        =-libpath:"$(SSL_LIB_DIR)" ssleay32s.lib libeay32s.lib
+SSL_LIBS        =-libpath:"$(SSL_LIB_DIR)" ssleay32.lib libeay32.lib
 
 SSL_CFLAGS      =-DNO_IDEA=1 -DNO_RC5=1
 
-!if !exist("$(SSL_LIB_DIR)\ssleay32s.lib")
+!if !exist("$(SSL_LIB_DIR)\ssleay32.lib")
 MSG = ^
-Failed to locate "$(SSL_LIB_DIR)\ssleay32s.lib"
+Failed to locate "$(SSL_LIB_DIR)\ssleay32.lib"
 You must provide the path to your OpenSSL library....
 !error $(MSG)
 !endif
