@@ -18,7 +18,7 @@
 # Copyright (c) 2003-2006 Pat Thoyts
 #
 #-------------------------------------------------------------------------
-# RCS: @(#)$Id: makefile.vc,v 1.13 2015/06/06 07:03:32 apnadkarni Exp $
+# RCS: @(#)$Id: makefile.vc,v 1.14 2015/06/06 09:07:08 apnadkarni Exp $
 #-------------------------------------------------------------------------
 
 # Check to see we are configured to build with MSVC (MSDEVDIR or MSVCDIR)
@@ -164,7 +164,7 @@ PROJECT = tls
 #PROJECT_REQUIRES_TK=1
 !include "rules.vc"
 
-DOTVERSION      = 1.6.5
+DOTVERSION      = 1.6.6
 VERSION         = $(DOTVERSION:.=)
 STUBPREFIX      = $(PROJECT)stub
 

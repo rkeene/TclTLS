@@ -2,7 +2,7 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.18 2015/05/01 18:44:34 andreas_kupries Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.19 2015/06/06 09:07:08 apnadkarni Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -889,6 +889,20 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 
     dprintf(stderr,"\nWaitForConnect(0x%x)", (unsigned int) statePtr);
 
+    if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+        /*
+         * We choose ECONNRESET over ECONNABORTED here because some server
+         * side code, on the wiki for example, sets up a read handler that
+         * does a read and if eof closes the channel. There is no catch/try
+         * around the reads so exceptions will result in potentially many
+         * dangling channels hanging around that should have been closed.
+         * (Backgroun: ECONNABORTED maps to a Tcl exception and 
+         * ECONNRESET maps to graceful EOF).
+         */
+        *errorCodePtr = ECONNRESET;
+        return -1;
+    }
+
     for (;;) {
 	/* Not initialized yet! */
 	if (statePtr->flags & TLS_TCL_SERVER) {
@@ -907,6 +921,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 	    if (rc == SSL_ERROR_SSL) {
 		Tls_Error(statePtr,
 			(char *)ERR_reason_error_string(ERR_get_error()));
+                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
 		*errorCodePtr = ECONNABORTED;
 		return -1;
 	    } else if (BIO_should_retry(statePtr->bio)) {
@@ -927,6 +942,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		if (err != X509_V_OK) {
 		    Tls_Error(statePtr,
 			    (char *)X509_verify_cert_error_string(err));
+                    statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
 		    *errorCodePtr = ECONNABORTED;
 		    return -1;
 		}

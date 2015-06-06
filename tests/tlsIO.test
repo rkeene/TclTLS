@@ -10,7 +10,7 @@
 # See the file "license.terms" for information on usage and redistribution
 # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
-# RCS: @(#) $Id: tlsIO.test,v 1.23 2008/03/19 22:06:13 hobbs2 Exp $
+# RCS: @(#) $Id: tlsIO.test,v 1.24 2015/06/06 09:07:08 apnadkarni Exp $
 
 # Running socket tests with a remote server:
 # ------------------------------------------
@@ -2027,6 +2027,38 @@ test tlsIO-14.5 {test tls::unimport} {socket} {
     list $res [catch {close $c} err] $err \
 	[catch {close $s} err] $err
 } {{} 0 {} 0 {}}
+
+test tls-bug58-1.0 {test protocol negotiation failure} {socket} {
+    # Following code is based on what was reported in bug #58. Prior
+    # to fix the program would crash with a segfault.
+    proc Accept {sock args} {
+        fconfigure $sock -blocking 0;
+        fileevent $sock readable [list Handshake $sock]
+    } 
+    proc Handshake {sock} {
+        set ::done HAND
+        catch {tls::handshake $sock} msg
+        set ::done $msg
+    } 
+    # NOTE: when doing an in-process client/server test, both sides need
+    # to be non-blocking for the TLS handshake
+
+    # Server - Only accept TLS 1 or higher
+    set s [tls::socket \
+               -certfile $serverCert -cafile $caCert -keyfile $serverKey \
+               -request 0 -require 0 -ssl2 0 -ssl3 0 -tls1 1 -tls1.1 1 -tls1.2 1 \
+               -server Accept 8831]
+    # Client - Only propose SSL3
+    set c [tls::socket -async \
+               -cafile $caCert \
+               -request 0 -require 0 -ssl2 0 -ssl3 1 -tls1 0 -tls1.1 0 -tls1.2 0 \
+               [info hostname] 8831]
+    fconfigure $c -blocking 0
+    puts $c a ; flush $c
+    after 5000 [list set ::done timeout]
+    vwait ::done
+    set ::done
+} {handshake failed: wrong version number}
 
 # cleanup
 if {[string match sock* $commandSocket] == 1} {

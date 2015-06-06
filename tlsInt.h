@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.16 2014/12/08 19:09:06 andreas_kupries Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.17 2015/06/06 09:07:08 apnadkarni Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -100,6 +100,9 @@
 #define TLS_TCL_DEBUG	(1<<3)	/* Show debug tracing */
 #define TLS_TCL_CALLBACK	(1<<4)	/* In a callback, prevent update
 					 * looping problem. [Bug 1652380] */
+#define TLS_TCL_HANDSHAKE_FAILED (1<<5) /* Set on handshake failures and once
+                                         * set, all further I/O will result
+                                         * in ECONNABORTED errors. */
 
 #define TLS_TCL_DELAY (5)
 
