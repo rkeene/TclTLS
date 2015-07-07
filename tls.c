@@ -5,7 +5,7 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.36 2015/05/01 18:44:34 andreas_kupries Exp $
+ * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.37 2015/07/07 17:16:02 andreas_kupries Exp $
  *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
@@ -64,7 +64,8 @@ static int	UnimportObjCmd _ANSI_ARGS_ ((ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
 
 static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
-			char *cert, char *CAdir, char *CAfile, char *ciphers));
+			char *cert, char *CAdir, char *CAfile, char *ciphers,
+			char *DHparams));
 
 static int	TlsLibInit _ANSI_ARGS_ (()) ;
 
@@ -79,29 +80,46 @@ static int	TlsLibInit _ANSI_ARGS_ (()) ;
  * Static data structures
  */
 
-#ifndef NO_DH
-/* from openssl/apps/s_server.c */
+#ifndef OPENSSL_NO_DH
+/* code derived from output of 'openssl dhparam -C 2048' */
 
-static unsigned char dh512_p[]={
-	0xDA,0x58,0x3C,0x16,0xD9,0x85,0x22,0x89,0xD0,0xE4,0xAF,0x75,
-	0x6F,0x4C,0xCA,0x92,0xDD,0x4B,0xE5,0x33,0xB8,0x04,0xFB,0x0F,
-	0xED,0x94,0xEF,0x9C,0x8A,0x44,0x03,0xED,0x57,0x46,0x50,0xD3,
-	0x69,0x99,0xDB,0x29,0xD7,0x76,0x27,0x6B,0xA2,0xD3,0xD4,0x12,
-	0xE2,0x18,0xF4,0xDD,0x1E,0x08,0x4C,0xF6,0xD8,0x00,0x3E,0x7C,
-	0x47,0x74,0xE8,0x33,
+static unsigned char dh2048_p[]={
+	0xEC,0xFD,0x6F,0x66,0xD8,0xBC,0xB4,0xCB,0xD7,0xE7,0xB4,0xAE,
+	0xEC,0xC0,0x06,0x25,0x40,0x9F,0x3F,0xC4,0xAC,0x34,0x19,0x36,
+	0x8A,0xAB,0xA9,0xF6,0x45,0x36,0x87,0x1F,0x10,0x35,0x3F,0x90,
+	0x00,0xC6,0x7A,0xE8,0x51,0xF4,0x7F,0x50,0x0F,0xC2,0x82,0x91,
+	0xAD,0x60,0x1B,0x49,0xB1,0x0B,0x23,0xC3,0x37,0xAE,0x0D,0x2C,
+	0x49,0xC6,0xFB,0x60,0x9D,0x50,0x2F,0x8C,0x2F,0xDE,0xE6,0x5F,
+	0x53,0x8B,0x5F,0xF9,0x70,0x16,0xEE,0x51,0xD1,0xAB,0x02,0x48,
+	0x61,0xF1,0xA0,0xD7,0xBD,0x04,0x24,0xF0,0xE4,0xD1,0x0A,0x4C,
+	0x28,0xDC,0x22,0x78,0x7C,0xED,0x2A,0xFA,0xF4,0x57,0x7C,0xAE,
+	0xDF,0x52,0xC6,0xA2,0x11,0x28,0xC5,0x3B,0xB8,0x2F,0x95,0x3F,
+	0x1E,0x05,0x66,0xFE,0x7D,0x1A,0x73,0xA0,0x45,0xF8,0xBB,0x8C,
+	0x64,0xB9,0xA9,0x4D,0x23,0xBE,0x20,0x60,0xA2,0xF7,0xC7,0xD8,
+	0xD8,0x49,0x28,0x9A,0x81,0xAC,0xF9,0x7F,0x3C,0xFC,0xBE,0x25,
+	0x5B,0x1D,0xB6,0xAB,0x08,0x06,0x11,0x8D,0x94,0x69,0x3C,0x68,
+	0x98,0x5A,0x90,0xF8,0xEB,0x19,0xCA,0x9F,0x1C,0x50,0x96,0x53,
+	0xEF,0xEC,0x1B,0x93,0x4F,0x53,0xB7,0xD9,0x04,0x8E,0x48,0x99,
+	0x6E,0x24,0xFF,0x66,0xF5,0xB0,0xDF,0x00,0xBA,0x22,0xE2,0xB6,
+	0xE3,0x3A,0xC2,0x95,0xB1,0x14,0x68,0xFB,0xA5,0x37,0x22,0x78,
+	0x56,0x5C,0xA4,0x23,0x31,0x02,0x97,0x7D,0xA9,0x84,0x0B,0x12,
+	0x26,0x58,0x2F,0x86,0x10,0xAD,0xB0,0xAB,0xB9,0x7B,0x05,0x9A,
+	0xDE,0x11,0xF1,0xE7,0x34,0xC7,0x95,0x42,0x1C,0x4F,0xA9,0xA8,
+	0x92,0xDF,0x3F,0x7B,
 	};
-static unsigned char dh512_g[]={
+static unsigned char dh2048_g[]={
 	0x02,
 };
 
-static DH *get_dh512()
+
+static DH *get_dh2048()
 {
     DH *dh=NULL;
 
     if ((dh=DH_new()) == NULL) return(NULL);
 
-    dh->p=BN_bin2bn(dh512_p,sizeof(dh512_p),NULL);
-    dh->g=BN_bin2bn(dh512_g,sizeof(dh512_g),NULL);
+    dh->p=BN_bin2bn(dh2048_p,sizeof(dh2048_p),NULL);
+    dh->g=BN_bin2bn(dh2048_g,sizeof(dh2048_g),NULL);
 
     if ((dh->p == NULL) || (dh->g == NULL))
 	return(NULL);
@@ -731,6 +749,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     char *ciphers	= NULL;
     char *CAfile	= NULL;
     char *CAdir		= NULL;
+    char *DHparams	= NULL;
     char *model		= NULL;
 #ifndef OPENSSL_NO_TLSEXT
     char *servername	= NULL;	/* hostname for Server Name Indication */
@@ -778,6 +797,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTSTR( "-certfile", cert);
 	OPTSTR( "-cipher", ciphers);
 	OPTOBJ( "-command", script);
+	OPTSTR( "-dhparams", DHparams);
 	OPTSTR( "-keyfile", key);
 	OPTSTR( "-model", model);
 	OPTOBJ( "-password", password);
@@ -794,7 +814,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-tls1.1", tls1_1);
 	OPTBOOL( "-tls1.2", tls1_2);
 
-	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2");
+	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2");
 
 	return TCL_ERROR;
     }
@@ -809,11 +829,12 @@ ImportObjCmd(clientData, interp, objc, objv)
     proto |= (tls1_2 ? TLS_PROTO_TLS1_2 : 0);
 
     /* reset to NULL if blank string provided */
-    if (cert && !*cert)		cert	= NULL;
-    if (key && !*key)		key	= NULL;
-    if (ciphers && !*ciphers)	ciphers	= NULL;
-    if (CAfile && !*CAfile)	CAfile	= NULL;
-    if (CAdir && !*CAdir)	CAdir	= NULL;
+    if (cert && !*cert)		cert	 = NULL;
+    if (key && !*key)		key	 = NULL;
+    if (ciphers && !*ciphers)	ciphers	 = NULL;
+    if (CAfile && !*CAfile)	CAfile	 = NULL;
+    if (CAdir && !*CAdir)	CAdir	 = NULL;
+    if (DHparams && !*DHparams)	DHparams = NULL;
 
     /* new SSL state */
     statePtr		= (State *) ckalloc((unsigned) sizeof(State));
@@ -864,8 +885,8 @@ ImportObjCmd(clientData, interp, objc, objv)
 	}
 	ctx = ((State *)Tcl_GetChannelInstanceData(chan))->ctx;
     } else {
-	if ((ctx = CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers))
-		== (SSL_CTX*)0) {
+	if ((ctx = CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers,
+		DHparams)) == (SSL_CTX*)0) {
 	    Tls_Free((char *) statePtr);
 	    return TCL_ERROR;
 	}
@@ -1025,7 +1046,7 @@ UnimportObjCmd(clientData, interp, objc, objv)
  */
 
 static SSL_CTX *
-CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
+CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
     State *statePtr;
     int proto;
     char *key;
@@ -1033,6 +1054,7 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
     char *CAdir;
     char *CAfile;
     char *ciphers;
+    char *DHparams;
 {
     Tcl_Interp *interp = statePtr->interp;
     SSL_CTX *ctx = NULL;
@@ -1123,7 +1145,7 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
 #endif
 	break;
     }
-
+    
     ctx = SSL_CTX_new (method);
     
     SSL_CTX_set_app_data( ctx, (VOID*)interp);	/* remember the interpreter */
@@ -1141,9 +1163,41 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers)
     SSL_CTX_set_default_passwd_cb_userdata(ctx, (void *)statePtr);
 #endif
 
-#ifndef NO_DH
+    /* read a Diffie-Hellman parameters file, or use the built-in one */
+#ifdef OPENSSL_NO_DH
+    if (DHparams != NULL) {
+	Tcl_AppendResult(interp,
+	    "DH parameter support not available", (char *) NULL);
+	SSL_CTX_free(ctx);
+	return (SSL_CTX *)0;
+    }
+#else
     {
-	DH* dh = get_dh512();
+	DH* dh;
+	if (DHparams != NULL) {
+	    BIO *bio;
+	    Tcl_DStringInit(&ds);
+	    bio = BIO_new_file(F2N(DHparams, &ds), "r");
+	    if (!bio) {
+		Tcl_DStringFree(&ds);
+		Tcl_AppendResult(interp,
+		    "Could not find DH parameters file", (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
+	    
+	    dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
+	    BIO_free(bio);
+	    Tcl_DStringFree(&ds);
+	    if (!dh) {
+		Tcl_AppendResult(interp,
+		    "Could not read DH parameters from file", (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
+	} else {
+	    dh = get_dh2048();
+	}
 	SSL_CTX_set_tmp_dh(ctx, dh);
 	DH_free(dh);
     }
