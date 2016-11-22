@@ -933,6 +933,9 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		    continue;
 		}
 	    } else if (err == 0) {
+                if (Tcl_Eof(statePtr->self)) {
+                    return 0;
+                }
 		dprintf(stderr,"CR! ");
 		*errorCodePtr = ECONNRESET;
 		return -1;

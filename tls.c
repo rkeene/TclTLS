@@ -1772,15 +1772,15 @@ TlsLibInit ()
 {
     int i;
     char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
+    int status=TCL_OK;
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
     size_t num_locks;
-#endif
-    int status=TCL_OK;
 
     if (!initialized) {
 	Tcl_MutexLock(&init_mx);
 	if (!initialized) {
 	    initialized = 1;
+#endif
 
 	    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
 					 (void *(*)(void *, size_t))Tcl_Realloc,
@@ -1827,7 +1827,9 @@ TlsLibInit ()
 	}
     	done:
 
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
 	Tcl_MutexUnlock(&init_mx);
+#endif
     }
     return status;
 }

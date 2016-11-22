@@ -229,7 +229,7 @@ depend:
 $(PKG_LIB_FILE): $(PKG_OBJECTS)
 	-rm -f $(PKG_LIB_FILE)
 	${MAKE_LIB}
-	$(RANLIB) $(PKG_LIB_FILE)
+	-$(RANLIB) $(PKG_LIB_FILE)
 
 #========================================================================
 # We need to enumerate the list of .c to .o lines here.

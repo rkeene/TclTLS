@@ -100,12 +100,14 @@ Tls_NewX509Obj( interp, cert)
     char serial[BUFSIZ];
     char notBefore[BUFSIZ];
     char notAfter[BUFSIZ];
+    char certStr[BUFSIZ];
 #ifndef NO_SSL_SHA
     int shai;
     char sha_hash[SHA_DIGEST_LENGTH*2];
     const char *shachars="0123456789ABCDEF";
 #endif
 
+    certStr[0] = 0;
     if ((bio = BIO_new(BIO_s_mem())) == NULL) {
 	subject[0] = 0;
 	issuer[0]  = 0;
@@ -131,6 +133,13 @@ Tls_NewX509Obj( interp, cert)
 	n = max(n, 0);
 	serial[n] = 0;
 	BIO_flush(bio);
+
+        if (PEM_write_bio_X509(bio, cert)) {
+            n = BIO_read(bio, certStr, min(BIO_pending(bio), BUFSIZ - 1));
+            n = max(n, 0);
+            certStr[n] = 0;
+            BIO_flush(bio);
+        }
 
 	BIO_free(bio);
     }
@@ -174,6 +183,11 @@ Tls_NewX509Obj( interp, cert)
 	    Tcl_NewStringObj( "serial", -1) );
     Tcl_ListObjAppendElement( interp, certPtr,
 	    Tcl_NewStringObj( serial, -1) );
+
+    Tcl_ListObjAppendElement( interp, certPtr,
+	    Tcl_NewStringObj( "certificate", -1) );
+    Tcl_ListObjAppendElement( interp, certPtr,
+	    Tcl_NewStringObj( certStr, -1) );
 
     return certPtr;
 }
