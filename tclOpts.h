@@ -1,8 +1,6 @@
 /*
  *  Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- *  $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tclOpts.h,v 1.2 2000/01/20 01:49:31 aborr Exp $
- *
  * Stylized option processing - requires consitent
  * external vars: opt, idx, objc, objv
  */

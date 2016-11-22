@@ -2,8 +2,6 @@ Original TLS Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 TLS 1.4.1    Copyright (C) 2000 Ajuba Solutions
 TLS 1.6      Copyright (C) 2008 ActiveState Software Inc.
 
-$Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/README.txt,v 1.7 2008/03/19 22:49:12 hobbs2 Exp $
-
 TLS (aka SSL) Channel - can be layered on any bi-directional Tcl_Channel.
 
 Both client and server-side sockets are possible, and this code should work

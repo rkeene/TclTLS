@@ -1,8 +1,6 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/oldTests/tls.tcl,v 1.2 2000/06/06 18:24:33 aborr Exp $
-#
 set dir [file dirname [info script]]
 regsub {\.} [info tclversion] {} vshort
 if {$tcl_platform(platform) == "windows"} {

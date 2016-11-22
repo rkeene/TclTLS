@@ -2,8 +2,6 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.19 2015/06/06 09:07:08 apnadkarni Exp $
- *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
  *

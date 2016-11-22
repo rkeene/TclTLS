@@ -1,8 +1,6 @@
 /*
  * Copyright (C) 1997-2000 Sensus Consulting Ltd.
  * Matt Newman <matt@sensus.org>
- *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsX509.c,v 1.5 2004/06/29 10:58:08 patthoyts Exp $
  */
 #include "tlsInt.h"
 
