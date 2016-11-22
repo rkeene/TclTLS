@@ -1387,7 +1387,9 @@ echo "${ECHO_T}no" >&6
 fi
 
 	    EXEEXT=".exe"
-	    TEA_PLATFORM="windows"
+		if [ -z "${TEA_PLATFORM}" ]; then
+			TEA_PLATFORM="windows"
+		fi
 	    ;;
 	*CYGWIN_*)
 	    CYGPATH=echo
@@ -1397,7 +1399,9 @@ fi
 	*)
 	    CYGPATH=echo
 	    EXEEXT=""
-	    TEA_PLATFORM="unix"
+		if [ -z "${TEA_PLATFORM}" ]; then
+			TEA_PLATFORM="unix"
+		fi
 	    ;;
     esac
 
@@ -1682,13 +1686,17 @@ echo "${ECHO_T}could not find ${TCL_BIN_DIR}/tclConfig.sh" >&6
 echo $ECHO_N "checking for cygwin variant... $ECHO_C" >&6
 	    case ${TCL_EXTRA_CFLAGS} in
 		*-mwin32*|*-mno-cygwin*)
-		    TEA_PLATFORM="windows"
+			if [ -z "${TEA_PLATFORM}" ]; then
+				TEA_PLATFORM="windows"
+			fi
 		    CFLAGS="$CFLAGS -mwin32"
 		    echo "$as_me:$LINENO: result: win32" >&5
 echo "${ECHO_T}win32" >&6
 		    ;;
 		*)
-		    TEA_PLATFORM="unix"
+			if [ -z "${TEA_PLATFORM}" ]; then
+				TEA_PLATFORM="unix"
+			fi
 		    echo "$as_me:$LINENO: result: unix" >&5
 echo "${ECHO_T}unix" >&6
 		    ;;
@@ -10316,7 +10324,7 @@ if test "${TEA_PLATFORM}" = "windows" ; then
     fi
     if test -n "${OPENSSL}"; then
 
-    vars="ssleay32.lib libeay32.lib"
+    vars="ssl.lib crypto.lib"
     for i in $vars; do
 	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
 	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
