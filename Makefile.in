@@ -1,20 +1,27 @@
 CC = @CC@
 CFLAGS = @CFLAGS@ @SHOBJFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I@srcdir@ @DEFS@
-LDFLAGS =
-SHOBJLDFLAGS = @SHOBJLDFLAGS@
+LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
 LIBS = @LIBS@
 INSTALL = @INSTALL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
-srcdir = @srcdir@
 
 all: tcltls.@SHOBJEXT@
 
 tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
 
 install: tcltls.@SHOBJEXT@ pkgIndex.tcl
+
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h
+tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
+tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h
+tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
+
+%.o: @srcdir@/%.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
 
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
@@ -24,7 +31,7 @@ distclean: clean
 	rm -f Makefile pkgIndex.tcl
 
 mrproper: distclean
-	rm -f configure
-	rm -rf aclocal autom4te.cache
+	rm -f @srcdir@/configure
+	rm -rf @srcdir@/aclocal @srcdir@/autom4te.cache
 
 .PHONY: all install clean distclean mrproper
