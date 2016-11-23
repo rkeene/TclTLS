@@ -1,2 +1,11 @@
 aclocal
 aclocal.m4
+autom4te.cache
+configure
+config.guess
+config.log
+config.sub
+install-sh
+Makefile
+config.status
+pkgIndex.tcl

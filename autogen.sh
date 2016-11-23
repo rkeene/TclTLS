@@ -34,3 +34,9 @@ if diff aclocal.m4.new aclocal.m4 >/dev/null 2>/dev/null; then
 else
 	mv aclocal.m4.new aclocal.m4
 fi
+
+automake --add-missing --copy --force-missing >/dev/null 2>/dev/null
+
+autoconf
+
+rm -rf autom4te.cache
