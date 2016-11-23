@@ -9,3 +9,8 @@ install-sh
 Makefile
 config.status
 pkgIndex.tcl
+tcltls.so
+tls.o
+tlsBIO.o
+tlsIO.o
+tlsX509.o
