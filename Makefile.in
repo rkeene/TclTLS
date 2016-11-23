@@ -25,6 +25,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
+	rm -f tcltls.@SHOBJEXT@
 
 distclean: clean
 	rm -f config.log config.status
