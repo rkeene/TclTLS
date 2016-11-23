@@ -1774,10 +1774,14 @@ TlsLibInit ()
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
     size_t num_locks;
 
-    if (!initialized) {
+    if (initialized) {
+        return status;
+    }
 	Tcl_MutexLock(&init_mx);
 	if (!initialized) {
 	    initialized = 1;
+#else
+       {
 #endif
 
 	    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
@@ -1823,11 +1827,11 @@ TlsLibInit ()
 		RAND_seed(rnd_seed, sizeof(rnd_seed));
 	    } while (RAND_status() != 1);
 	}
-    	done:
+
+done:
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
 	Tcl_MutexUnlock(&init_mx);
 #endif
-    }
     return status;
 }
