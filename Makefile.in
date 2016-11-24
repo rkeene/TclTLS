@@ -15,10 +15,14 @@ tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
 
 install: tcltls.@SHOBJEXT@ pkgIndex.tcl
 
-tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
+
+@srcdir@/tls.tcl.h: tls.tcl
+	xxd -i < tls.tcl > '@srcdir@/tls.tcl.h.new'
+	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
 %.o: @srcdir@/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
@@ -32,6 +36,7 @@ distclean: clean
 	rm -f Makefile pkgIndex.tcl
 
 mrproper: distclean
+	rm -f @srcdir@/tls.tcl.h
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/aclocal @srcdir@/autom4te.cache
