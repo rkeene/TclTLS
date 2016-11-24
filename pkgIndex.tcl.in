@@ -1,1 +1,8 @@
-package ifneeded tls @PACKAGE_VERSION@ [list load [file join $dir tcltls.@SHOBJEXT@]]
+package ifneeded tls @PACKAGE_VERSION@ [list apply {{dir} {
+	load [file join $dir tcltls.@SHOBJEXT@] Tls
+
+	set tlsTclInitScript [file join $dir tls.tcl]
+	if {[file exists $tlsTclInitScript]} {
+		source $tlsTclInitScript
+	}
+}} $dir]
