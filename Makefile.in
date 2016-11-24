@@ -1,4 +1,5 @@
 CC = @CC@
+AR = @AR@
 CFLAGS = @CFLAGS@ @SHOBJFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I@srcdir@ @DEFS@
 LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
@@ -8,12 +9,14 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
 
-all: tcltls.@SHOBJEXT@
+all: @EXTENSION_TARGET@
 
 tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
 
-install: tcltls.@SHOBJEXT@ pkgIndex.tcl
+tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o
+	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
+	mv tcltls.a.new tcltls.a
 
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
@@ -27,9 +30,12 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 %.o: @srcdir@/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
 
+install: @EXTENSION_TARGET@ pkgIndex.tcl
+
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
+	rm -f tcltls.a.new tcltls.a
 
 distclean: clean
 	rm -f config.log config.status

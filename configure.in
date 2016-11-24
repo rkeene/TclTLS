@@ -10,14 +10,23 @@ AC_GNU_SOURCE
 dnl Determine system information
 DC_CHK_OS_INFO
 
-dnl Determine how to make shared objects
-DC_GET_SHOBJFLAGS
-
 dnl Look for appropriate headers
 AC_CHECK_HEADERS(unistd.h stdlib.h string.h strings.h)
 
 dnl Perform Tcl Extension required stuff
 TCLEXT_INIT
+
+if test "$TCLEXT_BUILD" != 'static'; then
+	dnl Determine how to make shared objects
+	DC_GET_SHOBJFLAGS
+
+	EXTENSION_TARGET="tcltls.${SHOBJEXT}"
+else
+	AC_CHECK_TOOL([AR], [ar], [false])
+	AC_CHECK_TOOL([RANLIB], [ranlib], [:])
+	EXTENSION_TARGET="tcltls.a"
+fi
+AC_SUBST(EXTENSION_TARGET)
 
 dnl Produce output
 AC_OUTPUT(Makefile pkgIndex.tcl)
