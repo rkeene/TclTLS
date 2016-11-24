@@ -29,5 +29,43 @@ fi
 AC_SUBST(EXTENSION_TARGET)
 AC_SUBST(TCLEXT_BUILD)
 
+dnl Determine what SSL library to link with
+AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl], [name of ssl library to build against (openssl, libressl, nss, auto)]), [
+	if test "$withval" = "no"; then
+		AC_MSG_ERROR([You may not specify --without-ssl])
+	fi
+
+	if test "$withval" = "yes"; then
+		AC_MSG_ERROR([If you specify --with-ssl then you must provide a value])
+	fi
+
+	tcltls_ssl_lib="$withval"
+], [
+	tcltls_ssl_lib='auto'
+])
+
+dnl XXX:TODO: Automatically determine the SSL library to use
+dnl           defaulting to OpenSSL for compatibility reasons
+if test "$tcltls_ssl_lib" = 'auto'; then
+	tcltls_ssl_lib='openssl'
+fi
+
+AC_MSG_CHECKING([which TLS library to use])
+AS_CASE([$tcltls_ssl_lib],
+	[openssl], [
+		AC_MSG_RESULT([openssl])
+	],
+	[libressl], [
+		AC_MSG_RESULT([libressl])
+	],
+	[nss], [
+		AC_MSG_RESULT([nss])
+	],
+	[
+		AC_MSG_ERROR([Unsupported SSL library: $tcltls_ssl_lib])
+	]
+)
+
+
 dnl Produce output
 AC_OUTPUT(Makefile pkgIndex.tcl)
