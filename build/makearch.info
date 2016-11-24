@@ -24,7 +24,7 @@ VERS="0.0"
 #     @@UTIL@@ becomes the utility name ${UTIL}
 #     @@VERS@@ becomes the utility version
 #     @@DATE@@ becomes the current date
-DOCS="README.txt"
+DOCS="README.txt ChangeLog"
 DOC_HDR="HEADER"
 
 # These files follow the same convention as DOCS, but don't have the header
@@ -33,7 +33,7 @@ UPDATE_VARS="configure.ac"
 
 # This script is executed immediately after copying the files
 # to a temp directory to attempt to compile
-BEFORE=""
+BEFORE="build/pre.sh"
 
 # This script is executed after updating variables
 UPDATED=""
