@@ -40,7 +40,7 @@ UPDATED=""
 
 # This script is executed immediately prior to creation of the
 # tarball
-AFTER=""
+AFTER="build/post.sh"
 
 # Files matching these (space-seperated) patterns are deleted
-TMPS="*.out HEADER build autogen.sh"
+TMPS="*.out HEADER"
