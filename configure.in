@@ -44,6 +44,9 @@ AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl], [name of ssl library to build ag
 	tcltls_ssl_lib='auto'
 ])
 
+
+AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
+
 dnl XXX:TODO: Automatically determine the SSL library to use
 dnl           defaulting to OpenSSL for compatibility reasons
 if test "$tcltls_ssl_lib" = 'auto'; then
@@ -54,6 +57,10 @@ AC_MSG_CHECKING([which TLS library to use])
 AS_CASE([$tcltls_ssl_lib],
 	[openssl], [
 		AC_MSG_RESULT([openssl])
+
+		LIBS="${LIBS} `"${PKGCONFIG}" openssl --libs`"
+		CFLAGS="${CFLAGS} `"${PKGCONFIG}" openssl --cflags-only-other`"
+		CPPFLAGS="${CPPFLAGS} `"${PKGCONFIG}" openssl --cflags-only-I`"
 	],
 	[libressl], [
 		AC_MSG_RESULT([libressl])
@@ -65,7 +72,6 @@ AS_CASE([$tcltls_ssl_lib],
 		AC_MSG_ERROR([Unsupported SSL library: $tcltls_ssl_lib])
 	]
 )
-
 
 dnl Produce output
 AC_OUTPUT(Makefile pkgIndex.tcl)
