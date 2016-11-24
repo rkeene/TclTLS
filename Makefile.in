@@ -29,8 +29,8 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-@srcdir@/tls.tcl.h: tls.tcl
-	xxd -i < tls.tcl > '@srcdir@/tls.tcl.h.new'
+@srcdir@/tls.tcl.h: @srcdir@/tls.tcl
+	xxd -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
 # Generic target for building files from the "srcdir"
