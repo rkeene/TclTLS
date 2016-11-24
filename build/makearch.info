@@ -3,7 +3,7 @@ UTIL="tcltls"
 
 # This is the name of output files that should exist after configure 
 # procedures.
-BINS=""
+BINS="tcltls.so"
 
 # This lists the name of files that are required to exist
 REQS=""
