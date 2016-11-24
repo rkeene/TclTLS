@@ -40,6 +40,8 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 
 # Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
+	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL) -t '$(DESTDIR)$(PACKAGE_INSTALL_DIR)' @EXTENSION_TARGET@ pkgIndex.tcl
 
 # Clean the local build directory for rebuild against the same configuration
 clean:
