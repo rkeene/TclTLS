@@ -11,36 +11,50 @@ PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
 
 all: @EXTENSION_TARGET@
 
+# The shared object target
 tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
 
+# The static target
 tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
 	mv tcltls.a.new tcltls.a
 
+# Dependencies for all our targets
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 
+# Create a C-source-ified version of the script resources
+# for TclTLS so that we only need a single file to enable
+# this extension
 @srcdir@/tls.tcl.h: tls.tcl
 	xxd -i < tls.tcl > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
+# Generic target for building files from the "srcdir"
+# tree -- the default target will not match paths
 %.o: @srcdir@/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
 
+# Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
 
+# Clean the local build directory for rebuild against the same configuration
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
 	rm -f tcltls.a.new tcltls.a
 
+# Clean the local build directory back to what it was after unpacking the
+# distribution tarball
 distclean: clean
 	rm -f config.log config.status
 	rm -f Makefile pkgIndex.tcl
 
+# Clean the local build directory back to only thing things that exist in
+# version control system
 mrproper: distclean
 	rm -f @srcdir@/tls.tcl.h
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
