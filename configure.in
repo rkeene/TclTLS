@@ -27,6 +27,7 @@ else
 	EXTENSION_TARGET="tcltls.a"
 fi
 AC_SUBST(EXTENSION_TARGET)
+AC_SUBST(TCLEXT_BUILD)
 
 dnl Produce output
 AC_OUTPUT(Makefile pkgIndex.tcl)
