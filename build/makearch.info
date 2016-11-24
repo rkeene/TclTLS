@@ -16,7 +16,7 @@ REQS=""
 # If @@SVNLCR@@ is used anywhere in this version number, it will be
 # replaced with the highest last-changed-rev from the output of
 #   svn info -R    (or 0)
-VERS="0.0"
+VERS=""
 
 # Space sperated list of documents, if they exist, they will be
 # prefixed with the contents of the DOC_HDR file and substitution

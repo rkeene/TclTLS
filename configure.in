@@ -1,5 +1,5 @@
 dnl Define ourselves
-AC_INIT(tcltls, @@VERS@@)
+AC_INIT(tcltls, 1.256)
 
 dnl Checks for programs.
 AC_PROG_CC

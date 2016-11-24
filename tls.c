@@ -1727,7 +1727,7 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
         Tcl_Eval(interp, tlsTclInitScript);
     }
 
-    return Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
+    return Tcl_PkgProvide(interp, "tls", PACKAGE_VERSION);
 }
 
 /*
