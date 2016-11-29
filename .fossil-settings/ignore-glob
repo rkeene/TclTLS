@@ -10,6 +10,7 @@ Makefile
 config.status
 pkgIndex.tcl
 tcltls.so
+tcltls.a
 tls.o
 tlsBIO.o
 tlsIO.o
