@@ -70,9 +70,8 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 }
 
 # The build dir is added as the first element of $PATH
-set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 # Load the tls package
-package require tls 1.6
+package require tls
 
 set tlsServerPort 8048
 
@@ -304,8 +303,8 @@ test tlsIO-1.12 {arg parsing for socket command} {socket} {
 test tlsIO-2.1 {tcp connection} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x timed_out"]
     }
@@ -346,8 +345,8 @@ if [info exists port] {
 test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x done"]
     }
@@ -386,8 +385,8 @@ test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
 test tlsIO-2.3 {tcp connection with client interface specified} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x done"]
     }
@@ -424,8 +423,8 @@ test tlsIO-2.3 {tcp connection with client interface specified} {socket stdio} {
 test tlsIO-2.4 {tcp connection with server interface specified} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x done"]
     }
@@ -461,8 +460,8 @@ test tlsIO-2.4 {tcp connection with server interface specified} {socket stdio} {
 test tlsIO-2.5 {tcp connection with redundant server port} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x done"]
     }
@@ -508,8 +507,8 @@ test tlsIO-2.6 {tcp connection} {socket} {
 test tlsIO-2.7 {echo server, one line} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x done"]
     }
@@ -552,8 +551,8 @@ test tlsIO-2.7 {echo server, one line} {socket stdio} {
 
 test tlsIO-2.8 {echo server, loop 50 times, single connection} {socket stdio} {
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
     	package require tls
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8835 \]"
@@ -604,8 +603,8 @@ test tlsIO-2.9 {socket conflict} {socket stdio} {
     set s [tls::socket -server accept 8828]
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts -nonewline $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	tls::socket -server accept 8828
     }
@@ -691,8 +690,8 @@ test tlsIO-2.12 {tcp connection; no certificates specified} \
     # certificate isn't specified.
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set timer [after 2000 "set x timed_out"]
 	set f [tls::socket -server accept 8828]
@@ -724,8 +723,8 @@ test tlsIO-2.12 {tcp connection; no certificates specified} \
 test tlsIO-3.1 {socket conflict} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f "set f \[tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8828 \]"
@@ -749,8 +748,8 @@ test tlsIO-3.1 {socket conflict} {socket stdio} {
 test tlsIO-3.2 {server with several clients} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	set t1 [after 30000 "set x timed_out"]
 	set t2 [after 31000 "set x timed_out"]
@@ -818,8 +817,8 @@ test tlsIO-4.1 {server with several clients} {socket stdio} {
     # have seen intermittent hangs on Windows
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
 	gets stdin
     }
@@ -926,8 +925,8 @@ test tlsIO-6.1 {accept callback error} {socket stdio} {
     # certificate isn't specified.
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
     	package require tls
 	gets stdin
     }
@@ -954,8 +953,8 @@ test tlsIO-6.1 {accept callback error} {socket stdio} {
 test tlsIO-7.1 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f [list tls::socket -server accept \
@@ -988,8 +987,8 @@ test tlsIO-7.1 {testing socket specific options} {socket stdio} {
 test tlsIO-7.2 {testing socket specific options} {socket stdio} {
     removeFile script
     set f [open script w]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f "tls::socket -server accept -certfile $serverCert -cafile $caCert -keyfile $serverKey 8821"
@@ -1760,8 +1759,8 @@ test tlsIO-12.1 {testing inheritance of server sockets} {socket exec} {
 
     set f [open script2 w]
     puts $f [list set tclsh $::tcltest::tcltest]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f "set f \[tls::socket -server accept \
@@ -1817,8 +1816,8 @@ test tlsIO-12.2 {testing inheritance of client sockets} {socket exec} {
 
     set f [open script2 w]
     puts $f [list set tclsh $::tcltest::tcltest]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f "set f \[tls::socket -certfile $clientCert -cafile $caCert \
@@ -1878,8 +1877,8 @@ test tlsIO-12.3 {testing inheritance of accepted sockets} \
 
     set f [open script2 w]
     puts $f [list set tclsh $::tcltest::tcltest]
+    puts $f [list set auto_path $auto_path]
     puts $f {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
 	package require tls
     }
     puts $f "set f \[tls::socket -server accept \
@@ -1930,7 +1929,6 @@ test tlsIO-13.1 {Testing use of shared socket between two threads} \
     threadReap
 
     makeFile {
-	set auto_path [linsert $auto_path 0 [lindex [split $env(PATH) ";:"] 0]]
     	package require tls
 	set f [tls::socket -server accept 8828]
 	proc accept {s a p} {
