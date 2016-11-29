@@ -14,3 +14,4 @@ tls.o
 tlsBIO.o
 tlsIO.o
 tlsX509.o
+tls.tcl.h
