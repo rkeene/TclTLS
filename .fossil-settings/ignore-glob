@@ -17,3 +17,4 @@ tlsIO.o
 tlsX509.o
 tls.tcl.h
 build/work
+dh_params.h

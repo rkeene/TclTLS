@@ -2,7 +2,7 @@ CC = @CC@
 AR = @AR@
 RANLIB = @RANLIB@
 CFLAGS = @CFLAGS@ @SHOBJFLAGS@
-CPPFLAGS = @CPPFLAGS@ -I@srcdir@ @DEFS@
+CPPFLAGS = @CPPFLAGS@ -I@srcdir@ -I. @DEFS@
 LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
 LIBS = @LIBS@
 INSTALL = @INSTALL@
@@ -23,7 +23,7 @@ tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
-tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
@@ -34,6 +34,11 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 @srcdir@/tls.tcl.h: @srcdir@/tls.tcl
 	xxd -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
+
+# Create default DH parameters
+dh_params.h: @srcdir@/gen_dh_params
+	@srcdir@/gen_dh_params > dh_params.h.new
+	mv dh_params.h.new dh_params.h
 
 # Generic target for building files from the "srcdir"
 # tree -- the default target will not match paths
@@ -55,6 +60,7 @@ clean:
 # distribution tarball
 distclean: clean
 	rm -f config.log config.status
+	rm -f dh_params.h.new dh_params.h
 	rm -f Makefile pkgIndex.tcl
 
 # Clean the local build directory back to only thing things that exist in
