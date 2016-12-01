@@ -44,6 +44,19 @@ AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl], [name of ssl library to build ag
 	tcltls_ssl_lib='auto'
 ])
 
+dnl Enable support for building the same library every time
+tcltls_deterministic='false'
+AC_ARG_ENABLE([deterministic], AS_HELP_STRING([--enable-deterministic], [enable deterministic parameters]), [
+	if test "$enableval" = "yes"; then
+		tcltls_deterministic='true'
+	fi
+])
+if test "$tcltls_deterministic" = 'true'; then
+	GEN_DH_PARAMS_ARGS='fallback'
+else
+	GEN_DH_PARAMS_ARGS=''
+fi
+AC_SUBST(GEN_DH_PARAMS_ARGS)
 
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
 

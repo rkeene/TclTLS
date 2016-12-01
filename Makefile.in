@@ -37,7 +37,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 
 # Create default DH parameters
 dh_params.h: @srcdir@/gen_dh_params
-	@srcdir@/gen_dh_params > dh_params.h.new
+	@srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
 	mv dh_params.h.new dh_params.h
 
 # Generic target for building files from the "srcdir"

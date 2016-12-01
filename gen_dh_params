@@ -81,6 +81,13 @@ DH *get_dh2048()
 _EOF_
 }
 
+# Enable support for giving the same DH params each time
+if [ "$1" = 'fallback' ]; then
+	gen_dh_params_fallback && exit 0
+
+	exit 1
+fi
+
 gen_dh_params_openssl && exit 0
 gen_dh_params_remote && exit 0
 gen_dh_params_fallback && exit 0
