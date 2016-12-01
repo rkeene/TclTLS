@@ -1,5 +1,6 @@
 CC = @CC@
 AR = @AR@
+RANLIB = @RANLIB@
 CFLAGS = @CFLAGS@ @SHOBJFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I@srcdir@ @DEFS@
 LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
@@ -18,6 +19,7 @@ tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
 # The static target
 tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
+	$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
