@@ -59,8 +59,8 @@ BioWrite (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
     int ret;
 
-    dprintf(stderr,"\nBioWrite(0x%x, <buf>, %d) [0x%x]",
-	    (unsigned int) bio, bufLen, (unsigned int) chan);
+    dprintf(stderr,"\nBioWrite(%p, <buf>, %d) [%p]",
+	    (void *) bio, bufLen, (void *) chan);
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
 	ret = Tcl_WriteRaw(chan, buf, bufLen);
@@ -68,8 +68,8 @@ BioWrite (bio, buf, bufLen)
 	ret = Tcl_Write(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[0x%x] BioWrite(%d) -> %d [%d.%d]",
-	    (unsigned int) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
+    dprintf(stderr,"\n[%p] BioWrite(%d) -> %d [%d.%d]",
+	    (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY);
 
@@ -94,8 +94,8 @@ BioRead (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
     int ret = 0;
 
-    dprintf(stderr,"\nBioRead(0x%x, <buf>, %d) [0x%x]",
-	    (unsigned int) bio, bufLen, (unsigned int) chan);
+    dprintf(stderr,"\nBioRead(%p, <buf>, %d) [%p]",
+	    (void *) bio, bufLen, (void *) chan);
 
     if (buf == NULL) return 0;
 
@@ -105,8 +105,8 @@ BioRead (bio, buf, bufLen)
 	ret = Tcl_Read(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[0x%x] BioRead(%d) -> %d [%d.%d]",
-	    (unsigned int) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
+    dprintf(stderr,"\n[%p] BioRead(%d) -> %d [%d.%d]",
+	    (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
 
@@ -141,9 +141,9 @@ BioCtrl	(bio, cmd, num, ptr)
     long ret = 1;
     int *ip;
 
-    dprintf(stderr,"\nBioCtrl(0x%x, 0x%x, 0x%x, 0x%x)",
-	    (unsigned int) bio, (unsigned int) cmd, (unsigned int) num,
-	    (unsigned int) ptr);
+    dprintf(stderr,"\nBioCtrl(%p, 0x%x, 0x%x, %p)",
+	    (void *) bio, (unsigned int) cmd, (unsigned int) num,
+	    (void *) ptr);
 
     switch (cmd) {
     case BIO_CTRL_RESET:

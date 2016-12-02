@@ -284,7 +284,7 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 {
     State *statePtr = (State *) instanceData;
 
-    dprintf(stderr,"\nTlsCloseProc(0x%x)", (unsigned int) statePtr);
+    dprintf(stderr,"\nTlsCloseProc(%p)", (void *) statePtr);
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
 	/*
@@ -421,7 +421,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 
     *errorCodePtr = 0;
 
-    dprintf(stderr,"\nBIO_write(0x%x, %d)", (unsigned int) statePtr, toWrite);
+    dprintf(stderr,"\nBIO_write(%p, %d)", (void *) statePtr, toWrite);
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
        /* don't process any bytes while verify callback is running */
@@ -458,8 +458,8 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	 */
 	ERR_clear_error();
 	written = BIO_write(statePtr->bio, buf, toWrite);
-	dprintf(stderr,"\nBIO_write(0x%x, %d) -> [%d]",
-		(unsigned int) statePtr, toWrite, written);
+	dprintf(stderr,"\nBIO_write(%p, %d) -> [%d]",
+		(void *) statePtr, toWrite, written);
     }
     if (written <= 0) {
 	switch ((err = SSL_get_error(statePtr->ssl, written))) {
@@ -885,7 +885,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 {
     int err;
 
-    dprintf(stderr,"\nWaitForConnect(0x%x)", (unsigned int) statePtr);
+    dprintf(stderr,"\nWaitForConnect(%p)", (void *) statePtr);
 
     if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
         /*
