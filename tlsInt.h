@@ -254,7 +254,6 @@ EXTERN void		Tls_Clean _ANSI_ARGS_ ((State *statePtr));
 EXTERN int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
 							int *errorCodePtr));
 
-EXTERN BIO_METHOD *	BIO_s_tcl _ANSI_ARGS_((void));
 EXTERN BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
 
 #endif /* _TLSINT_H */

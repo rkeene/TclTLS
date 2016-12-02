@@ -17,24 +17,22 @@ static long BioCtrl	_ANSI_ARGS_ ((BIO *h, int cmd, long arg1, void *ptr));
 static int BioNew	_ANSI_ARGS_ ((BIO *h));
 static int BioFree	_ANSI_ARGS_ ((BIO *h));
 
-
-static BIO_METHOD BioMethods = {
-    BIO_TYPE_TCL, "tcl",
-    BioWrite,
-    BioRead,
-    BioPuts,
-    NULL,	/* BioGets */
-    BioCtrl,
-    BioNew,
-    BioFree,
-};
-
 BIO *
 BIO_new_tcl(statePtr, flags)
     State *statePtr;
     int flags;
 {
     BIO *bio;
+    static BIO_METHOD BioMethods = {
+        .type = BIO_TYPE_TCL,
+	.name = "tcl",
+        .bwrite = BioWrite,
+        .bread = BioRead,
+        .bputs = BioPuts,
+        .ctrl = BioCtrl,
+        .create = BioNew,
+        .destroy = BioFree,
+    };
 
     bio			= BIO_new(&BioMethods);
     bio->ptr		= (char*)statePtr;
@@ -42,12 +40,6 @@ BIO_new_tcl(statePtr, flags)
     bio->shutdown	= flags;
 
     return bio;
-}
-
-BIO_METHOD *
-BIO_s_tcl()
-{
-    return &BioMethods;
 }
 
 static int
