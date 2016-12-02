@@ -42,7 +42,7 @@ dh_params.h: @srcdir@/gen_dh_params
 
 # Generic target for building files from the "srcdir"
 # tree -- the default target will not match paths
-%.o: @srcdir@/%.c
+.c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
 
 # Install the extension
