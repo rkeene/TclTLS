@@ -32,7 +32,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
 # for TclTLS so that we only need a single file to enable
 # this extension
 @srcdir@/tls.tcl.h: @srcdir@/tls.tcl
-	xxd -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
+	@XXD@ -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
 # Create default DH parameters

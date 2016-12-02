@@ -69,6 +69,10 @@ if test "$tcltls_debug" = 'true'; then
 	AC_DEFINE(TCLEXT_TCLTLS_DEBUG, [1], [Enable debugging build])
 fi
 
+dnl Find "xxd" so we can build the tls.tcl.h file
+AC_CHECK_TOOL([XXD], [xxd], [__xxd__not__found])
+
+dnl Find "pkg-config" since we need to use it
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
 
 dnl XXX:TODO: Automatically determine the SSL library to use
