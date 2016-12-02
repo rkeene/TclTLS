@@ -15,7 +15,7 @@
  *	SSLtcl (Peter Antman)
  *
  */
-#ifndef _TSLINT_H
+#ifndef _TLSINT_H
 #define _TLSINT_H
 
 #include "tls.h"
