@@ -551,12 +551,12 @@ TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 	 */
 	return TCL_ERROR;
     } else {
+#if 0
 	size_t len = 0;
 
 	if (optionName != (char *) NULL) {
 	    len = strlen(optionName);
 	}
-#if 0
 	if ((len == 0) || ((len > 1) && (optionName[1] == 'c') &&
 		(strncmp(optionName, "-cipher", len) == 0))) {
 	    if (len == 0) {
