@@ -69,6 +69,6 @@ mrproper: distclean
 	rm -f @srcdir@/tls.tcl.h
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
-	rm -rf @srcdir@/aclocal @srcdir@/autom4te.cache
+	rm -rf @srcdir@/autom4te.cache
 
 .PHONY: all install clean distclean mrproper
