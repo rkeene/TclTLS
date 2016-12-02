@@ -65,7 +65,7 @@ static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers,
 			char *DHparams));
 
-static int	TlsLibInit _ANSI_ARGS_ (()) ;
+static int	TlsLibInit _ANSI_ARGS_ ((void)) ;
 
 #define TLS_PROTO_SSL2		0x01
 #define TLS_PROTO_SSL3		0x02
@@ -125,7 +125,6 @@ int channelTypeVersion;
 
 static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
 static Tcl_Mutex init_mx;
-static int initialized;
 
 static void          CryptoThreadLockCallback (int mode, int n, const char *file, int line);
 static unsigned long CryptoThreadIdCallback   (void);
@@ -1730,9 +1729,8 @@ Tls_SafeInit (Tcl_Interp* interp)
  *
  *------------------------------------------------------*
  */
-static int
-TlsLibInit ()
-{
+static int TlsLibInit (void) {
+    static int initialized = 0;
     int i;
     char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
     int status=TCL_OK;
