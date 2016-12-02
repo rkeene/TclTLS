@@ -319,7 +319,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
 	result = Tcl_GetObjResult(statePtr->interp);
 	string = Tcl_GetStringFromObj(result, &length);
 	/* An empty result leaves verification unchanged.	*/
-	if (length > 0) {
+	if (string != NULL && length > 0) {
 	    if (Tcl_GetIntFromObj(statePtr->interp, result, &ok) != TCL_OK) {
 		Tcl_BackgroundError(statePtr->interp);
 		ok = 0;
