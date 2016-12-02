@@ -76,10 +76,10 @@
 #define ECONNRESET	131	/* Connection reset by peer */
 #endif
 
-#ifdef DEBUG
-#define dprintf fprintf
+#ifdef TCLEXT_TCLTLS_DEBUG
+#define dprintf(...) { fprintf(stderr, "%s:%i:", __func__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
 #else
-#define dprintf if (0) fprintf
+#define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
 #endif
 
 #define SSL_ERROR(ssl,err)	\

@@ -58,6 +58,17 @@ else
 fi
 AC_SUBST(GEN_DH_PARAMS_ARGS)
 
+dnl Enable support for a debugging build
+tcltls_debug='false'
+AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [enable debugging parameters]), [
+	if test "$enableval" = "yes"; then
+		tcltls_debug='true'
+	fi
+])
+if test "$tcltls_debug" = 'true'; then
+	AC_DEFINE(TCLEXT_TCLTLS_DEBUG, [1], [Enable debugging build])
+fi
+
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
 
 dnl XXX:TODO: Automatically determine the SSL library to use

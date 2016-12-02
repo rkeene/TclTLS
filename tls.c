@@ -270,7 +270,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     int depth		= X509_STORE_CTX_get_error_depth(ctx);
     int err		= X509_STORE_CTX_get_error(ctx);
 
-    dprintf(stderr, "Verify: %d\n", ok);
+    dprintf("Verify: %d", ok);
 
     if (!ok) {
 	errStr = (char*)X509_verify_cert_error_string(err);
@@ -1573,12 +1573,12 @@ Tls_Clean(State *statePtr)
 
     if (statePtr->bio) {
 	/* This will call SSL_shutdown. Bug 1414045 */
-	dprintf(stderr, "BIO_free_all(%p)\n", statePtr->bio);
+	dprintf("BIO_free_all(%p)", statePtr->bio);
 	BIO_free_all(statePtr->bio);
 	statePtr->bio = NULL;
     }
     if (statePtr->ssl) {
-	dprintf(stderr, "SSL_free(%p)\n", statePtr->ssl);
+	dprintf("SSL_free(%p)", statePtr->ssl);
 	SSL_free(statePtr->ssl);
 	statePtr->ssl = NULL;
     }

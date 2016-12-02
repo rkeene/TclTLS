@@ -59,7 +59,7 @@ BioWrite (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
     int ret;
 
-    dprintf(stderr,"\nBioWrite(%p, <buf>, %d) [%p]",
+    dprintf("BioWrite(%p, <buf>, %d) [%p]",
 	    (void *) bio, bufLen, (void *) chan);
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
@@ -68,7 +68,7 @@ BioWrite (bio, buf, bufLen)
 	ret = Tcl_Write(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[%p] BioWrite(%d) -> %d [%d.%d]",
+    dprintf("[%p] BioWrite(%d) -> %d [%d.%d]",
 	    (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_WRITE|BIO_FLAGS_SHOULD_RETRY);
@@ -94,7 +94,7 @@ BioRead (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
     int ret = 0;
 
-    dprintf(stderr,"\nBioRead(%p, <buf>, %d) [%p]",
+    dprintf("BioRead(%p, <buf>, %d) [%p]",
 	    (void *) bio, bufLen, (void *) chan);
 
     if (buf == NULL) return 0;
@@ -105,7 +105,7 @@ BioRead (bio, buf, bufLen)
 	ret = Tcl_Read(chan, buf, bufLen);
     }
 
-    dprintf(stderr,"\n[%p] BioRead(%d) -> %d [%d.%d]",
+    dprintf("[%p] BioRead(%d) -> %d [%d.%d]",
 	    (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
@@ -141,7 +141,7 @@ BioCtrl	(bio, cmd, num, ptr)
     long ret = 1;
     int *ip;
 
-    dprintf(stderr,"\nBioCtrl(%p, 0x%x, 0x%x, %p)",
+    dprintf("BioCtrl(%p, 0x%x, 0x%x, %p)",
 	    (void *) bio, (unsigned int) cmd, (unsigned int) num,
 	    (void *) ptr);
 
@@ -180,12 +180,12 @@ BioCtrl	(bio, cmd, num, ptr)
 	bio->shutdown = (int)num;
 	break;
     case BIO_CTRL_EOF:
-	dprintf(stderr, "BIO_CTRL_EOF\n");
+	dprintf("BIO_CTRL_EOF");
 	ret = Tcl_Eof(chan);
 	break;
     case BIO_CTRL_PENDING:
 	ret = (Tcl_InputBuffered(chan) ? 1 : 0);
-	dprintf(stderr, "BIO_CTRL_PENDING(%d)\n", (int) ret);
+	dprintf("BIO_CTRL_PENDING(%d)", (int) ret);
 	break;
     case BIO_CTRL_WPENDING:
 	ret = 0;
@@ -193,7 +193,7 @@ BioCtrl	(bio, cmd, num, ptr)
     case BIO_CTRL_DUP:
 	break;
     case BIO_CTRL_FLUSH:
-	dprintf(stderr, "BIO_CTRL_FLUSH\n");
+	dprintf("BIO_CTRL_FLUSH");
 	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
 	    ret = ((Tcl_WriteRaw(chan, "", 0) >= 0) ? 1 : -1);
 	} else {
