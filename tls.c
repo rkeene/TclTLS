@@ -1479,13 +1479,13 @@ MiscObjCmd(clientData, interp, objc, objv)
 		
 		name=X509_get_subject_name(cert);
 
-		X509_NAME_add_entry_by_txt(name,"C", MBSTRING_ASC, k_C, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"ST", MBSTRING_ASC, k_ST, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"L", MBSTRING_ASC, k_L, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"O", MBSTRING_ASC, k_O, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"OU", MBSTRING_ASC, k_OU, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"CN", MBSTRING_ASC, k_CN, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"Email", MBSTRING_ASC, k_Email, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"C", MBSTRING_ASC, (unsigned char *) k_C, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"ST", MBSTRING_ASC, (unsigned char *) k_ST, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"L", MBSTRING_ASC, (unsigned char *) k_L, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"O", MBSTRING_ASC, (unsigned char *) k_O, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"OU", MBSTRING_ASC, (unsigned char *) k_OU, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"CN", MBSTRING_ASC, (unsigned char *) k_CN, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"Email", MBSTRING_ASC, (unsigned char *) k_Email, -1, -1, 0);
 
 		X509_set_subject_name(cert,name);
 
