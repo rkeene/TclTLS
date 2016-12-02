@@ -1616,7 +1616,7 @@ int
 Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 					 * to be made available. */
 {
-    const unsigned char tlsTclInitScript[] = {
+    const char tlsTclInitScript[] = {
 #include "tls.tcl.h"
     };
 
