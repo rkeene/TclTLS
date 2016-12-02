@@ -86,9 +86,9 @@ AS_CASE([$tcltls_ssl_lib],
 	[openssl], [
 		AC_MSG_RESULT([openssl])
 
-		LIBS="${LIBS} `"${PKGCONFIG}" openssl --libs`"
-		CFLAGS="${CFLAGS} `"${PKGCONFIG}" openssl --cflags-only-other`"
-		CPPFLAGS="${CPPFLAGS} `"${PKGCONFIG}" openssl --cflags-only-I`"
+		LIBS="${LIBS} `"${PKGCONFIG}" openssl --libs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		CFLAGS="${CFLAGS} `"${PKGCONFIG}" openssl --cflags-only-other`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		CPPFLAGS="${CPPFLAGS} `"${PKGCONFIG}" openssl --cflags-only-I`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
 	],
 	[libressl], [
 		AC_MSG_RESULT([libressl])
