@@ -6,6 +6,10 @@ urls=(
 	http://chiselapp.com/user/rkeene/repository/autoconf/doc/trunk/versionscript.m4
 )
 
+localFiles=(
+	aclocal/tcltls_openssl.m4
+)
+
 cd "$(dirname "$(which "$0")")" || exit 1
 
 mkdir aclocal >/dev/null 2>/dev/null
@@ -25,7 +29,7 @@ for url in "${urls[@]}"; do
 	files=("${files[@]}" "${file}")
 done
 
-for file in "${files[@]}"; do
+for file in "${files[@]}" "${localFiles[@]}"; do
 	cat "${file}"
 done > aclocal.m4.new
 
