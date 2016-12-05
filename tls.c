@@ -718,9 +718,21 @@ ImportObjCmd(clientData, interp, objc, objv)
 #else
     int ssl3 = 1;
 #endif
+#if defined(NO_TLS1)
+    int tls1 = 0;
+#else
     int tls1 = 1;
+#endif
+#if defined(NO_TLS1_1)
+    int tls1_1 = 0;
+#else
     int tls1_1 = 1;
+#endif
+#if defined(NO_TLS1_2)
+    int tls1_2 = 0;
+#else
     int tls1_2 = 1;
+#endif
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
