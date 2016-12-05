@@ -35,29 +35,59 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	AC_LANG_POP([C])
 
 	dnl Determine if SSLv2 is supported
-	AC_CHECK_FUNC(SSLv2_method,, [
+	if test "$tcltls_ssl_ssl2" = "true"; then
+		AC_CHECK_FUNC(SSLv2_method,, [
+			tcltls_ssl_ssl2='false'
+		])
+	fi
+
+	if test "$tcltls_ssl_ssl2" = "false"; then
 		AC_DEFINE(NO_SSL2, [1], [Define this to disable SSLv2 in OpenSSL support])
-	])
+	fi
 
 	dnl Determine if SSLv3 is supported
-	AC_CHECK_FUNC(SSLv3_method,, [
+	if test "$tcltls_ssl_ssl3" = "true"; then
+		AC_CHECK_FUNC(SSLv3_method,, [
+			tcltls_ssl_ssl3='false'
+		])
+	fi
+
+	if test "$tcltls_ssl_ssl3" = "false"; then
 		AC_DEFINE(NO_SSL3, [1], [Define this to disable SSLv3 in OpenSSL support])
-	])
+	fi
 
 	dnl Determine if TLSv1.0 is supported
-	AC_CHECK_FUNC(TLSv1_method,, [
+	if test "$tcltls_ssl_tls1_0" = "true"; then
+		AC_CHECK_FUNC(TLSv1_method,, [
+			tcltls_ssl_tls1_0='false'
+		])
+	fi
+
+	if test "$tcltls_ssl_tls1_0" = "false"; then
 		AC_DEFINE(NO_TLS1, [1], [Define this to disable TLSv1.0 in OpenSSL support])
-	])
+	fi
 
 	dnl Determine if TLSv1.1 is supported
-	AC_CHECK_FUNC(TLSv1_1_method,, [
+	if test "$tcltls_ssl_tls1_1" = "true"; then
+		AC_CHECK_FUNC(TLSv1_1_method,, [
+			tcltls_ssl_tls1_1='false'
+		])
+	fi
+
+	if test "$tcltls_ssl_tls1_1" = "false"; then
 		AC_DEFINE(NO_TLS1_1, [1], [Define this to disable TLSv1.1 in OpenSSL support])
-	])
+	fi
 
 	dnl Determine if TLSv1.2 is supported
-	AC_CHECK_FUNC(TLSv1_2_method,, [
+	if test "$tcltls_ssl_tls1_2" = "true"; then
+		AC_CHECK_FUNC(TLSv1_2_method,, [
+			tcltls_ssl_tls1_2='false'
+		])
+	fi
+
+	if test "$tcltls_ssl_tls1_2" = "false"; then
 		AC_DEFINE(NO_TLS1_2, [1], [Define this to disable TLSv1.2 in OpenSSL support])
-	])
+	fi
 
 	dnl Restore compile-altering variables
 	LIBS="${SAVE_LIBS}"
