@@ -82,24 +82,34 @@ if test "$tcltls_ssl_lib" = 'auto'; then
 fi
 
 AC_MSG_CHECKING([which TLS library to use])
+AC_MSG_RESULT([$tcltls_ssl_lib])
+
+
+dnl Manually rewrite libressl to OpenSSL since we use the
+dnl compatibility interface
+if test "$tcltls_ssl_lib" = "libressl"; then
+	tcltls_ssl_lib='openssl'
+fi
+
 AS_CASE([$tcltls_ssl_lib],
 	[openssl], [
-		AC_MSG_RESULT([openssl])
-
-		LIBS="${LIBS} `"${PKGCONFIG}" openssl --libs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
-		CFLAGS="${CFLAGS} `"${PKGCONFIG}" openssl --cflags-only-other`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
-		CPPFLAGS="${CPPFLAGS} `"${PKGCONFIG}" openssl --cflags-only-I`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
-	],
-	[libressl], [
-		AC_MSG_RESULT([libressl])
+		TCLTLS_SSL_OPENSSL
 	],
 	[nss], [
-		AC_MSG_RESULT([nss])
+	 	TCLTLS_SSL_LIBS=""
+		TCLTLS_SSL_CFLAGS=""
+		TCLTLS_SSL_CPPFLAGS=""
 	],
 	[
 		AC_MSG_ERROR([Unsupported SSL library: $tcltls_ssl_lib])
 	]
 )
+dnl Determine how to use this SSL library
+AC_MSG_CHECKING([how to use $tcltls_ssl_lib])
+LIBS="${LIBS} ${TCLTLS_SSL_LIBS}"
+CFLAGS="${CFLAGS} ${TCLTLS_SSL_CFLAGS}"
+CPPFLAGS="${CPPFLAGS} ${TCLTLS_SSL_CPPFLAGS}"
+AC_MSG_RESULT([$TCLTLS_SSL_CPPFLAGS $TCLTLS_SSL_CFLAGS $TCLTLS_SSL_LIBS])
 
 dnl Produce output
 AC_OUTPUT(Makefile pkgIndex.tcl)
