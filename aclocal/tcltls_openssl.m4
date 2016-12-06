@@ -1,19 +1,32 @@
 AC_DEFUN([TCLTLS_SSL_OPENSSL], [
+	openssldir=''
+	AC_ARG_WITH([ssl-dir],
+		AS_HELP_STRING(
+			[--with-ssl-dir=<dir>],
+			[deprecated, use --with-openssl-dir -- currently has the same meaning]
+		), [
+			openssldir="$withval"
+		]
+	)
 	AC_ARG_WITH([openssl-dir],
 		AS_HELP_STRING(
 			[--with-openssl-dir=<dir>],
 			[path to root directory of OpenSSL or LibreSSL installation]
 		), [
-			if test -e "$withval/libssl.$SHOBJEXT"; then
-				TCLTLS_SSL_LIBS="-L$withval -lssl -lcrypto"
-				withval="`AS_DIRNAME(["$withval"])`"
-			else
-				TCLTLS_SSL_LIBS="-L$withval/lib -lssl -lcrypto"
-			fi
-			TCLTLS_SSL_CFLAGS="-I$withval/include"
-			TCLTLS_SSL_CPPFLAGS="-I$withval/include"
+			openssldir="$withval"
 		]
 	)
+
+	if test -n "$openssldir"; then
+		if test -e "$openssldir/libssl.$SHOBJEXT"; then
+			TCLTLS_SSL_LIBS="-L$openssldir -lssl -lcrypto"
+			openssldir="`AS_DIRNAME(["$openssldir"])`"
+		else
+			TCLTLS_SSL_LIBS="-L$openssldir/lib -lssl -lcrypto"
+		fi
+		TCLTLS_SSL_CFLAGS="-I$openssldir/include"
+		TCLTLS_SSL_CPPFLAGS="-I$openssldir/include"
+	fi
 
 	dnl Use pkg-config to find the libraries
 	AC_ARG_VAR([TCLTLS_SSL_LIBS], [libraries to pass to the linker for OpenSSL or LibreSSL])
