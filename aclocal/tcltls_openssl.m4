@@ -1,8 +1,17 @@
 AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	dnl Use pkg-config to find the libraries
-	TCLTLS_SSL_LIBS="`"${PKGCONFIG}" openssl --libs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
-	TCLTLS_SSL_CFLAGS="`"${PKGCONFIG}" openssl --cflags-only-other`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
-	TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+	AC_ARG_VAR([TCLTLS_SSL_LIBS], [libraries to pass to the linker for OpenSSL or LibreSSL])
+	AC_ARG_VAR([TCLTLS_SSL_CFLAGS], [C compiler flags for OpenSSL or LibreSSL])
+	AC_ARG_VAR([TCLTLS_SSL_CPPFLAGS], [C preprocessor flags for OpenSSL or LibreSSL])
+	if test -z "$TCLTLS_SSL_LIBS"; then
+		TCLTLS_SSL_LIBS="`"${PKGCONFIG}" openssl --libs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+	fi
+	if test -z "$TCLTLS_SSL_CFLAGS"; then
+		TCLTLS_SSL_CFLAGS="`"${PKGCONFIG}" openssl --cflags-only-other`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+	fi
+	if test -z "$TCLTLS_SSL_CPPFLAGS"; then
+		TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+	fi
 
 	dnl Save compile-altering variables we are changing
 	SAVE_LIBS="${LIBS}"
