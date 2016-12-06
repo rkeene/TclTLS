@@ -111,7 +111,7 @@ if test "$tcltls_debug" = 'true'; then
 fi
 
 dnl Find "xxd" so we can build the tls.tcl.h file
-AC_CHECK_TOOL([XXD], [xxd], [__xxd__not__found])
+AC_CHECK_PROG([XXD], [xxd], [xxd], [__xxd__not__found])
 
 dnl Find "pkg-config" since we need to use it
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
