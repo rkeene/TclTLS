@@ -127,6 +127,18 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 		AC_DEFINE(NO_TLS1_2, [1], [Define this to disable TLSv1.2 in OpenSSL support])
 	fi
 
+	AC_CACHE_VAL([tcltls_cv_func_tlsext_hostname], [
+		AC_CHECK_FUNC(SSL_set_tlsext_host_name, [
+			tcltls_cv_func_tlsext_hostname='yes'
+		], [
+			tcltls_cv_func_tlsext_hostname='no'
+		])
+	])
+
+	if test "$tcltls_cv_func_tlsext_hostname" = 'no'; then
+		AC_DEFINE([OPENSSL_NO_TLSEXT], [1], [Define this if your OpenSSL does not support the TLS Extension for SNI])
+	fi
+
 	dnl Restore compile-altering variables
 	LIBS="${SAVE_LIBS}"
 	CFLAGS="${SAVE_CFLAGS}"
