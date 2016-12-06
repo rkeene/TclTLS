@@ -11,4 +11,6 @@ if {[package vsatisfies [package present Tcl] 8.5]} {
 			source $tlsTclInitScript
 		}
 	}} $dir]
+} elseif {[package vsatisfies [package present Tcl] 8.4]} {
+	package ifneeded tls @PACKAGE_VERSION@ [list load [file join $dir tcltls.@SHOBJEXT@] Tls]
 }
