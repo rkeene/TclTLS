@@ -34,12 +34,14 @@
 #endif
 
 #ifdef NO_PATENTS
-#define NO_IDEA
-#define NO_RC2
-#define NO_RC4
-#define NO_RC5
-#define NO_RSA
-#define NO_SSL2
+#  define NO_IDEA
+#  define NO_RC2
+#  define NO_RC4
+#  define NO_RC5
+#  define NO_RSA
+#  ifndef NO_SSL2
+#    define NO_SSL2
+#  endif
 #endif
 
 #ifdef BSAFE
@@ -52,12 +54,16 @@
 #include <openssl/rand.h>
 #endif
 
-#ifndef SSL_OP_NO_TLSv1_1
-#define NO_TLS1_1
+#ifndef NO_TLS1_1
+#  ifndef SSL_OP_NO_TLSv1_1
+#    define NO_TLS1_1
+#  endif
 #endif
 
-#ifndef SSL_OP_NO_TLSv1_2
-#define NO_TLS1_2
+#ifndef NO_TLS1_2
+#  ifndef SSL_OP_NO_TLSv1_2
+#    define NO_TLS1_2
+#  endif
 #endif
 
 #ifdef TCL_STORAGE_CLASS
