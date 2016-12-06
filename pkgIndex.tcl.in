@@ -1,12 +1,14 @@
-package ifneeded tls @PACKAGE_VERSION@ [join [list [list package require Tcl 8.5] [list apply {{dir} {
-	if {{@TCLEXT_BUILD@} eq "static"} {
-		load {} Tls
-	} else {
-		load [file join $dir tcltls.@SHOBJEXT@] Tls
-	}
+if {[package vsatisfies [package present Tcl] 8.5]} {
+	package ifneeded tls @PACKAGE_VERSION@ [list apply {{dir} {
+		if {{@TCLEXT_BUILD@} eq "static"} {
+			load {} Tls
+		} else {
+			load [file join $dir tcltls.@SHOBJEXT@] Tls
+		}
 
-	set tlsTclInitScript [file join $dir tls.tcl]
-	if {[file exists $tlsTclInitScript]} {
-		source $tlsTclInitScript
-	}
-}} $dir]] "; "]
+		set tlsTclInitScript [file join $dir tls.tcl]
+		if {[file exists $tlsTclInitScript]} {
+			source $tlsTclInitScript
+		}
+	}} $dir]
+}
