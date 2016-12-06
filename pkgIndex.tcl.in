@@ -1,4 +1,4 @@
-package ifneeded tls @PACKAGE_VERSION@ [list apply {{dir} {
+package ifneeded tls @PACKAGE_VERSION@ [join [list [list package require Tcl 8.5] [list apply {{dir} {
 	if {{@TCLEXT_BUILD@} eq "static"} {
 		load {} Tls
 	} else {
@@ -9,4 +9,4 @@ package ifneeded tls @PACKAGE_VERSION@ [list apply {{dir} {
 	if {[file exists $tlsTclInitScript]} {
 		source $tlsTclInitScript
 	}
-}} $dir]
+}} $dir]] "; "]
