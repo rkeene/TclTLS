@@ -5,6 +5,10 @@ if [ "$1" = '-update' ]; then
 	update='1'
 fi
 
+commands=(
+	curl diff cat mkdir rm mv automake autoconf
+)
+
 urls=(
 	http://chiselapp.com/user/rkeene/repository/autoconf/doc/trunk/tcl.m4
 	http://chiselapp.com/user/rkeene/repository/autoconf/doc/trunk/shobj.m4
@@ -14,6 +18,17 @@ urls=(
 localFiles=(
 	aclocal/tcltls_openssl.m4
 )
+
+failed='0'
+for command in "${commands[@]}"; do
+	if [ ! -f "$(which "${command}" 2>/dev/null)" ]; then
+		echo "error: Unable to locate ${command}" >&2
+		failed='1'
+	fi
+done
+if [ "${failed}" = '1' ]; then
+	exit 1
+fi
 
 cd "$(dirname "$(which "$0")")" || exit 1
 
