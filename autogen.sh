@@ -1,5 +1,10 @@
 #! /usr/bin/env bash
 
+update='0'
+if [ "$1" = '-update' ]; then
+	update='1'
+fi
+
 urls=(
 	http://chiselapp.com/user/rkeene/repository/autoconf/doc/trunk/tcl.m4
 	http://chiselapp.com/user/rkeene/repository/autoconf/doc/trunk/shobj.m4
@@ -18,6 +23,14 @@ files=()
 
 for url in "${urls[@]}"; do
 	file="aclocal/$(echo "${url}" | sed 's@^.*/@@')"
+
+	if [ -f "${file}" ]; then
+		if [ "${update}" = '0' ]; then
+			files=("${files[@]}" "${file}")
+
+			continue
+		fi
+	fi
 
 	curl -lsS "${url}" > "${file}.new" || exit 1
 	if diff "${file}.new" "${file}" >/dev/null 2>/dev/null; then
