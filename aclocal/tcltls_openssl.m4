@@ -1,3 +1,25 @@
+dnl $1 = Name of variable
+dnl $2 = Name of function to check for
+dnl $3 = Name of protocol
+dnl $4 = Name of CPP macro to define
+AC_DEFUN([TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER], [
+	dnl Determine if particular SSL version is enabled
+	if test "[$]$1" = "true" -o "[$]$1" = "force"; then
+		AC_CHECK_FUNC($2,, [
+			if test "[$]$1" = "force"; then
+				AC_MSG_ERROR([Unable to enable $3])
+			fi
+
+			$1='false'
+		])
+	fi
+
+	if test "[$]$1" = "false" -o "[$]$1" = "force_off"; then
+		AC_DEFINE($4, [1], [Define this to disable $3 in OpenSSL support])
+	fi
+
+])
+
 AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	openssldir=''
 	AC_ARG_WITH([ssl-dir],
@@ -72,67 +94,34 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	])
 	AC_LANG_POP([C])
 
-	dnl Determine if SSLv2 is supported
-	if test "$tcltls_ssl_ssl2" = "true"; then
-		AC_CHECK_FUNC(SSLv2_method,, [
-			tcltls_ssl_ssl2='false'
-		])
-	fi
-
-	if test "$tcltls_ssl_ssl2" = "false"; then
-		AC_DEFINE(NO_SSL2, [1], [Define this to disable SSLv2 in OpenSSL support])
-	fi
-
-	dnl Determine if SSLv3 is supported
-	if test "$tcltls_ssl_ssl3" = "true"; then
-		AC_CHECK_FUNC(SSLv3_method,, [
-			tcltls_ssl_ssl3='false'
-		])
-	fi
-
-	if test "$tcltls_ssl_ssl3" = "false"; then
-		AC_DEFINE(NO_SSL3, [1], [Define this to disable SSLv3 in OpenSSL support])
-	fi
-
-	dnl Determine if TLSv1.0 is supported
-	if test "$tcltls_ssl_tls1_0" = "true"; then
-		AC_CHECK_FUNC(TLSv1_method,, [
-			tcltls_ssl_tls1_0='false'
-		])
-	fi
-
-	if test "$tcltls_ssl_tls1_0" = "false"; then
-		AC_DEFINE(NO_TLS1, [1], [Define this to disable TLSv1.0 in OpenSSL support])
-	fi
-
-	dnl Determine if TLSv1.1 is supported
-	if test "$tcltls_ssl_tls1_1" = "true"; then
-		AC_CHECK_FUNC(TLSv1_1_method,, [
-			tcltls_ssl_tls1_1='false'
-		])
-	fi
-
-	if test "$tcltls_ssl_tls1_1" = "false"; then
-		AC_DEFINE(NO_TLS1_1, [1], [Define this to disable TLSv1.1 in OpenSSL support])
-	fi
-
-	dnl Determine if TLSv1.2 is supported
-	if test "$tcltls_ssl_tls1_2" = "true"; then
-		AC_CHECK_FUNC(TLSv1_2_method,, [
-			tcltls_ssl_tls1_2='false'
-		])
-	fi
-
-	if test "$tcltls_ssl_tls1_2" = "false"; then
-		AC_DEFINE(NO_TLS1_2, [1], [Define this to disable TLSv1.2 in OpenSSL support])
-	fi
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_ssl2], [SSLv2_method], [sslv2], [NO_SSL2])
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_ssl3], [SSLv3_method], [sslv3], [NO_SSL3])
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_0], [TLSv1_method], [tlsv1.0], [NO_TLS1])
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_1], [TLSv1_1_method], [tlsv1.1], [NO_TLS1_1])
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_2], [TLSv1_2_method], [tlsv1.2], [NO_TLS1_2])
 
 	AC_CACHE_VAL([tcltls_cv_func_tlsext_hostname], [
-		AC_CHECK_FUNC(SSL_set_tlsext_host_name, [
+		AC_LANG_PUSH(C)
+		AC_MSG_CHECKING([for SSL_set_tlsext_host_name])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([
+#include <openssl/ssl.h>
+#if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
+# include <openssl/conf.h>
+#endif
+			], [
+  (void)SSL_set_tlsext_host_name((void *) 0, (void *) 0);
+			])], [
+			AC_MSG_RESULT([yes])
 			tcltls_cv_func_tlsext_hostname='yes'
-		], [
 			tcltls_cv_func_tlsext_hostname='no'
+		], [
+			AC_MSG_RESULT([no])
 		])
+		AC_LANG_POP([C])
+
+dnl		AC_CHECK_FUNC(SSL_set_tlsext_host_name, [
+dnl		], [
+dnl		])
 	])
 
 	if test "$tcltls_cv_func_tlsext_hostname" = 'no'; then
