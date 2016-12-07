@@ -52,7 +52,7 @@ AC_DEFUN([TCLEXT_FIND_TCLCONFIG], [
 	], [
 		if test "$cross_compiling" = 'no'; then
 			TCLEXT_FIND_TCLSH_PROG
-			tclConfigCheckDir="`echo 'puts [[tcl::pkgconfig get libdir,runtime]]' | "$TCLSH_PROG"`"
+			tclConfigCheckDir="`echo 'puts [[tcl::pkgconfig get libdir,runtime]]' | "$TCLSH_PROG" 2>/dev/null`"
 		else
 			tclConfigCheckDir=/dev/null/null
 		fi
