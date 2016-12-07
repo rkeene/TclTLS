@@ -84,7 +84,11 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 			new_TCLTLS_SSL_LIBS_static=''
 			for arg in $TCLTLS_SSL_LIBS; do
 				case "${arg}" in
-					-ldl|-lrt|-lc|-lpthread|-lm|-lcrypt|-lidn|-lresolv|-lgcc|-lgcc_s|-L*)
+					-L*)
+						new_TCLTLS_SSL_LIBS_normal="${new_TCLTLS_SSL_LIBS_normal} ${arg}"
+						new_TCLTLS_SSL_LIBS_static="${new_TCLTLS_SSL_LIBS_static} ${arg}"
+						;;
+					-ldl|-lrt|-lc|-lpthread|-lm|-lcrypt|-lidn|-lresolv|-lgcc|-lgcc_s)
 						new_TCLTLS_SSL_LIBS_normal="${new_TCLTLS_SSL_LIBS_normal} ${arg}"
 						;;
 					-l*)

@@ -236,6 +236,15 @@ AC_DEFUN([SHOBJ_DO_STATIC_LINK_LIB], [
 
 	AC_MSG_CHECKING([for how to statically link to $1])
 
+	trylink_ADD_LDFLAGS=''
+	for arg in $VAR_TO_UPDATE; do
+		case "${arg}" in
+			-L*)
+				trylink_ADD_LDFLAGS="${arg}"
+				;;
+		esac
+	done
+
 	SAVELIBS="$LIBS"
 	staticlib=""
 	found="0"
@@ -249,7 +258,7 @@ AC_DEFUN([SHOBJ_DO_STATIC_LINK_LIB], [
 			fi
 		fi
 
-		LIBS="${SAVELIBS} ${trylink}"
+		LIBS="${SAVELIBS} ${trylink_ADD_LDFLAGS} ${trylink}"
 
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [
 			staticlib="${trylink}"
