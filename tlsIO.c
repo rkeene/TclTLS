@@ -934,13 +934,6 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
                 statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
 		*errorCodePtr = ECONNABORTED;
 		return -1;
-	    } else if (rc == SSL_ERROR_SYSCALL) {
-                dprintf("Got an error from our BIO");
-                Tls_Error(statePtr,
-                        (char *)ERR_reason_error_string(ERR_get_error()));
-                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-                *errorCodePtr = ECONNABORTED;
-                return -1;
 	    } else if (BIO_should_retry(statePtr->bio)) {
 		if (statePtr->flags & TLS_TCL_ASYNC) {
 		    dprintf("E! ");
@@ -955,9 +948,12 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
                 }
 
                 if (Tcl_Eof(statePtr->self)) {
-                    dprintf("Error = 0 and EOF is set, returning with 0");
+                    dprintf("Error = 0 and EOF is set");
 
-                    return 0;
+                    if (rc != SSL_ERROR_SYSCALL) {
+                        dprintf("Error from some reason other than our BIO, returning 0");
+                        return 0;
+                    }
                 }
 		dprintf("CR! ");
 		*errorCodePtr = ECONNRESET;
