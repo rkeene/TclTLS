@@ -86,7 +86,7 @@ static int	TlsLibInit _ANSI_ARGS_ ((void)) ;
  * Defined in Tls_Init to determine what kind of channels we are using
  * (old-style 8.2.0-8.3.1 or new-style 8.3.2+).
  */
-int channelTypeVersion;
+int channelTypeVersion = TLS_CHANNEL_VERSION_2;
 
 /*
  * We lose the tcl password callback when we use the RSA BSAFE SSL-C 1.1.2
