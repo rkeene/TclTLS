@@ -106,11 +106,11 @@ BioRead (bio, buf, bufLen)
 
     if (ret == 0) {
 	if (!tclEofChan) {
-            dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set -- ret == -1 now");
+            dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set -- ret == -1 now");
 	    BIO_set_retry_read(bio);
 	    ret = -1;
 	} else {
-            dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set");
+            dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set");
         }
     } else {
         dprintf("Got non-zero from Tcl_Read or Tcl_ReadRaw == ret == %i", ret);
