@@ -95,7 +95,8 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 						;;
 				esac
 			done
-			TCLTLS_SSL_LIBS="${new_TCLTLS_SSL_LIBS_normal} -Wl,-Bstatic ${new_TCLTLS_SSL_LIBS_static} -Wl,-Bdynamic"
+			SHOBJ_DO_STATIC_LINK_LIB([OpenSSL], [$new_TCLTLS_SSL_LIBS_static], [new_TCLTLS_SSL_LIBS_static])
+			TCLTLS_SSL_LIBS="${new_TCLTLS_SSL_LIBS_normal} ${new_TCLTLS_SSL_LIBS_static}"
 		fi
 	fi
 
