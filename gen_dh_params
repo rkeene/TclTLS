@@ -2,14 +2,12 @@
 
 bits='2048'
 
-function openssl_dhparam() {
-	local output
-
+openssl_dhparam() {
 	if [ -x "`which openssl 2>/dev/null`" ]; then
-		output="`openssl dhparam -C "$@" 2>/dev/null`" || return 1
-		output="`echo "${output}" | sed '/^-----BEGIN DH PARAMETERS-----$/,/^-----END DH PARAMETERS-----$/ d;/^#/ d'`" || return 1
+		o_output="`openssl dhparam -C "$@" 2>/dev/null`" || return 1
+		o_output="`echo "${o_output}" | sed '/^-----BEGIN DH PARAMETERS-----$/,/^-----END DH PARAMETERS-----$/ d;/^#/ d'`" || return 1
 
-		echo "${output}"
+		echo "${o_output}"
 
 		return 0
 	fi
@@ -17,21 +15,19 @@ function openssl_dhparam() {
 	return 1
 }
 
-function gen_dh_params_openssl() {
+gen_dh_params_openssl() {
 	openssl_dhparam "${bits}" < /dev/null || return 1
 	return 0
 }
 
-function gen_dh_params_remote() {
-	local input output url
-
+gen_dh_params_remote() {
 	url="https://2ton.com.au/dhparam/${bits}"
 
-	input="`curl -sS "${url}"`" || \
-		input="`wget -O - -o /dev/null "${url}"`" || return 1
+	r_input="`curl -sS "${url}"`" || \
+		r_input="`wget -O - -o /dev/null "${url}"`" || return 1
 
-	if output="`echo "${input}" | openssl_dhparam`"; then
-		echo "${output}"
+	if r_output="`echo "${r_input}" | openssl_dhparam`"; then
+		echo "${r_output}"
 
 		return 0
 	fi
@@ -39,7 +35,7 @@ function gen_dh_params_remote() {
 	return 1
 }
 
-function gen_dh_params_fallback() {
+gen_dh_params_fallback() {
 	cat << \_EOF_
 DH *get_dh2048()
 	{
