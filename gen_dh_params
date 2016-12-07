@@ -1,12 +1,13 @@
-#! /usr/bin/env bash
+#! /usr/bin/env sh
 
 bits='2048'
 
 function openssl_dhparam() {
 	local output
 
-	if [ -x "$(which openssl 2>/dev/null)" ]; then
-		output="$(set -o pipefail; openssl dhparam -C "$@" 2>/dev/null | sed '/^-----BEGIN DH PARAMETERS-----$/,/^-----END DH PARAMETERS-----$/ d;/^#/ d')" || return 1
+	if [ -x "`which openssl 2>/dev/null`" ]; then
+		output="`openssl dhparam -C "$@" 2>/dev/null`" || return 1
+		output="`echo "${output}" | sed '/^-----BEGIN DH PARAMETERS-----$/,/^-----END DH PARAMETERS-----$/ d;/^#/ d'`" || return 1
 
 		echo "${output}"
 
@@ -26,10 +27,10 @@ function gen_dh_params_remote() {
 
 	url="https://2ton.com.au/dhparam/${bits}"
 
-	input="$(curl "${url}")" || \
-		input="$(wget -O - -o /dev/null "${url}")" || return 1
+	input="`curl -sS "${url}"`" || \
+		input="`wget -O - -o /dev/null "${url}"`" || return 1
 
-	if output="$(echo "${input}" | openssl_dhparam)"; then
+	if output="`echo "${input}" | openssl_dhparam`"; then
 		echo "${output}"
 
 		return 0
