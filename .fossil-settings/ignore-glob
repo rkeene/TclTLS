@@ -10,6 +10,7 @@ config.status
 pkgIndex.tcl
 tcltls.so
 tcltls.a
+tcltls.a.linkadd
 tls.o
 tlsBIO.o
 tlsIO.o

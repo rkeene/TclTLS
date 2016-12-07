@@ -62,6 +62,7 @@ distclean: clean
 	rm -f config.log config.status
 	rm -f dh_params.h.new dh_params.h
 	rm -f Makefile pkgIndex.tcl
+	rm -f tcltls.a.linkadd
 
 # Clean the local build directory back to only thing things that exist in
 # version control system

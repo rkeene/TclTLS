@@ -50,18 +50,29 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 		TCLTLS_SSL_CPPFLAGS="-I$openssldir/include"
 	fi
 
+	pkgConfigExtraArgs=''
+	if test "$TCLEXT_BUILD" = "static"; then
+		pkgConfigExtraArgs='--static'
+	fi
+
 	dnl Use pkg-config to find the libraries
 	AC_ARG_VAR([TCLTLS_SSL_LIBS], [libraries to pass to the linker for OpenSSL or LibreSSL])
 	AC_ARG_VAR([TCLTLS_SSL_CFLAGS], [C compiler flags for OpenSSL or LibreSSL])
 	AC_ARG_VAR([TCLTLS_SSL_CPPFLAGS], [C preprocessor flags for OpenSSL or LibreSSL])
 	if test -z "$TCLTLS_SSL_LIBS"; then
-		TCLTLS_SSL_LIBS="`"${PKGCONFIG}" openssl --libs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		TCLTLS_SSL_LIBS="`"${PKGCONFIG}" openssl --libs $pkgConfigExtraArgs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
 	fi
 	if test -z "$TCLTLS_SSL_CFLAGS"; then
-		TCLTLS_SSL_CFLAGS="`"${PKGCONFIG}" openssl --cflags-only-other`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		TCLTLS_SSL_CFLAGS="`"${PKGCONFIG}" openssl --cflags-only-other $pkgConfigExtraArgs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
 	fi
 	if test -z "$TCLTLS_SSL_CPPFLAGS"; then
-		TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I $pkgConfigExtraArgs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+	fi
+
+	if test "$TCLEXT_BUILD" = "static"; then
+		dnl If we are doing a static build, save the linker flags for other programs to consume
+		rm -f tcltls.a.linkadd
+		AS_ECHO(["$TCLTLS_SSL_LIBS"]) > tcltls.a.linkadd
 	fi
 
 	dnl Save compile-altering variables we are changing
