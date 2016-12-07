@@ -91,7 +91,11 @@ AC_DEFUN([DC_SYNC_RPATH], [
 		if test "$cross_compiling" = 'yes'; then
 			set_rpath='no'
 		else
-			set_rpath='yes'
+			ifelse($1, [], [
+				set_rpath='yes'
+			], [
+				set_rpath='$1'
+			])
 		fi
 	])
 
