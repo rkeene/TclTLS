@@ -51,7 +51,7 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	fi
 
 	pkgConfigExtraArgs=''
-	if test "$TCLEXT_BUILD" = "static"; then
+	if test "$TCLEXT_BUILD" = "static" -o "$TCLEXT_TLS_STATIC_SSL" = 'yes'; then
 		pkgConfigExtraArgs='--static'
 	fi
 
@@ -73,6 +73,30 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 		dnl If we are doing a static build, save the linker flags for other programs to consume
 		rm -f tcltls.a.linkadd
 		AS_ECHO(["$TCLTLS_SSL_LIBS"]) > tcltls.a.linkadd
+	fi
+
+	dnl If we have been asked to statically link to the SSL library, specifically tell the linker to do so
+	if test "$TCLEXT_TLS_STATIC_SSL" = 'yes'; then
+		dnl Don't bother doing this if we aren't actually doing the runtime linking
+		if test "$TCLEXT_BUILD" != "static"; then
+			dnl Split the libraries into SSL and non-SSL libraries
+			new_TCLTLS_SSL_LIBS_normal=''
+			new_TCLTLS_SSL_LIBS_static=''
+			for arg in $TCLTLS_SSL_LIBS; do
+				case "${arg}" in
+					-ldl|-lrt|-lc|-lpthread|-lm|-lcrypt|-lidn|-lresolv|-lgcc|-lgcc_s|-L*)
+						new_TCLTLS_SSL_LIBS_normal="${new_TCLTLS_SSL_LIBS_normal} ${arg}"
+						;;
+					-l*)
+						new_TCLTLS_SSL_LIBS_static="${new_TCLTLS_SSL_LIBS_static} ${arg}"
+						;;
+					*)
+						new_TCLTLS_SSL_LIBS_normal="${new_TCLTLS_SSL_LIBS_normal} ${arg}"
+						;;
+				esac
+			done
+			TCLTLS_SSL_LIBS="${new_TCLTLS_SSL_LIBS_normal} -Wl,-Bstatic ${new_TCLTLS_SSL_LIBS_static} -Wl,-Bdynamic"
+		fi
 	fi
 
 	dnl Save compile-altering variables we are changing
