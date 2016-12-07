@@ -161,15 +161,7 @@ AC_MSG_RESULT([$TCLTLS_SSL_CPPFLAGS $TCLTLS_SSL_CFLAGS $TCLTLS_SSL_LIBS])
 
 dnl Sync the RPATH if requested
 if test "$TCLEXT_BUILD" != 'static'; then
-	tcltls_rpath='yes'
-	AC_ARG_ENABLE([rpath], AS_HELP_STRING([--disable-rpath], [disable setting of rpath]), [
-		if test "$enableval" = 'no'; then
-			tcltls_rpath='no'
-		fi
-	])
-	if test "$tcltls_rpath" = 'yes'; then
-		DC_SYNC_RPATH
-	fi
+	DC_SYNC_RPATH
 fi
 
 dnl Produce output
