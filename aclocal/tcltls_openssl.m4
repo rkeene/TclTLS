@@ -14,7 +14,7 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER], [
 		])
 	fi
 
-	if test "[$]$1" = "false" -o "[$]$1" = "force_off"; then
+	if test "[$]$1" = "false"; then
 		AC_DEFINE($4, [1], [Define this to disable $3 in OpenSSL support])
 	fi
 

@@ -79,7 +79,7 @@ dnl ## TLSv1.0: Enabled by default
 tcltls_ssl_tls1_0='true'
 AC_ARG_ENABLE([tlsv1.0], AS_HELP_STRING([--disable-tlsv1.0], [disable TLSv1.0 protocol]), [
 	if test "$enableval" = "no"; then
-		tcltls_ssl_tls1_0='force_off'
+		tcltls_ssl_tls1_0='false'
 	fi
 ])
 
@@ -87,7 +87,7 @@ dnl ## TLSv1.1: Enabled by default
 tcltls_ssl_tls1_1='true'
 AC_ARG_ENABLE([tlsv1.1], AS_HELP_STRING([--disable-tlsv1.1], [disable TLSv1.1 protocol]), [
 	if test "$enableval" = "no"; then
-		tcltls_ssl_tls1_1='force_off'
+		tcltls_ssl_tls1_1='false'
 	fi
 ])
 
@@ -95,7 +95,7 @@ dnl ## TLSv1.1: Enabled by default
 tcltls_ssl_tls1_2='true'
 AC_ARG_ENABLE([tlsv1.2], AS_HELP_STRING([--disable-tlsv1.2], [disable TLSv1.2 protocol]), [
 	if test "$enableval" = "no"; then
-		tcltls_ssl_tls1_2='force_off'
+		tcltls_ssl_tls1_2='false'
 	fi
 ])
 
