@@ -356,6 +356,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	    goto input;
 	}
     }
+
     if (statePtr->flags & TLS_TCL_INIT) {
 	statePtr->flags &= ~(TLS_TCL_INIT);
     }
@@ -438,6 +439,8 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	written = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (written <= 0) {
+            dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
+
 	    goto output;
 	}
     }
@@ -909,17 +912,21 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
     for (;;) {
 	/* Not initialized yet! */
 	if (statePtr->flags & TLS_TCL_SERVER) {
+            dprintf("Calling SSL_accept()");
 	    err = SSL_accept(statePtr->ssl);
 	} else {
+            dprintf("Calling SSL_connect()");
 	    err = SSL_connect(statePtr->ssl);
 	}
+
 	/*SSL_write(statePtr->ssl, (char*)&err, 0);	HACK!!! */
 	if (err > 0) {
+            dprintf("That seems to have gone okay");
 	    BIO_flush(statePtr->bio);
-	}
-
-	if (err <= 0) {
+	} else {
 	    int rc = SSL_get_error(statePtr->ssl, err);
+
+            dprintf("Got error: %i (rc = %i)", err, rc);
 
 	    if (rc == SSL_ERROR_SSL) {
 		Tls_Error(statePtr,
@@ -937,6 +944,8 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		}
 	    } else if (err == 0) {
                 if (Tcl_Eof(statePtr->self)) {
+                    dprintf("Error = 0 and EOF is set, returning with 0");
+
                     return 0;
                 }
 		dprintf("CR! ");
