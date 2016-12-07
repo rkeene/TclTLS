@@ -161,7 +161,7 @@ AC_MSG_RESULT([$TCLTLS_SSL_CPPFLAGS $TCLTLS_SSL_CFLAGS $TCLTLS_SSL_LIBS])
 
 dnl Sync the RPATH if requested
 if test "$TCLEXT_BUILD" != 'static'; then
-	if test "$TCLEXT_TLS_STATIC_SSL" != 'yes'; then
+	if test "$TCLEXT_TLS_STATIC_SSL" = 'yes'; then
 		DC_SYNC_RPATH([no])
 	else
 		DC_SYNC_RPATH([yes])
