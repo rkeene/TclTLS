@@ -113,15 +113,11 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 			])], [
 			AC_MSG_RESULT([yes])
 			tcltls_cv_func_tlsext_hostname='yes'
-			tcltls_cv_func_tlsext_hostname='no'
 		], [
 			AC_MSG_RESULT([no])
+			tcltls_cv_func_tlsext_hostname='no'
 		])
 		AC_LANG_POP([C])
-
-dnl		AC_CHECK_FUNC(SSL_set_tlsext_host_name, [
-dnl		], [
-dnl		])
 	])
 
 	if test "$tcltls_cv_func_tlsext_hostname" = 'no'; then
