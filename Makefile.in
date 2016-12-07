@@ -32,7 +32,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-@srcdir@/tls.tcl.h: @srcdir@/tls.tcl Makefile
+@srcdir@/tls.tcl.h: @srcdir@/tls.tcl
 	@XXD@ -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
