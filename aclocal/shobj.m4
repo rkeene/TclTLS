@@ -117,7 +117,7 @@ AC_DEFUN([DC_SYNC_RPATH], [
 		ADDLDFLAGS=""
 		for opt in $LDFLAGS $LIBS; do
 			if echo "$opt" | grep '^-L' >/dev/null; then
-				rpathdir=`echo "$opt" | sed 's@^-L *@@'`
+				rpathdir="`echo "$opt" | sed 's@^-L *@@'`"
 				ADDLDFLAGS="$ADDLDFLAGS $rsk_cv_link_set_rpath -Wl,$rpathdir"
 			fi
 		done
@@ -216,3 +216,72 @@ AC_DEFUN([SHOBJ_SET_SONAME], [
 
 	AC_SUBST(SHOBJLDFLAGS)
 ])
+
+dnl $1 = Description to show user
+dnl $2 = Libraries to link to
+dnl $3 = Variable to update (optional; default LIBS)
+dnl $4 = Action to run if found
+dnl $5 = Action to run if not found
+AC_DEFUN([SHOBJ_DO_STATIC_LINK_LIB], [
+        ifelse($3, [], [
+                define([VAR_TO_UPDATE], [LIBS])
+        ], [
+                define([VAR_TO_UPDATE], [$3])
+        ])  
+
+
+	AC_MSG_CHECKING([for how to statically link to $1])
+
+	SAVELIBS="$LIBS"
+	staticlib=""
+	found="0"
+	dnl HP/UX uses -Wl,-a,archive ... -Wl,-a,shared_archive
+	dnl Linux and Solaris us -Wl,-Bstatic ... -Wl,-Bdynamic
+	AC_LANG_PUSH([C])
+	for trylink in "-Wl,-a,archive $2 -Wl,-a,shared_archive" "-Wl,-Bstatic $2 -Wl,-Bdynamic" "$2"; do
+		if echo " ${LDFLAGS} " | grep ' -static ' >/dev/null; then
+			if test "${trylink}" != "$2"; then
+				continue
+			fi
+		fi
+
+		LIBS="${SAVELIBS} ${trylink}"
+
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([], [])], [
+			staticlib="${trylink}"
+			found="1"
+
+			break
+		])
+	done
+	AC_LANG_POP([C])
+	LIBS="${SAVELIBS}"
+
+	if test "${found}" = "1"; then
+		new_RESULT=''
+		SAVERESULT="$VAR_TO_UPDATE"
+		for lib in ${SAVERESULT}; do
+			addlib='1'
+			for removelib in $2; do
+				if test "${lib}" = "${removelib}"; then
+					addlib='0'
+					break
+				fi
+			done
+
+			if test "$addlib" = '1'; then
+				new_RESULT="${new_RESULT} ${lib}"
+			fi
+		done
+		VAR_TO_UPDATE="${new_RESULT} ${staticlib}"
+
+		AC_MSG_RESULT([${staticlib}])
+
+		$4
+	else
+		AC_MSG_RESULT([cant])
+
+		$5
+	fi
+])
+
