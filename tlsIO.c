@@ -943,6 +943,10 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		    continue;
 		}
 	    } else if (err == 0) {
+                if (SSL_in_init(statePtr->ssl)) {
+                    dprintf("SSL_in_init() is true");
+                }
+
                 if (Tcl_Eof(statePtr->self)) {
                     dprintf("Error = 0 and EOF is set, returning with 0");
 
