@@ -145,7 +145,7 @@ AC_DEFUN([TCLEXT_INIT], [
 		for flag in "[$]@"; do
 			case "${flag}" in
 				-DTCL_*)
-					AS_ECHO_N("${flag} ")
+					echo "${flag}" | sed "s/'/'\\''/g" | sed "s@^@'@;s@"'[$]'"@'@" | tr $'\n' ' '
 					;;
 			esac
 		done
