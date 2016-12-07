@@ -738,9 +738,9 @@ TlsNotifyProc(instanceData, mask)
 
     if (statePtr->flags & TLS_TCL_INIT
 	    && !SSL_is_init_finished(statePtr->ssl)) {
-	int errorCode;
-	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0
-		&& errorCode == EAGAIN) {
+	int errorCode = 0;
+	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0 && errorCode == EAGAIN) {
+            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN");
 	    return 0;
 	}
     }
