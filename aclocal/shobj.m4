@@ -83,13 +83,15 @@ AC_DEFUN([DC_SYNC_SHLIBOBJS], [
 AC_DEFUN([DC_SYNC_RPATH], [
   OLD_LDFLAGS="$LDFLAGS"
 
+  AC_LANG_PUSH(C)
   for tryrpath in "-Wl,-rpath" "-Wl,--rpath" "-Wl,-R"; do
     LDFLAGS="$OLD_LDFLAGS $tryrpath -Wl,/tmp"
-    AC_LINK_IFELSE(AC_LANG_PROGRAM([], [ return(0); ]), [
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [ return(0); ])], [
       rpathldflags="$tryrpath"
       break
     ])
   done
+  AC_LANG_POP(C)
   unset tryrpath
 
   LDFLAGS="$OLD_LDFLAGS"
