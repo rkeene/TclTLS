@@ -18,7 +18,7 @@ tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
 
 # The static target
-tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+tcltls.@AREXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a

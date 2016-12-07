@@ -24,7 +24,7 @@ if test "$TCLEXT_BUILD" != 'static'; then
 else
 	AC_CHECK_TOOL([AR], [ar], [false])
 	AC_CHECK_TOOL([RANLIB], [ranlib], [:])
-	EXTENSION_TARGET="tcltls.a"
+	EXTENSION_TARGET="tcltls.${AREXT}"
 fi
 AC_SUBST(EXTENSION_TARGET)
 AC_SUBST(TCLEXT_BUILD)
