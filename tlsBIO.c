@@ -86,8 +86,7 @@ BioRead (bio, buf, bufLen)
     Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
     int ret = 0;
 
-    dprintf("BioRead(%p, <buf>, %d) [%p]",
-	    (void *) bio, bufLen, (void *) chan);
+    dprintf("BioRead(%p, <buf>, %d) [%p]", (void *) bio, bufLen, (void *) chan);
 
     if (buf == NULL) return 0;
 
@@ -97,13 +96,14 @@ BioRead (bio, buf, bufLen)
 	ret = Tcl_Read(chan, buf, bufLen);
     }
 
-    dprintf("[%p] BioRead(%d) -> %d [%d.%d]",
+    dprintf("[%p] BioRead(%d) -> %d [tclEof=%d; tclErrno=%d]",
 	    (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
     BIO_clear_flags(bio, BIO_FLAGS_READ|BIO_FLAGS_SHOULD_RETRY);
 
     if (ret == 0) {
 	if (!Tcl_Eof(chan)) {
+            dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set -- ret == -1 now");
 	    BIO_set_retry_read(bio);
 	    ret = -1;
 	}
@@ -111,6 +111,9 @@ BioRead (bio, buf, bufLen)
     if (BIO_should_write(bio)) {
 	BIO_set_retry_write(bio);
     }
+
+    dprintf("BioRead(%p, <buf>, %d) [%p] returning %i", (void *) bio, bufLen, (void *) chan, ret);
+
     return ret;
 }
 

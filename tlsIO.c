@@ -336,6 +336,8 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
        /* don't process any bytes while verify callback is running */
+       dprintf("Callback is running, reading 0 bytes");
+
        bytesRead = 0;
        goto input;
     }
@@ -343,7 +345,10 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (bytesRead <= 0) {
+            dprintf("Got an error (bytesRead = %i)", bytesRead);
+
 	    if (*errorCodePtr == ECONNRESET) {
+                dprintf("Got connection reset");
 		/* Soft EOF */
 		*errorCodePtr = 0;
 		bytesRead = 0;
