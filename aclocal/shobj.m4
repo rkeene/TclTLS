@@ -81,34 +81,52 @@ AC_DEFUN([DC_SYNC_SHLIBOBJS], [
 ])
 
 AC_DEFUN([DC_SYNC_RPATH], [
-  OLD_LDFLAGS="$LDFLAGS"
+	AC_ARG_ENABLE([rpath], AS_HELP_STRING([--disable-rpath], [disable setting of rpath]), [
+		if test "$enableval" = 'no'; then
+			set_rpath='no'
+		else
+			set_rpath='yes'
+		fi
+	], [
+		if test "$cross_compiling" = 'yes'; then
+			set_rpath='no'
+		else
+			set_rpath='yes'
+		fi
+	])
 
-  AC_LANG_PUSH(C)
-  for tryrpath in "-Wl,-rpath" "-Wl,--rpath" "-Wl,-R"; do
-    LDFLAGS="$OLD_LDFLAGS $tryrpath -Wl,/tmp"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([], [ return(0); ])], [
-      rpathldflags="$tryrpath"
-      break
-    ])
-  done
-  AC_LANG_POP(C)
-  unset tryrpath
+	if test "$set_rpath" = 'yes'; then
+		OLD_LDFLAGS="$LDFLAGS"
 
-  LDFLAGS="$OLD_LDFLAGS"
-  unset OLD_LDFLAGS
+		AC_CACHE_CHECK([how to set rpath], [rsk_cv_link_set_rpath], [
+			AC_LANG_PUSH(C)
+			for tryrpath in "-Wl,-rpath" "-Wl,--rpath" "-Wl,-R"; do
+				LDFLAGS="$OLD_LDFLAGS $tryrpath -Wl,/tmp"
+				AC_LINK_IFELSE([AC_LANG_PROGRAM([], [ return(0); ])], [
+					rsk_cv_link_set_rpath="$tryrpath"
+					break
+				])
+			done
+			AC_LANG_POP(C)
+			unset tryrpath
+		])
 
-  ADDLDFLAGS=""
-  for opt in $LDFLAGS; do
-    if echo "$opt" | grep '^-L' >/dev/null; then
-      rpathdir=`echo "$opt" | sed 's@^-L *@@'`
-      ADDLDFLAGS="$ADDLDFLAGS $rpathldflags -Wl,$rpathdir"
-    fi
-  done
-  unset opt rpathldflags
+		LDFLAGS="$OLD_LDFLAGS"
+		unset OLD_LDFLAGS
 
-  LDFLAGS="$LDFLAGS $ADDLDFLAGS"
+		ADDLDFLAGS=""
+		for opt in $LDFLAGS $LIBS; do
+			if echo "$opt" | grep '^-L' >/dev/null; then
+				rpathdir=`echo "$opt" | sed 's@^-L *@@'`
+				ADDLDFLAGS="$ADDLDFLAGS $rsk_cv_link_set_rpath -Wl,$rpathdir"
+			fi
+		done
+		unset opt
 
-  unset ADDLDFLAGS
+		LDFLAGS="$LDFLAGS $ADDLDFLAGS"
+
+		unset ADDLDFLAGS
+	fi
 ])
 
 AC_DEFUN([DC_CHK_OS_INFO], [
@@ -143,9 +161,6 @@ AC_DEFUN([DC_CHK_OS_INFO], [
 						SHOBJEXT="sl"
 						;;
 				esac
-				;;
-			aix[0-9].*)
-				SHOBJEXT="a"
 				;;
 			mingw32|mingw32msvc*)
 				SHOBJEXT="dll"
