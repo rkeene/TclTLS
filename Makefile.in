@@ -13,30 +13,30 @@ PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
 all: @EXTENSION_TARGET@
 
 # The shared object target
-tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o
+tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
 
 # The static target
-tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o
+tcltls.a: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
 	$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
-tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h
-tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h
-tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h
-tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h Makefile
+tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h Makefile
+tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
+tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-@srcdir@/tls.tcl.h: @srcdir@/tls.tcl
+@srcdir@/tls.tcl.h: @srcdir@/tls.tcl Makefile
 	@XXD@ -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
 	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
 
 # Create default DH parameters
-dh_params.h: @srcdir@/gen_dh_params
+dh_params.h: @srcdir@/gen_dh_params Makefile
 	@srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
 	mv dh_params.h.new dh_params.h
 
