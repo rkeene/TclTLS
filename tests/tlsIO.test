@@ -2041,15 +2041,15 @@ test tls-bug58-1.0 {test protocol negotiation failure} {socket} {
     # NOTE: when doing an in-process client/server test, both sides need
     # to be non-blocking for the TLS handshake
 
-    # Server - Only accept TLS 1 or higher
+    # Server - Only accept TLS 1.2
     set s [tls::socket \
                -certfile $serverCert -cafile $caCert -keyfile $serverKey \
-               -request 0 -require 0 -ssl2 0 -ssl3 0 -tls1 1 -tls1.1 1 -tls1.2 1 \
+               -request 0 -require 0 -ssl2 0 -ssl3 0 -tls1 0 -tls1.1 0 -tls1.2 1 \
                -server Accept 8831]
-    # Client - Only propose SSL3
+    # Client - Only propose TLS1.0
     set c [tls::socket -async \
                -cafile $caCert \
-               -request 0 -require 0 -ssl2 0 -ssl3 1 -tls1 0 -tls1.1 0 -tls1.2 0 \
+               -request 0 -require 0 -ssl2 0 -ssl3 0 -tls1 1 -tls1.1 0 -tls1.2 0 \
                [info hostname] 8831]
     fconfigure $c -blocking 0
     puts $c a ; flush $c
