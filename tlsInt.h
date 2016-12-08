@@ -52,6 +52,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/opensslv.h>
 #endif
 
 #ifndef NO_TLS1_1
@@ -261,26 +262,5 @@ int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
 							int *errorCodePtr));
 
 BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define BIO_get_data(bio)                ((bio)->ptr)
-#define BIO_get_init(bio)                ((bio)->init)
-#define BIO_get_shutdown(bio)            ((bio)->shutdown)
-#define BIO_set_data(bio, val)           (bio)->ptr = (val)
-#define BIO_set_init(bio, val)           (bio)->init = (val)
-#define BIO_set_shutdown(bio, val)       (bio)->shutdown = (val)
-
-/* XXX: This assumes the variable being assigned to is BioMethods */
-#define BIO_meth_new(type_, name_)       (BIO_METHOD *)Tcl_Alloc(sizeof(BIO_METHOD)); \
-                                         memset(BioMethods, 0, sizeof(BIO_METHOD)); \
-                                         BioMethods->type = type_; \
-                                         BioMethods->name = name_;
-#define BIO_meth_set_write(bio, val)     (bio)->bwrite = val;
-#define BIO_meth_set_read(bio, val)      (bio)->bread = val;
-#define BIO_meth_set_puts(bio, val)      (bio)->bputs = val;
-#define BIO_meth_set_ctrl(bio, val)      (bio)->ctrl = val;
-#define BIO_meth_set_create(bio, val)    (bio)->create = val;
-#define BIO_meth_set_destroy(bio, val)   (bio)->destroy = val;
-#endif
 
 #endif /* _TLSINT_H */

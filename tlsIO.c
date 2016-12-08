@@ -343,6 +343,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     }
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
+        dprintf("Calling Tls_WaitForConnect");
 	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (bytesRead <= 0) {
             dprintf("Got an error (bytesRead = %i)", bytesRead);
@@ -437,6 +438,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     }
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
+        dprintf("Calling Tls_WaitForConnect");
 	written = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (written <= 0) {
             dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
@@ -741,17 +743,21 @@ TlsNotifyProc(instanceData, mask)
     }
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
+        dprintf("Returning 0 due to callback");
 	return 0;
     }
 
-    if (statePtr->flags & TLS_TCL_INIT
-	    && !SSL_is_init_finished(statePtr->ssl)) {
+    if ((statePtr->flags & TLS_TCL_INIT) && !SSL_is_init_finished(statePtr->ssl)) {
 	int errorCode = 0;
+
+        dprintf("Calling Tls_WaitForConnect");
 	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0 && errorCode == EAGAIN) {
-            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN");
+            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
 	    return 0;
 	}
     }
+
+    dprintf("Returning %i", mask);
 
     return mask;
 }
@@ -942,7 +948,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		} else {
 		    continue;
 		}
-	    } else if (err == 0) {
+	    } else if (err <= 0) {
                 if (SSL_in_init(statePtr->ssl)) {
                     dprintf("SSL_in_init() is true");
                 }
@@ -956,6 +962,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
                     }
                 }
 		dprintf("CR! ");
+                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
 		*errorCodePtr = ECONNRESET;
 		return -1;
 	    }
