@@ -124,11 +124,7 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 # include <openssl/conf.h>
 #endif
 		], [
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
   SSL_library_init();
-#else
-  OPENSSL_init_ssl(0, NULL);
-#endif
   SSL_load_error_strings();
 		])], [
 		AC_MSG_RESULT([yes])
