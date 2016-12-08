@@ -23,21 +23,23 @@ BIO_new_tcl(statePtr, flags)
     int flags;
 {
     BIO *bio;
-    static BIO_METHOD BioMethods = {
-        .type = BIO_TYPE_TCL,
-	.name = "tcl",
-        .bwrite = BioWrite,
-        .bread = BioRead,
-        .bputs = BioPuts,
-        .ctrl = BioCtrl,
-        .create = BioNew,
-        .destroy = BioFree,
-    };
+    static BIO_METHOD *BioMethods = NULL;
 
-    bio			= BIO_new(&BioMethods);
-    bio->ptr		= (char*)statePtr;
-    bio->init		= 1;
-    bio->shutdown	= flags;
+    if (BioMethods == NULL) {
+        BioMethods = BIO_meth_new(BIO_TYPE_TCL, "tcl");
+        BIO_meth_set_write(BioMethods, BioWrite);
+        BIO_meth_set_read(BioMethods, BioRead);
+        BIO_meth_set_puts(BioMethods, BioPuts);
+        BIO_meth_set_ctrl(BioMethods, BioCtrl);
+        BIO_meth_set_create(BioMethods, BioNew);
+        BIO_meth_set_destroy(BioMethods, BioFree);
+    }
+
+    bio = BIO_new(BioMethods);
+
+    BIO_set_data(bio, statePtr);
+    BIO_set_init(bio, 1);
+    BIO_set_shutdown(bio, flags);
 
     return bio;
 }
@@ -48,7 +50,7 @@ BioWrite (bio, buf, bufLen)
     CONST char *buf;
     int bufLen;
 {
-    Tcl_Channel chan = Tls_GetParent((State*)(bio->ptr));
+    Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     int ret;
 
     dprintf("BioWrite(%p, <buf>, %d) [%p]",
@@ -83,7 +85,7 @@ BioRead (bio, buf, bufLen)
     char *buf;
     int bufLen;
 {
-    Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
+    Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     int ret = 0;
     int tclEofChan;
 
@@ -139,9 +141,8 @@ BioCtrl	(bio, cmd, num, ptr)
     long num;
     void *ptr;
 {
-    Tcl_Channel chan = Tls_GetParent((State*)bio->ptr);
+    Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     long ret = 1;
-    int *ip;
 
     dprintf("BioCtrl(%p, 0x%x, 0x%x, %p)",
 	    (void *) bio, (unsigned int) cmd, (unsigned int) num,
@@ -158,28 +159,18 @@ BioCtrl	(bio, cmd, num, ptr)
 	ret = 1;
 	break;
     case BIO_C_SET_FD:
-	BioFree(bio);
-	/* Sets State* */
-	bio->ptr	= *((char **)ptr);
-	bio->shutdown	= (int)num;
-	bio->init	= 1;
-	break;
+        dprintf("Unsupported call: BIO_C_SET_FD");
+        ret = -1;
+        break;
     case BIO_C_GET_FD:
-	if (bio->init) {
-	    ip = (int *)ptr;
-	    if (ip != NULL) {
-		*ip = bio->num;
-	    }
-	    ret = bio->num;
-	} else {
-	    ret = -1;
-	}
-	break;
+        dprintf("Unsupported call: BIO_C_GET_FD");
+        ret = -1;
+        break;
     case BIO_CTRL_GET_CLOSE:
-	ret = bio->shutdown;
+	ret = BIO_get_shutdown(bio);
 	break;
     case BIO_CTRL_SET_CLOSE:
-	bio->shutdown = (int)num;
+	BIO_set_shutdown(bio, num);
 	break;
     case BIO_CTRL_EOF:
 	dprintf("BIO_CTRL_EOF");
@@ -213,10 +204,9 @@ static int
 BioNew	(bio)
     BIO *bio;
 {
-    bio->init	= 0;
-    bio->num	= 0;
-    bio->ptr	= NULL;
-    bio->flags	= 0;
+    BIO_set_init(bio, 0);
+    BIO_set_data(bio, NULL);
+    BIO_clear_flags(bio, -1);
 
     return 1;
 }
@@ -228,15 +218,13 @@ BioFree	(bio)
     if (bio == NULL) {
 	return 0;
     }
-
-    if (bio->shutdown) {
-	if (bio->init) {
+    if (BIO_get_shutdown(bio)) {
+	if (BIO_get_init(bio)) {
 	    /*shutdown(bio->num, 2) */
 	    /*closesocket(bio->num) */
 	}
-	bio->init	= 0;
-	bio->flags	= 0;
-	bio->num	= 0;
+        BIO_set_init(bio, 0);
+        BIO_clear_flags(bio, -1);
     }
     return 1;
 }
