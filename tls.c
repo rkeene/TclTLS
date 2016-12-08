@@ -1762,12 +1762,6 @@ static int TlsLibInit (void) {
     Tcl_MutexLock(&init_mx);
 #endif
 
-    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
-				 (void *(*)(void *, size_t))Tcl_Realloc,
-				 (void(*)(void *))Tcl_Free) == 0) {
-       /* Not using Tcl's mem functions ... not critical */
-    }
-
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
     /* should we consider allocating mutexes? */
     num_locks = CRYPTO_num_locks();
