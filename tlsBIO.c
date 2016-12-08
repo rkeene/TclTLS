@@ -143,7 +143,6 @@ BioCtrl	(bio, cmd, num, ptr)
 {
     Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     long ret = 1;
-    int *ip;
 
     dprintf("BioCtrl(%p, 0x%x, 0x%x, %p)",
 	    (void *) bio, (unsigned int) cmd, (unsigned int) num,
@@ -159,26 +158,14 @@ BioCtrl	(bio, cmd, num, ptr)
     case BIO_CTRL_INFO:
 	ret = 1;
 	break;
-#if 0
     case BIO_C_SET_FD:
-	BioFree(bio);
-	/* Sets State* */
-	bio->ptr	= *((char **)ptr);
-	bio->shutdown	= (int)num;
-	bio->init	= 1;
-	break;
+        dprintf("Unsupported call: BIO_C_SET_FD");
+        ret = -1;
+        break;
     case BIO_C_GET_FD:
-	if (bio->init) {
-	    ip = (int *)ptr;
-	    if (ip != NULL) {
-		*ip = bio->num;
-	    }
-	    ret = bio->num;
-	} else {
-	    ret = -1;
-	}
-	break;
-#endif
+        dprintf("Unsupported call: BIO_C_GET_FD");
+        ret = -1;
+        break;
     case BIO_CTRL_GET_CLOSE:
 	ret = BIO_get_shutdown(bio);
 	break;
