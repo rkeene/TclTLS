@@ -1749,10 +1749,10 @@ static int TlsLibInit (void) {
     static int initialized = 0;
     int i;
     char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
-    int status=TCL_OK;
+    int status = TCL_OK;
 
     if (initialized) {
-        return status;
+        return(status);
     }
     initialized = 1;
 
@@ -1762,52 +1762,53 @@ static int TlsLibInit (void) {
     Tcl_MutexLock(&init_mx);
 #endif
 
-	    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
-					 (void *(*)(void *, size_t))Tcl_Realloc,
-					 (void(*)(void *))Tcl_Free) == 0) {
-	       /* Not using Tcl's mem functions ... not critical */
-	    }
+    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
+				 (void *(*)(void *, size_t))Tcl_Realloc,
+				 (void(*)(void *))Tcl_Free) == 0) {
+       /* Not using Tcl's mem functions ... not critical */
+    }
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-	    /* should we consider allocating mutexes? */
-	    num_locks = CRYPTO_num_locks();
-	    if (num_locks > CRYPTO_NUM_LOCKS) {
-		status=TCL_ERROR;
-		goto done;
-	    }
+    /* should we consider allocating mutexes? */
+    num_locks = CRYPTO_num_locks();
+    if (num_locks > CRYPTO_NUM_LOCKS) {
+	status = TCL_ERROR;
+	goto done;
+    }
 
-	    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
-	    CRYPTO_set_id_callback(CryptoThreadIdCallback);
+    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
+    CRYPTO_set_id_callback(CryptoThreadIdCallback);
 #endif
 
-	    if (SSL_library_init() != 1) {
-	    	status=TCL_ERROR;
-		goto done;
-	    }
-	    SSL_load_error_strings();
-	    ERR_load_crypto_strings();
+    if (SSL_library_init() != 1) {
+    	status = TCL_ERROR;
+	goto done;
+    }
+    SSL_load_error_strings();
+    ERR_load_crypto_strings();
 
-	    /*
-	     * Seed the random number generator in the SSL library,
-	     * using the do/while construct because of the bug note in the
-	     * OpenSSL FAQ at http://www.openssl.org/support/faq.html#USER1
-	     *
-	     * The crux of the problem is that Solaris 7 does not have a 
-	     * /dev/random or /dev/urandom device so it cannot gather enough
-	     * entropy from the RAND_seed() when TLS initializes and refuses
-	     * to go further. Earlier versions of OpenSSL carried on regardless.
-	     */
-	    srand((unsigned int) time((time_t *) NULL));
-	    do {
-		for (i = 0; i < 16; i++) {
-		    rnd_seed[i] = 1 + (char) (255.0 * rand()/(RAND_MAX+1.0));
-		}
-		RAND_seed(rnd_seed, sizeof(rnd_seed));
-	    } while (RAND_status() != 1);
+    /*
+     * Seed the random number generator in the SSL library,
+     * using the do/while construct because of the bug note in the
+     * OpenSSL FAQ at http://www.openssl.org/support/faq.html#USER1
+     *
+     * The crux of the problem is that Solaris 7 does not have a 
+     * /dev/random or /dev/urandom device so it cannot gather enough
+     * entropy from the RAND_seed() when TLS initializes and refuses
+     * to go further. Earlier versions of OpenSSL carried on regardless.
+     */
+    srand((unsigned int) time((time_t *) NULL));
+    do {
+	for (i = 0; i < 16; i++) {
+	    rnd_seed[i] = 1 + (char) (255.0 * rand()/(RAND_MAX+1.0));
+	}
+	RAND_seed(rnd_seed, sizeof(rnd_seed));
+    } while (RAND_status() != 1);
 done:
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-	Tcl_MutexUnlock(&init_mx);
+    Tcl_MutexUnlock(&init_mx);
 #endif
+
     return status;
 }
