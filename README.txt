@@ -1,6 +1,8 @@
 Original TLS Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 TLS 1.4.1    Copyright (C) 2000 Ajuba Solutions
 TLS 1.6      Copyright (C) 2008 ActiveState Software Inc.
+TLS 1.7      Copyright (C) 2016 Matt Newman, Ajuba Solutions, ActiveState
+                                Software Inc, Roy Keene <tcltls@rkeene.org>
 
 TLS (aka SSL) Channel - can be layered on any bi-directional Tcl_Channel.
 
