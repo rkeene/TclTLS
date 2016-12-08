@@ -123,6 +123,9 @@ int channelTypeVersion = TLS_CHANNEL_VERSION_2;
  * Based from /crypto/cryptlib.c of OpenSSL and NSOpenSSL.
  */
 
+#ifndef CRYPTO_NUM_LOCKS
+#define CRYPTO_NUM_LOCKS 128
+#endif
 static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
 static Tcl_Mutex init_mx;
 
@@ -264,7 +267,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     Tcl_Obj *cmdPtr, *result;
     char *errStr, *string;
     int length;
-    SSL   *ssl		= (SSL*)X509_STORE_CTX_get_app_data(ctx);
+    SSL   *ssl		= (SSL*)X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     X509  *cert		= X509_STORE_CTX_get_current_cert(ctx);
     State *statePtr	= (State*)SSL_get_app_data(ssl);
     int depth		= X509_STORE_CTX_get_error_depth(ctx);

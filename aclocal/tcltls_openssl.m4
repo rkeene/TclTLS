@@ -119,13 +119,17 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	AC_MSG_CHECKING([if a basic OpenSSL program works])
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([
 #include <openssl/ssl.h>
+#include <openssl/opensslv.h>
 #if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
 # include <openssl/conf.h>
 #endif
 		], [
-  (void)SSL_library_init();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+  SSL_library_init();
+#else
+  OPENSSL_init_ssl(0, NULL);
+#endif
   SSL_load_error_strings();
-  OPENSSL_config(NULL);
 		])], [
 		AC_MSG_RESULT([yes])
 	], [

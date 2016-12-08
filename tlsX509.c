@@ -101,8 +101,11 @@ Tls_NewX509Obj( interp, cert)
     char certStr[BUFSIZ];
 #ifndef NO_SSL_SHA
     int shai;
-    char sha_hash[SHA_DIGEST_LENGTH*2];
+    char sha_hash_ascii[SHA_DIGEST_LENGTH * 2 + 1];
+    unsigned char sha_hash_binary[SHA_DIGEST_LENGTH];
     const char *shachars="0123456789ABCDEF";
+
+    sha_hash_ascii[SHA_DIGEST_LENGTH * 2] = '\0';
 #endif
 
     certStr[0] = 0;
@@ -146,15 +149,13 @@ Tls_NewX509Obj( interp, cert)
     strcpy( notAfter, ASN1_UTCTIME_tostr( X509_get_notAfter(cert) ));
 
 #ifndef NO_SSL_SHA
-    for (shai=0;shai<SHA_DIGEST_LENGTH;shai++)
-    {
-        sha_hash[shai * 2]=shachars[(cert->sha1_hash[shai] & 0xF0) >> 4];
-        sha_hash[shai * 2 + 1]=shachars[(cert->sha1_hash[shai] & 0x0F)];
+    X509_digest(cert, EVP_sha1(), sha_hash_binary, NULL);
+    for (shai = 0; shai < SHA_DIGEST_LENGTH; shai++) {
+        sha_hash_ascii[shai * 2]     = shachars[(sha_hash_binary[shai] & 0xF0) >> 4];
+        sha_hash_ascii[shai * 2 + 1] = shachars[(sha_hash_binary[shai] & 0x0F)];
     }
-    Tcl_ListObjAppendElement( interp, certPtr,
-	    Tcl_NewStringObj( "sha1_hash", -1) );
-    Tcl_ListObjAppendElement( interp, certPtr,
-	    Tcl_NewStringObj( sha_hash, SHA_DIGEST_LENGTH*2) );
+    Tcl_ListObjAppendElement( interp, certPtr, Tcl_NewStringObj("sha1_hash", -1) );
+    Tcl_ListObjAppendElement( interp, certPtr, Tcl_NewStringObj(sha_hash_ascii, SHA_DIGEST_LENGTH * 2) );
 
 #endif
     Tcl_ListObjAppendElement( interp, certPtr,
