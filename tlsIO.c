@@ -2,8 +2,6 @@
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  * Copyright (C) 2000 Ajuba Solutions
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsIO.c,v 1.19 2015/06/06 09:07:08 apnadkarni Exp $
- *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
  *
@@ -286,7 +284,7 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 {
     State *statePtr = (State *) instanceData;
 
-    dprintf(stderr,"\nTlsCloseProc(0x%x)", (unsigned int) statePtr);
+    dprintf("TlsCloseProc(%p)", (void *) statePtr);
 
     if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
 	/*
@@ -334,10 +332,12 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 
     *errorCodePtr = 0;
 
-    dprintf(stderr,"\nBIO_read(%d)", bufSize);
+    dprintf("BIO_read(%d)", bufSize);
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
        /* don't process any bytes while verify callback is running */
+       dprintf("Callback is running, reading 0 bytes");
+
        bytesRead = 0;
        goto input;
     }
@@ -345,7 +345,10 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (bytesRead <= 0) {
+            dprintf("Got an error (bytesRead = %i)", bytesRead);
+
 	    if (*errorCodePtr == ECONNRESET) {
+                dprintf("Got connection reset");
 		/* Soft EOF */
 		*errorCodePtr = 0;
 		bytesRead = 0;
@@ -353,6 +356,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	    goto input;
 	}
     }
+
     if (statePtr->flags & TLS_TCL_INIT) {
 	statePtr->flags &= ~(TLS_TCL_INIT);
     }
@@ -369,7 +373,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
      */
     ERR_clear_error();
     bytesRead = BIO_read(statePtr->bio, buf, bufSize);
-    dprintf(stderr,"\nBIO_read -> %d", bytesRead);
+    dprintf("BIO_read -> %d", bytesRead);
 
     if (bytesRead < 0) {
 	int err = SSL_get_error(statePtr->ssl, bytesRead);
@@ -378,7 +382,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	    Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, bytesRead));
 	    *errorCodePtr = ECONNABORTED;
 	} else if (BIO_should_retry(statePtr->bio)) {
-	    dprintf(stderr,"RE! ");
+	    dprintf("RE! ");
 	    *errorCodePtr = EAGAIN;
 	} else {
 	    *errorCodePtr = Tcl_GetErrno();
@@ -390,7 +394,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	}
     }
     input:
-    dprintf(stderr, "\nInput(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
+    dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
     return bytesRead;
 }
 
@@ -423,7 +427,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 
     *errorCodePtr = 0;
 
-    dprintf(stderr,"\nBIO_write(0x%x, %d)", (unsigned int) statePtr, toWrite);
+    dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
        /* don't process any bytes while verify callback is running */
@@ -435,6 +439,8 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     if (!SSL_is_init_finished(statePtr->ssl)) {
 	written = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (written <= 0) {
+            dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
+
 	    goto output;
 	}
     }
@@ -442,7 +448,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	statePtr->flags &= ~(TLS_TCL_INIT);
     }
     if (toWrite == 0) {
-	dprintf(stderr, "zero-write\n");
+	dprintf("zero-write");
 	BIO_flush(statePtr->bio);
 	written = 0;
 	goto output;
@@ -460,8 +466,8 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	 */
 	ERR_clear_error();
 	written = BIO_write(statePtr->bio, buf, toWrite);
-	dprintf(stderr,"\nBIO_write(0x%x, %d) -> [%d]",
-		(unsigned int) statePtr, toWrite, written);
+	dprintf("BIO_write(%p, %d) -> [%d]",
+		(void *) statePtr, toWrite, written);
     }
     if (written <= 0) {
 	switch ((err = SSL_get_error(statePtr->ssl, written))) {
@@ -471,21 +477,21 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 		}
 		break;
 	    case SSL_ERROR_WANT_WRITE:
-		dprintf(stderr," write W BLOCK");
+		dprintf(" write W BLOCK");
 		break;
 	    case SSL_ERROR_WANT_READ:
-		dprintf(stderr," write R BLOCK");
+		dprintf(" write R BLOCK");
 		break;
 	    case SSL_ERROR_WANT_X509_LOOKUP:
-		dprintf(stderr," write X BLOCK");
+		dprintf(" write X BLOCK");
 		break;
 	    case SSL_ERROR_ZERO_RETURN:
-		dprintf(stderr," closed\n");
+		dprintf(" closed");
 		written = 0;
 		break;
 	    case SSL_ERROR_SYSCALL:
 		*errorCodePtr = Tcl_GetErrno();
-		dprintf(stderr," [%d] syscall errr: %d",
+		dprintf(" [%d] syscall errr: %d",
 			written, *errorCodePtr);
 		written = -1;
 		break;
@@ -495,12 +501,12 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 		written = -1;
 		break;
 	    default:
-		dprintf(stderr," unknown err: %d\n", err);
+		dprintf(" unknown err: %d", err);
 		break;
 	}
     }
     output:
-    dprintf(stderr, "\nOutput(%d) -> %d", toWrite, written);
+    dprintf("Output(%d) -> %d", toWrite, written);
     return written;
 }
 
@@ -553,12 +559,12 @@ TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 	 */
 	return TCL_ERROR;
     } else {
+#if 0
 	size_t len = 0;
 
 	if (optionName != (char *) NULL) {
 	    len = strlen(optionName);
 	}
-#if 0
 	if ((len == 0) || ((len > 1) && (optionName[1] == 'c') &&
 		(strncmp(optionName, "-cipher", len) == 0))) {
 	    if (len == 0) {
@@ -599,7 +605,7 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 {
     State *statePtr = (State *) instanceData;
 
-    dprintf(stderr, "TlsWatchProc(0x%x)\n", mask);
+    dprintf("TlsWatchProc(0x%x)", mask);
 
     /* Pretend to be dead as long as the verify callback is running. 
      * Otherwise that callback could be invoked recursively. */
@@ -740,9 +746,9 @@ TlsNotifyProc(instanceData, mask)
 
     if (statePtr->flags & TLS_TCL_INIT
 	    && !SSL_is_init_finished(statePtr->ssl)) {
-	int errorCode;
-	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0
-		&& errorCode == EAGAIN) {
+	int errorCode = 0;
+	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0 && errorCode == EAGAIN) {
+            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN");
 	    return 0;
 	}
     }
@@ -778,7 +784,7 @@ TlsChannelHandler (clientData, mask)
 {
     State *statePtr = (State *) clientData;
 
-dprintf(stderr, "HANDLER(0x%x)\n", mask);
+    dprintf("HANDLER(0x%x)", mask);
     Tcl_Preserve( (ClientData)statePtr);
 
     if (mask & TCL_READABLE) {
@@ -887,7 +893,7 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 {
     int err;
 
-    dprintf(stderr,"\nWaitForConnect(0x%x)", (unsigned int) statePtr);
+    dprintf("WaitForConnect(%p)", (void *) statePtr);
 
     if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
         /*
@@ -906,17 +912,21 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
     for (;;) {
 	/* Not initialized yet! */
 	if (statePtr->flags & TLS_TCL_SERVER) {
+            dprintf("Calling SSL_accept()");
 	    err = SSL_accept(statePtr->ssl);
 	} else {
+            dprintf("Calling SSL_connect()");
 	    err = SSL_connect(statePtr->ssl);
 	}
+
 	/*SSL_write(statePtr->ssl, (char*)&err, 0);	HACK!!! */
 	if (err > 0) {
+            dprintf("That seems to have gone okay");
 	    BIO_flush(statePtr->bio);
-	}
-
-	if (err <= 0) {
+	} else {
 	    int rc = SSL_get_error(statePtr->ssl, err);
+
+            dprintf("Got error: %i (rc = %i)", err, rc);
 
 	    if (rc == SSL_ERROR_SSL) {
 		Tls_Error(statePtr,
@@ -926,17 +936,26 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		return -1;
 	    } else if (BIO_should_retry(statePtr->bio)) {
 		if (statePtr->flags & TLS_TCL_ASYNC) {
-		    dprintf(stderr,"E! ");
+		    dprintf("E! ");
 		    *errorCodePtr = EAGAIN;
 		    return -1;
 		} else {
 		    continue;
 		}
 	    } else if (err == 0) {
-                if (Tcl_Eof(statePtr->self)) {
-                    return 0;
+                if (SSL_in_init(statePtr->ssl)) {
+                    dprintf("SSL_in_init() is true");
                 }
-		dprintf(stderr,"CR! ");
+
+                if (Tcl_Eof(statePtr->self)) {
+                    dprintf("Error = 0 and EOF is set");
+
+                    if (rc != SSL_ERROR_SYSCALL) {
+                        dprintf("Error from some reason other than our BIO, returning 0");
+                        return 0;
+                    }
+                }
+		dprintf("CR! ");
 		*errorCodePtr = ECONNRESET;
 		return -1;
 	    }
@@ -951,10 +970,10 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
 		}
 	    }
 	    *errorCodePtr = Tcl_GetErrno();
-	    dprintf(stderr,"ERR(%d, %d) ", rc, *errorCodePtr);
+	    dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
 	    return -1;
 	}
-	dprintf(stderr,"R0! ");
+	dprintf("R0! ");
 	return 1;
     }
 }

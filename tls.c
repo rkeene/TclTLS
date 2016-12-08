@@ -5,8 +5,6 @@
  *	Copyright (C) 2002 ActiveState Corporation
  *	Copyright (C) 2004 Starfish Systems 
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.c,v 1.37 2015/07/07 17:16:02 andreas_kupries Exp $
- *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
  *
@@ -67,7 +65,7 @@ static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers,
 			char *DHparams));
 
-static int	TlsLibInit _ANSI_ARGS_ (()) ;
+static int	TlsLibInit _ANSI_ARGS_ ((void)) ;
 
 #define TLS_PROTO_SSL2		0x01
 #define TLS_PROTO_SSL3		0x02
@@ -81,57 +79,14 @@ static int	TlsLibInit _ANSI_ARGS_ (()) ;
  */
 
 #ifndef OPENSSL_NO_DH
-/* code derived from output of 'openssl dhparam -C 2048' */
-
-static unsigned char dh2048_p[]={
-	0xEC,0xFD,0x6F,0x66,0xD8,0xBC,0xB4,0xCB,0xD7,0xE7,0xB4,0xAE,
-	0xEC,0xC0,0x06,0x25,0x40,0x9F,0x3F,0xC4,0xAC,0x34,0x19,0x36,
-	0x8A,0xAB,0xA9,0xF6,0x45,0x36,0x87,0x1F,0x10,0x35,0x3F,0x90,
-	0x00,0xC6,0x7A,0xE8,0x51,0xF4,0x7F,0x50,0x0F,0xC2,0x82,0x91,
-	0xAD,0x60,0x1B,0x49,0xB1,0x0B,0x23,0xC3,0x37,0xAE,0x0D,0x2C,
-	0x49,0xC6,0xFB,0x60,0x9D,0x50,0x2F,0x8C,0x2F,0xDE,0xE6,0x5F,
-	0x53,0x8B,0x5F,0xF9,0x70,0x16,0xEE,0x51,0xD1,0xAB,0x02,0x48,
-	0x61,0xF1,0xA0,0xD7,0xBD,0x04,0x24,0xF0,0xE4,0xD1,0x0A,0x4C,
-	0x28,0xDC,0x22,0x78,0x7C,0xED,0x2A,0xFA,0xF4,0x57,0x7C,0xAE,
-	0xDF,0x52,0xC6,0xA2,0x11,0x28,0xC5,0x3B,0xB8,0x2F,0x95,0x3F,
-	0x1E,0x05,0x66,0xFE,0x7D,0x1A,0x73,0xA0,0x45,0xF8,0xBB,0x8C,
-	0x64,0xB9,0xA9,0x4D,0x23,0xBE,0x20,0x60,0xA2,0xF7,0xC7,0xD8,
-	0xD8,0x49,0x28,0x9A,0x81,0xAC,0xF9,0x7F,0x3C,0xFC,0xBE,0x25,
-	0x5B,0x1D,0xB6,0xAB,0x08,0x06,0x11,0x8D,0x94,0x69,0x3C,0x68,
-	0x98,0x5A,0x90,0xF8,0xEB,0x19,0xCA,0x9F,0x1C,0x50,0x96,0x53,
-	0xEF,0xEC,0x1B,0x93,0x4F,0x53,0xB7,0xD9,0x04,0x8E,0x48,0x99,
-	0x6E,0x24,0xFF,0x66,0xF5,0xB0,0xDF,0x00,0xBA,0x22,0xE2,0xB6,
-	0xE3,0x3A,0xC2,0x95,0xB1,0x14,0x68,0xFB,0xA5,0x37,0x22,0x78,
-	0x56,0x5C,0xA4,0x23,0x31,0x02,0x97,0x7D,0xA9,0x84,0x0B,0x12,
-	0x26,0x58,0x2F,0x86,0x10,0xAD,0xB0,0xAB,0xB9,0x7B,0x05,0x9A,
-	0xDE,0x11,0xF1,0xE7,0x34,0xC7,0x95,0x42,0x1C,0x4F,0xA9,0xA8,
-	0x92,0xDF,0x3F,0x7B,
-	};
-static unsigned char dh2048_g[]={
-	0x02,
-};
-
-
-static DH *get_dh2048()
-{
-    DH *dh=NULL;
-
-    if ((dh=DH_new()) == NULL) return(NULL);
-
-    dh->p=BN_bin2bn(dh2048_p,sizeof(dh2048_p),NULL);
-    dh->g=BN_bin2bn(dh2048_g,sizeof(dh2048_g),NULL);
-
-    if ((dh->p == NULL) || (dh->g == NULL))
-	return(NULL);
-    return(dh);
-}
+#include "dh_params.h"
 #endif
 
 /*
  * Defined in Tls_Init to determine what kind of channels we are using
  * (old-style 8.2.0-8.3.1 or new-style 8.3.2+).
  */
-int channelTypeVersion;
+int channelTypeVersion = TLS_CHANNEL_VERSION_2;
 
 /*
  * We lose the tcl password callback when we use the RSA BSAFE SSL-C 1.1.2
@@ -170,7 +125,6 @@ int channelTypeVersion;
 
 static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
 static Tcl_Mutex init_mx;
-static int initialized;
 
 static void          CryptoThreadLockCallback (int mode, int n, const char *file, int line);
 static unsigned long CryptoThreadIdCallback   (void);
@@ -316,7 +270,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
     int depth		= X509_STORE_CTX_get_error_depth(ctx);
     int err		= X509_STORE_CTX_get_error(ctx);
 
-    dprintf(stderr, "Verify: %d\n", ok);
+    dprintf("Verify: %d", ok);
 
     if (!ok) {
 	errStr = (char*)X509_verify_cert_error_string(err);
@@ -365,7 +319,7 @@ VerifyCallback(int ok, X509_STORE_CTX *ctx)
 	result = Tcl_GetObjResult(statePtr->interp);
 	string = Tcl_GetStringFromObj(result, &length);
 	/* An empty result leaves verification unchanged.	*/
-	if (length > 0) {
+	if (string != NULL && length > 0) {
 	    if (Tcl_GetIntFromObj(statePtr->interp, result, &ok) != TCL_OK) {
 		Tcl_BackgroundError(statePtr->interp);
 		ok = 0;
@@ -687,9 +641,10 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     statePtr = (State *)Tcl_GetChannelInstanceData(chan);
 
     if (!SSL_is_init_finished(statePtr->ssl)) {
-	int err;
+	int err = 0;
 	ret = Tls_WaitForConnect(statePtr, &err);
 	if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
+            dprintf("Async set and err = EAGAIN");
 	    ret = 0;
 	}
 	if (ret < 0) {
@@ -764,9 +719,21 @@ ImportObjCmd(clientData, interp, objc, objv)
 #else
     int ssl3 = 1;
 #endif
+#if defined(NO_TLS1)
+    int tls1 = 0;
+#else
     int tls1 = 1;
+#endif
+#if defined(NO_TLS1_1)
+    int tls1_1 = 0;
+#else
     int tls1_1 = 1;
+#endif
+#if defined(NO_TLS1_2)
+    int tls1_2 = 0;
+#else
     int tls1_2 = 1;
+#endif
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
@@ -1525,13 +1492,13 @@ MiscObjCmd(clientData, interp, objc, objv)
 		
 		name=X509_get_subject_name(cert);
 
-		X509_NAME_add_entry_by_txt(name,"C", MBSTRING_ASC, k_C, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"ST", MBSTRING_ASC, k_ST, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"L", MBSTRING_ASC, k_L, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"O", MBSTRING_ASC, k_O, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"OU", MBSTRING_ASC, k_OU, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"CN", MBSTRING_ASC, k_CN, -1, -1, 0);
-		X509_NAME_add_entry_by_txt(name,"Email", MBSTRING_ASC, k_Email, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"C", MBSTRING_ASC, (unsigned char *) k_C, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"ST", MBSTRING_ASC, (unsigned char *) k_ST, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"L", MBSTRING_ASC, (unsigned char *) k_L, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"O", MBSTRING_ASC, (unsigned char *) k_O, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"OU", MBSTRING_ASC, (unsigned char *) k_OU, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"CN", MBSTRING_ASC, (unsigned char *) k_CN, -1, -1, 0);
+		X509_NAME_add_entry_by_txt(name,"Email", MBSTRING_ASC, (unsigned char *) k_Email, -1, -1, 0);
 
 		X509_set_subject_name(cert,name);
 
@@ -1619,12 +1586,12 @@ Tls_Clean(State *statePtr)
 
     if (statePtr->bio) {
 	/* This will call SSL_shutdown. Bug 1414045 */
-	dprintf(stderr, "BIO_free_all(%p)\n", statePtr->bio);
+	dprintf("BIO_free_all(%p)", statePtr->bio);
 	BIO_free_all(statePtr->bio);
 	statePtr->bio = NULL;
     }
     if (statePtr->ssl) {
-	dprintf(stderr, "SSL_free(%p)\n", statePtr->ssl);
+	dprintf("SSL_free(%p)", statePtr->ssl);
 	SSL_free(statePtr->ssl);
 	statePtr->ssl = NULL;
     }
@@ -1662,6 +1629,10 @@ int
 Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 					 * to be made available. */
 {
+    const char tlsTclInitScript[] = {
+#include "tls.tcl.h"
+    };
+
     int major, minor, patchlevel, release;
 
     /*
@@ -1721,7 +1692,11 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
     Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd,
 	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
-    return Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
+    if (interp) {
+        Tcl_Eval(interp, tlsTclInitScript);
+    }
+
+    return Tcl_PkgProvide(interp, "tls", PACKAGE_VERSION);
 }
 
 /*
@@ -1767,19 +1742,21 @@ Tls_SafeInit (Tcl_Interp* interp)
  *
  *------------------------------------------------------*
  */
-static int
-TlsLibInit ()
-{
+static int TlsLibInit (void) {
+    static int initialized = 0;
     int i;
     char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
     int status=TCL_OK;
+
+    if (initialized) {
+        return status;
+    }
+    initialized = 1;
+
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
     size_t num_locks;
 
-    if (!initialized) {
-	Tcl_MutexLock(&init_mx);
-	if (!initialized) {
-	    initialized = 1;
+    Tcl_MutexLock(&init_mx);
 #endif
 
 	    if (CRYPTO_set_mem_functions((void *(*)(size_t))Tcl_Alloc,
@@ -1824,12 +1801,10 @@ TlsLibInit ()
 		}
 		RAND_seed(rnd_seed, sizeof(rnd_seed));
 	    } while (RAND_status() != 1);
-	}
-    	done:
+done:
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
 	Tcl_MutexUnlock(&init_mx);
 #endif
-    }
     return status;
 }

@@ -1,8 +1,6 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com> 
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tls.tcl,v 1.14 2015/07/07 17:16:03 andreas_kupries Exp $
-#
 namespace eval tls {
     variable logcmd tclLog
     variable debug 0

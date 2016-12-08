@@ -1,8 +1,6 @@
 #
 # Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
 #
-# $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tests/oldTests/tlsHttp.tcl,v 1.1 2000/06/06 18:13:21 aborr Exp $
-#
 package require base64
 
 set dir [file dirname [info script]]

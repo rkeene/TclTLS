@@ -1,8 +1,6 @@
 /*
  * Copyright (C) 1997-2000 Matt Newman <matt@novadigm.com>
  *
- * $Header: /home/rkeene/tmp/cvs2fossil/../tcltls/tls/tls/tlsInt.h,v 1.17 2015/06/06 09:07:08 apnadkarni Exp $
- *
  * TLS (aka SSL) Channel - can be layered on any bi-directional
  * Tcl_Channel (Note: Requires Trf Core Patch)
  *
@@ -17,7 +15,7 @@
  *	SSLtcl (Peter Antman)
  *
  */
-#ifndef _TSLINT_H
+#ifndef _TLSINT_H
 #define _TLSINT_H
 
 #include "tls.h"
@@ -36,12 +34,14 @@
 #endif
 
 #ifdef NO_PATENTS
-#define NO_IDEA
-#define NO_RC2
-#define NO_RC4
-#define NO_RC5
-#define NO_RSA
-#define NO_SSL2
+#  define NO_IDEA
+#  define NO_RC2
+#  define NO_RC4
+#  define NO_RC5
+#  define NO_RSA
+#  ifndef NO_SSL2
+#    define NO_SSL2
+#  endif
 #endif
 
 #ifdef BSAFE
@@ -54,12 +54,16 @@
 #include <openssl/rand.h>
 #endif
 
-#ifndef SSL_OP_NO_TLSv1_1
-#define NO_TLS1_1
+#ifndef NO_TLS1_1
+#  ifndef SSL_OP_NO_TLSv1_1
+#    define NO_TLS1_1
+#  endif
 #endif
 
-#ifndef SSL_OP_NO_TLSv1_2
-#define NO_TLS1_2
+#ifndef NO_TLS1_2
+#  ifndef SSL_OP_NO_TLSv1_2
+#    define NO_TLS1_2
+#  endif
 #endif
 
 #ifdef TCL_STORAGE_CLASS
@@ -78,10 +82,10 @@
 #define ECONNRESET	131	/* Connection reset by peer */
 #endif
 
-#ifdef DEBUG
-#define dprintf fprintf
+#ifdef TCLEXT_TCLTLS_DEBUG
+#define dprintf(...) { fprintf(stderr, "%s:%i:", __func__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
 #else
-#define dprintf if (0) fprintf
+#define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
 #endif
 
 #define SSL_ERROR(ssl,err)	\
@@ -246,17 +250,16 @@ typedef int (tls_GetTopChannel) _ANSI_ARGS_((Tcl_Channel chan));
  * Forward declarations
  */
 
-EXTERN Tcl_ChannelType *Tls_ChannelType _ANSI_ARGS_((void));
-EXTERN Tcl_Channel	Tls_GetParent _ANSI_ARGS_((State *statePtr));
+Tcl_ChannelType *Tls_ChannelType _ANSI_ARGS_((void));
+Tcl_Channel	Tls_GetParent _ANSI_ARGS_((State *statePtr));
 
-EXTERN Tcl_Obj*		Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
-EXTERN void		Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
-EXTERN void		Tls_Free _ANSI_ARGS_ ((char *blockPtr));
-EXTERN void		Tls_Clean _ANSI_ARGS_ ((State *statePtr));
-EXTERN int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
+Tcl_Obj*		Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
+void		Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
+void		Tls_Free _ANSI_ARGS_ ((char *blockPtr));
+void		Tls_Clean _ANSI_ARGS_ ((State *statePtr));
+int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
 							int *errorCodePtr));
 
-EXTERN BIO_METHOD *	BIO_s_tcl _ANSI_ARGS_((void));
-EXTERN BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
+BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
 
 #endif /* _TLSINT_H */
