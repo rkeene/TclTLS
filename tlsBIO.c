@@ -6,7 +6,7 @@
 
 #include "tlsInt.h"
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifdef TCLTLS_OPENSSL_PRE_1_1_API
 #define BIO_get_data(bio)                ((bio)->ptr)
 #define BIO_get_init(bio)                ((bio)->init)
 #define BIO_get_shutdown(bio)            ((bio)->shutdown)

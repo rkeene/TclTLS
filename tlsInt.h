@@ -55,16 +55,12 @@
 #include <openssl/opensslv.h>
 #endif
 
-#ifndef NO_TLS1_1
-#  ifndef SSL_OP_NO_TLSv1_1
-#    define NO_TLS1_1
-#  endif
-#endif
-
-#ifndef NO_TLS1_2
-#  ifndef SSL_OP_NO_TLSv1_2
-#    define NO_TLS1_2
-#  endif
+/*
+ * Determine if we should use the pre-OpenSSL 1.1.0 API
+ */
+#undef TCLTLS_OPENSSL_PRE_1_1
+#if (defined(LIBRESSL_VERSION_NUMBER)) || OPENSSL_VERSION_NUMBER < 0x10100000L
+#  define TCLTLS_OPENSSL_PRE_1_1_API 1
 #endif
 
 #ifdef TCL_STORAGE_CLASS

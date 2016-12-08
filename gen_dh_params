@@ -76,7 +76,7 @@ DH *get_dh2048(void) {
 	dhp_bn = BN_bin2bn(dhp_2048, sizeof (dhp_2048), NULL);
 	dhg_bn = BN_bin2bn(dhg_2048, sizeof (dhg_2048), NULL);
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifdef TCLTLS_OPENSSL_PRE_1_1_API
 	dh->p = dhp_bn;
 	dh->g = dhg_bn;
 
