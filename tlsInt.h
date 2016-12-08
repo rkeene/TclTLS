@@ -271,10 +271,10 @@ BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
 #define BIO_set_shutdown(bio, val)       (bio)->shutdown = (val)
 
 /* XXX: This assumes the variable being assigned to is BioMethods */
-#define BIO_meth_new(type, name)         (BIO_METHOD *)Tcl_Alloc(sizeof(BIO_METHOD)); \
+#define BIO_meth_new(type_, name_)       (BIO_METHOD *)Tcl_Alloc(sizeof(BIO_METHOD)); \
                                          memset(BioMethods, 0, sizeof(BIO_METHOD)); \
-                                         BioMethods->type = type; \
-                                         BioMethods->name = name;
+                                         BioMethods->type = type_; \
+                                         BioMethods->name = name_;
 #define BIO_meth_set_write(bio, val)     (bio)->bwrite = val;
 #define BIO_meth_set_read(bio, val)      (bio)->bread = val;
 #define BIO_meth_set_puts(bio, val)      (bio)->bputs = val;
