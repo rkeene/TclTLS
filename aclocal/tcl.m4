@@ -2,7 +2,7 @@ dnl Tcl M4 Routines
 
 dnl Find a runnable Tcl
 AC_DEFUN([TCLEXT_FIND_TCLSH_PROG], [
-	AC_CACHE_CHECK([runnable tclsh], [tcl_cv_tclsh_native_path], [
+	AC_CACHE_CHECK([for runnable tclsh], [tcl_cv_tclsh_native_path], [
 		dnl Try to find a runnable tclsh
 		if test -z "$TCLCONFIGPATH"; then
 			TCLCONFIGPATH=/dev/null/null
@@ -52,9 +52,11 @@ AC_DEFUN([TCLEXT_FIND_TCLCONFIG], [
 	], [
 		if test "$cross_compiling" = 'no'; then
 			TCLEXT_FIND_TCLSH_PROG
-			tclConfigCheckDir="`echo 'puts [[tcl::pkgconfig get libdir,runtime]]' | "$TCLSH_PROG" 2>/dev/null`"
+			tclConfigCheckDir0="`echo 'puts [[tcl::pkgconfig get libdir,runtime]]' | "$TCLSH_PROG" 2>/dev/null`"
+			tclConfigCheckDir1="`echo 'puts [[tcl::pkgconfig get scriptdir,runtime]]' | "$TCLSH_PROG" 2>/dev/null`"
 		else
-			tclConfigCheckDir=/dev/null/null
+			tclConfigCheckDir0=/dev/null/null
+			tclConfigCheckDir1=/dev/null/null
 		fi
 
 		if test "$cross_compiling" = 'no'; then
@@ -63,7 +65,7 @@ AC_DEFUN([TCLEXT_FIND_TCLCONFIG], [
 			dirs=''
 		fi
 
-		for dir in "$tclConfigCheckDir" $dirs; do
+		for dir in "$tclConfigCheckDir0" "$tclConfigCheckDir1" $dirs; do
 			if test -f "$dir/tclConfig.sh"; then
 				TCLCONFIGPATH="$dir"
 
