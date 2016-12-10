@@ -38,11 +38,7 @@ static long BioCtrl	_ANSI_ARGS_ ((BIO *h, int cmd, long arg1, void *ptr));
 static int BioNew	_ANSI_ARGS_ ((BIO *h));
 static int BioFree	_ANSI_ARGS_ ((BIO *h));
 
-BIO *
-BIO_new_tcl(statePtr, flags)
-    State *statePtr;
-    int flags;
-{
+BIO * BIO_new_tcl(State *statePtr, int flags) {
     BIO *bio;
     static BIO_METHOD *BioMethods = NULL;
 
@@ -67,12 +63,7 @@ BIO_new_tcl(statePtr, flags)
     return bio;
 }
 
-static int
-BioWrite (bio, buf, bufLen)
-    BIO *bio;
-    CONST char *buf;
-    int bufLen;
-{
+static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
     Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     int ret;
 
@@ -102,12 +93,7 @@ BioWrite (bio, buf, bufLen)
     return ret;
 }
 
-static int
-BioRead (bio, buf, bufLen)
-    BIO *bio;
-    char *buf;
-    int bufLen;
-{
+static int BioRead(BIO *bio, char *buf, int bufLen) {
     Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     int ret = 0;
     int tclEofChan;
@@ -149,22 +135,12 @@ BioRead (bio, buf, bufLen)
     return ret;
 }
 
-static int
-BioPuts	(bio, str)
-    BIO *bio;
-    CONST char *str;
-{
+static int BioPuts(BIO *bio, CONST char *str) {
     dprintf("BioPuts(%p, <string:%p>) called", bio, str);
     return BioWrite(bio, str, (int) strlen(str));
 }
 
-static long
-BioCtrl	(bio, cmd, num, ptr)
-    BIO *bio;
-    int cmd;
-    long num;
-    void *ptr;
-{
+static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
     Tcl_Channel chan = Tls_GetParent((State*)BIO_get_data(bio));
     long ret = 1;
 
@@ -225,11 +201,7 @@ BioCtrl	(bio, cmd, num, ptr)
     return(ret);
 }
 
-static int
-BioNew	(bio)
-    BIO *bio;
-{
-
+static int BioNew(BIO *bio) {
     dprintf("BioNew(%p) called", bio);
 
     BIO_set_init(bio, 0);
@@ -239,10 +211,7 @@ BioNew	(bio)
     return 1;
 }
 
-static int
-BioFree	(bio)
-    BIO *bio;
-{
+static int BioFree(BIO *bio) {
     if (bio == NULL) {
 	return 0;
     }
