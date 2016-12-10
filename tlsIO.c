@@ -252,7 +252,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	int err = SSL_get_error(statePtr->ssl, bytesRead);
 
 	if (err == SSL_ERROR_SSL) {
-	    Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, bytesRead));
+	    Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
 	    *errorCodePtr = ECONNABORTED;
 	} else if (BIO_should_retry(statePtr->bio)) {
 	    dprintf("RE! ");
@@ -370,7 +370,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 		written = -1;
 		break;
 	    case SSL_ERROR_SSL:
-		Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, written));
+		Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, written));
 		*errorCodePtr = ECONNABORTED;
 		written = -1;
 		break;

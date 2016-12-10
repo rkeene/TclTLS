@@ -18,22 +18,12 @@
 #ifndef _TLS_H
 #define _TLS_H
 
-#include <tcl.h>	/* Internal definitions for Tcl. */
-
-#ifdef TCL_STORAGE_CLASS
-# undef TCL_STORAGE_CLASS
-#endif
-#ifdef BUILD_tls
-# define TCL_STORAGE_CLASS DLLEXPORT
-#else
-# define TCL_STORAGE_CLASS DLLIMPORT
-#endif
+#include <tcl.h>
 
 /*
- * Forward declarations
+ * Initialization routines -- our entire public C API.
  */
-
-EXTERN int Tls_Init _ANSI_ARGS_ ((Tcl_Interp *));
-EXTERN int Tls_SafeInit _ANSI_ARGS_ ((Tcl_Interp *));
+int Tls_Init(Tcl_Interp *interp);
+int Tls_SafeInit(Tcl_Interp *interp);
 
 #endif /* _TLS_H */

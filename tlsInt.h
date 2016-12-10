@@ -44,16 +44,10 @@
 #  endif
 #endif
 
-#ifdef BSAFE
-#include <ssl.h>
-#include <err.h>
-#include <rand.h>
-#else
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/opensslv.h>
-#endif
 
 /*
  * Determine if we should use the pre-OpenSSL 1.1.0 API
@@ -63,15 +57,6 @@
 #  define TCLTLS_OPENSSL_PRE_1_1_API 1
 #endif
 
-#ifdef TCL_STORAGE_CLASS
-# undef TCL_STORAGE_CLASS
-#endif
-#ifdef BUILD_tls
-# define TCL_STORAGE_CLASS DLLEXPORT
-#else
-# define TCL_STORAGE_CLASS DLLIMPORT
-#endif
- 
 #ifndef ECONNABORTED
 #define ECONNABORTED	130	/* Software caused connection abort */
 #endif
@@ -85,8 +70,7 @@
 #define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
 #endif
 
-#define SSL_ERROR(ssl,err)	\
-    ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
+#define TCLTLS_SSL_ERROR(ssl,err) ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
 /*
  * OpenSSL BIO Routines
  */
@@ -114,24 +98,24 @@
  * The SSL processing context is maintained here, in the ClientData
  */
 typedef struct State {
-    Tcl_Channel self;	/* this socket channel */
-    Tcl_TimerToken timer;
+	Tcl_Channel self;       /* this socket channel */
+	Tcl_TimerToken timer;
 
-    int flags;		/* see State.flags above  */
-    int watchMask;	/* current WatchProc mask */
-    int mode;		/* current mode of parent channel */
+	int flags;              /* see State.flags above  */
+	int watchMask;          /* current WatchProc mask */
+	int mode;               /* current mode of parent channel */
 
-    Tcl_Interp *interp;	/* interpreter in which this resides */
-    Tcl_Obj *callback;	/* script called for tracing, verifying and errors */
-    Tcl_Obj *password;	/* script called for certificate password */ 
+	Tcl_Interp *interp;     /* interpreter in which this resides */
+	Tcl_Obj *callback;      /* script called for tracing, verifying and errors */
+	Tcl_Obj *password;      /* script called for certificate password */ 
 
-    int vflags;		/* verify flags */
-    SSL *ssl;		/* Struct for SSL processing */
-    SSL_CTX *ctx;	/* SSL Context */
-    BIO *bio;		/* Struct for SSL processing */
-    BIO *p_bio;		/* Parent BIO (that is layered on Tcl_Channel) */
+	int vflags;             /* verify flags */
+	SSL *ssl;               /* Struct for SSL processing */
+	SSL_CTX *ctx;           /* SSL Context */
+	BIO *bio;               /* Struct for SSL processing */
+	BIO *p_bio;             /* Parent BIO (that is layered on Tcl_Channel) */
 
-    char *err;
+	char *err;
 } State;
 
 #ifdef USE_TCL_STUBS
@@ -143,16 +127,15 @@ typedef struct State {
 /*
  * Forward declarations
  */
+Tcl_ChannelType *Tls_ChannelType(void);
+Tcl_Channel     Tls_GetParent(State *statePtr);
 
-Tcl_ChannelType *Tls_ChannelType _ANSI_ARGS_((void));
-Tcl_Channel     Tls_GetParent _ANSI_ARGS_((State *statePtr));
+Tcl_Obj         *Tls_NewX509Obj(Tcl_Interp *interp, X509 *cert);
+void            Tls_Error(State *statePtr, char *msg);
+void            Tls_Free(char *blockPtr);
+void            Tls_Clean(State *statePtr);
+int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr);
 
-Tcl_Obj         *Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
-void            Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
-void            Tls_Free _ANSI_ARGS_ ((char *blockPtr));
-void            Tls_Clean _ANSI_ARGS_ ((State *statePtr));
-int             Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr, int *errorCodePtr));
-
-BIO             *BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
+BIO             *BIO_new_tcl(State* statePtr, int flags);
 
 #endif /* _TLSINT_H */
