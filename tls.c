@@ -1616,8 +1616,6 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 #include "tls.tcl.h"
     };
 
-    int major, minor, patchlevel, release;
-
     /*
      * We only support Tcl 8.4 or newer
      */
