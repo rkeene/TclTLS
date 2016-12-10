@@ -46,6 +46,8 @@ BIO_new_tcl(statePtr, flags)
     BIO *bio;
     static BIO_METHOD *BioMethods = NULL;
 
+    dprintf("BIO_new_tcl() called");
+
     if (BioMethods == NULL) {
         BioMethods = BIO_meth_new(BIO_TYPE_TCL, "tcl");
         BIO_meth_set_write(BioMethods, BioWrite);
@@ -152,6 +154,7 @@ BioPuts	(bio, str)
     BIO *bio;
     CONST char *str;
 {
+    dprintf("BioPuts(%p, <string:%p>) called", bio, str);
     return BioWrite(bio, str, (int) strlen(str));
 }
 
@@ -226,6 +229,9 @@ static int
 BioNew	(bio)
     BIO *bio;
 {
+
+    dprintf("BioNew(%p) called", bio);
+
     BIO_set_init(bio, 0);
     BIO_set_data(bio, NULL);
     BIO_clear_flags(bio, -1);
@@ -240,6 +246,9 @@ BioFree	(bio)
     if (bio == NULL) {
 	return 0;
     }
+
+    dprintf("BioFree(%p) called", bio);
+
     if (BIO_get_shutdown(bio)) {
 	if (BIO_get_init(bio)) {
 	    /*shutdown(bio->num, 2) */
