@@ -14,18 +14,18 @@ VPATH = @srcdir@
 all: @EXTENSION_TARGET@
 
 # The shared object target
-tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
+tcltls.@SHOBJEXT@: tls.o tls_openssl_bio.o tlsIO.o tlsX509.o Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tls_openssl_bio.o tlsIO.o tlsX509.o $(LIBS)
 
 # The static target
-tcltls.@AREXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
-	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
+tcltls.@AREXT@: tls.o tls_openssl_bio.o tlsIO.o tlsX509.o Makefile
+	$(AR) rcu tcltls.a.new tls.o tls_openssl_bio.o tlsIO.o tlsX509.o
 	$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h Makefile
-tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h Makefile
+tls_openssl_bio.o: @srcdir@/tls_openssl_bio.c @srcdir@/tlsInt.h Makefile
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 
@@ -53,7 +53,7 @@ install: @EXTENSION_TARGET@ pkgIndex.tcl
 
 # Clean the local build directory for rebuild against the same configuration
 clean:
-	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
+	rm -f tls.o tls_openssl_bio.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
 	rm -f tcltls.a.new tcltls.a
 

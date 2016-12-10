@@ -12,7 +12,7 @@ tcltls.so
 tcltls.a
 tcltls.a.linkadd
 tls.o
-tlsBIO.o
+tls_openssl_bio.o
 tlsIO.o
 tlsX509.o
 tls.tcl.h
