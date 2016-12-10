@@ -131,6 +131,8 @@ if test "$tcltls_ssl_lib" = 'auto'; then
 fi
 
 AC_MSG_CHECKING([which TLS library to use])
+TCLTLS_SSL_LIB="${tcltls_ssl_lib}"
+AC_SUBST(TCLTLS_SSL_LIB)
 AC_MSG_RESULT([$tcltls_ssl_lib])
 
 dnl Manually rewrite libressl to OpenSSL since we use the
@@ -142,6 +144,7 @@ fi
 AS_CASE([$tcltls_ssl_lib],
 	[openssl], [
 		TCLTLS_SSL_OPENSSL
+		AC_DEFINE([TCLTLS_SSL_OPENSSL], [1], [Define if the backend being used is OpenSSL (or the LibreSSL OpenSSL compatibility interface)])
 	],
 	[nss], [
 	 	TCLTLS_SSL_LIBS=""

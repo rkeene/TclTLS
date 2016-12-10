@@ -14,12 +14,12 @@ VPATH = @srcdir@
 all: @EXTENSION_TARGET@
 
 # The shared object target
-tcltls.@SHOBJEXT@: tls.o tls_openssl_bio.o tlsIO.o tlsX509.o Makefile
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tls_openssl_bio.o tlsIO.o tlsX509.o $(LIBS)
+tcltls.@SHOBJEXT@: tls.o tls_@TCLTLS_SSL_LIB@_bio.o tlsIO.o tlsX509.o Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tls_@TCLTLS_SSL_LIB@_bio.o tlsIO.o tlsX509.o $(LIBS)
 
 # The static target
-tcltls.@AREXT@: tls.o tls_openssl_bio.o tlsIO.o tlsX509.o Makefile
-	$(AR) rcu tcltls.a.new tls.o tls_openssl_bio.o tlsIO.o tlsX509.o
+tcltls.@AREXT@: tls.o tls_@TCLTLS_SSL_LIB@_bio.o tlsIO.o tlsX509.o Makefile
+	$(AR) rcu tcltls.a.new tls.o tls_@TCLTLS_SSL_LIB@_bio.o tlsIO.o tlsX509.o
 	$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a
 
