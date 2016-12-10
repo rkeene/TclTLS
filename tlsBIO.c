@@ -38,7 +38,7 @@ static long BioCtrl _ANSI_ARGS_((BIO *h, int cmd, long arg1, void *ptr));
 static int BioNew   _ANSI_ARGS_((BIO *h));
 static int BioFree  _ANSI_ARGS_((BIO *h));
 
-BIO * BIO_new_tcl(State *statePtr, int flags) {
+BIO *BIO_new_tcl(State *statePtr, int flags) {
 	BIO *bio;
 	static BIO_METHOD *BioMethods = NULL;
 
