@@ -38,34 +38,34 @@
 		Tcl_TranslateFileName(interp, (key), (dsp)))
 #define REASON()	ERR_reason_error_string(ERR_get_error())
 
-static void	InfoCallback _ANSI_ARGS_ ((CONST SSL *ssl, int where, int ret));
+static void	InfoCallback(CONST SSL *ssl, int where, int ret);
 
-static int	CiphersObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	CiphersObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	HandshakeObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	HandshakeObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	ImportObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	ImportObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	StatusObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	StatusObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	VersionObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	VersionObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	MiscObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	MiscObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static int	UnimportObjCmd _ANSI_ARGS_ ((ClientData clientData,
-			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]));
+static int	UnimportObjCmd(ClientData clientData,
+			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static SSL_CTX *CTX_Init _ANSI_ARGS_((State *statePtr, int proto, char *key,
+static SSL_CTX *CTX_Init(State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers,
-			char *DHparams));
+			char *DHparams);
 
-static int	TlsLibInit _ANSI_ARGS_ ((void)) ;
+static int	TlsLibInit(void);
 
 #define TLS_PROTO_SSL2		0x01
 #define TLS_PROTO_SSL3		0x02
@@ -1608,49 +1608,44 @@ Tls_Clean(State *statePtr)
  *-------------------------------------------------------------------
  */
 
-int
-Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
-					 * to be made available. */
-{
-    const char tlsTclInitScript[] = {
+int Tls_Init(Tcl_Interp *interp) {
+	const char tlsTclInitScript[] = {
 #include "tls.tcl.h"
-    };
+	};
 
-    int major, minor, patchlevel, release;
-
-    /*
-     * We only support Tcl 8.4 or newer
-     */
-    if (
+	/*
+	 * We only support Tcl 8.4 or newer
+	 */
+	if (
 #ifdef USE_TCL_STUBS
-	Tcl_InitStubs(interp, "8.4", 0)
+	    Tcl_InitStubs(interp, "8.4", 0)
 #else
-	Tcl_PkgRequire(interp, "Tcl", "8.4", 0)
+	    Tcl_PkgRequire(interp, "Tcl", "8.4", 0)
 #endif
-	== NULL) {
-	return TCL_ERROR;
-    }
+	     == NULL) {
+		return TCL_ERROR;
+	}
 
-    if (TlsLibInit() != TCL_OK) {
-	Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
-	return TCL_ERROR;
-    }
+	if (TlsLibInit() != TCL_OK) {
+		Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
+		return TCL_ERROR;
+	}
 
-    Tcl_CreateObjCommand(interp, "tls::ciphers", CiphersObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::handshake", HandshakeObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::import", ImportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::unimport", UnimportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::version", VersionObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-    Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::ciphers", CiphersObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::handshake", HandshakeObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::import", ImportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::unimport", UnimportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::version", VersionObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+	Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
-    if (interp) {
-        Tcl_Eval(interp, tlsTclInitScript);
-    }
+	if (interp) {
+		Tcl_Eval(interp, tlsTclInitScript);
+	}
 
-    return Tcl_PkgProvide(interp, "tls", PACKAGE_VERSION);
+	return(Tcl_PkgProvide(interp, "tls", PACKAGE_VERSION));
 }
-
+
 /*
  *------------------------------------------------------*
  *
@@ -1670,13 +1665,10 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
  *------------------------------------------------------*
  */
 
-int
-Tls_SafeInit (Tcl_Interp* interp)
-{
-    return Tls_Init (interp);
+int Tls_SafeInit(Tcl_Interp *interp) {
+	return(Tls_Init(interp));
 }
 
-
 /*
  *------------------------------------------------------*
  *
@@ -1694,42 +1686,48 @@ Tls_SafeInit (Tcl_Interp* interp)
  *
  *------------------------------------------------------*
  */
-static int TlsLibInit (void) {
-    static int initialized = 0;
-    int i;
-    char rnd_seed[16] = "GrzSlplKqUdnnzP!";	/* 16 bytes */
-    int status = TCL_OK;
+static int TlsLibInit(void) {
+	static int initialized = 0;
+	int status = TCL_OK;
 
-    if (initialized) {
-        return(status);
-    }
-    initialized = 1;
+	if (initialized) {
+		return(status);
+	}
+
+	initialized = 1;
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-    size_t num_locks;
+	size_t num_locks;
 
-    Tcl_MutexLock(&init_mx);
+	Tcl_MutexLock(&init_mx);
 #endif
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-    /* should we consider allocating mutexes? */
-    num_locks = CRYPTO_num_locks();
-    if (num_locks > CRYPTO_NUM_LOCKS) {
-	status = TCL_ERROR;
-	goto done;
-    }
+	/* should we consider allocating mutexes? */
+	num_locks = CRYPTO_num_locks();
+	if (num_locks > CRYPTO_NUM_LOCKS) {
+		status = TCL_ERROR;
+		goto done;
+	}
 
-    CRYPTO_set_locking_callback(CryptoThreadLockCallback);
-    CRYPTO_set_id_callback(CryptoThreadIdCallback);
+	CRYPTO_set_locking_callback(CryptoThreadLockCallback);
+	CRYPTO_set_id_callback(CryptoThreadIdCallback);
 #endif
 
-    if (SSL_library_init() != 1) {
-    	status = TCL_ERROR;
-	goto done;
-    }
-    SSL_load_error_strings();
-    ERR_load_crypto_strings();
+	if (SSL_library_init() != 1) {
+		status = TCL_ERROR;
+		goto done;
+	}
 
+	SSL_load_error_strings();
+	ERR_load_crypto_strings();
+
+#if 0
+	/*
+	 * XXX:TODO: Remove this code and replace it with a check
+	 * for enough entropy and do not try to create our own
+	 * terrible entropy
+	 */
     /*
      * Seed the random number generator in the SSL library,
      * using the do/while construct because of the bug note in the
@@ -1747,11 +1745,12 @@ static int TlsLibInit (void) {
 	}
 	RAND_seed(rnd_seed, sizeof(rnd_seed));
     } while (RAND_status() != 1);
-done:
-
-#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-    Tcl_MutexUnlock(&init_mx);
 #endif
 
-    return status;
+done:
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+	Tcl_MutexUnlock(&init_mx);
+#endif
+
+	return(status);
 }
