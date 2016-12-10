@@ -71,11 +71,7 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 
 	dprintf("BioWrite(%p, <buf>, %d) [%p]", (void *) bio, bufLen, (void *) chan);
 
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-		ret = Tcl_WriteRaw(chan, buf, bufLen);
-	} else {
-		ret = Tcl_Write(chan, buf, bufLen);
-	}
+	ret = Tcl_WriteRaw(chan, buf, bufLen);
 
 	dprintf("[%p] BioWrite(%d) -> %d [%d.%d]", (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
 
@@ -108,11 +104,7 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 		return 0;
 	}
 
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-		ret = Tcl_ReadRaw(chan, buf, bufLen);
-	} else {
-		ret = Tcl_Read(chan, buf, bufLen);
-	}
+	ret = Tcl_ReadRaw(chan, buf, bufLen);
 
 	tclEofChan = Tcl_Eof(chan);
 
@@ -129,7 +121,7 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set");
 		}
 	} else {
-		dprintf("Got non-zero from Tcl_Read or Tcl_ReadRaw == ret == %i", ret);
+		dprintf("Got non-zero from Tcl_Read or Tcl_ReadRaw; ret == %i", ret);
 	}
 
 	if (BIO_should_write(bio)) {
@@ -157,12 +149,16 @@ static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
 
 	switch (cmd) {
 		case BIO_CTRL_RESET:
+			dprintf("Got BIO_CTRL_RESET");
 			num = 0;
 		case BIO_C_FILE_SEEK:
+			dprintf("Got BIO_C_FILE_SEEK");
 		case BIO_C_FILE_TELL:
+			dprintf("Got BIO_C_FILE_TELL");
 			ret = 0;
 			break;
 		case BIO_CTRL_INFO:
+			dprintf("Got BIO_CTRL_INFO");
 			ret = 1;
 			break;
 		case BIO_C_SET_FD:
@@ -174,34 +170,36 @@ static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
 			ret = -1;
 			break;
 		case BIO_CTRL_GET_CLOSE:
+			dprintf("Got BIO_CTRL_CLOSE");
 			ret = BIO_get_shutdown(bio);
 			break;
 		case BIO_CTRL_SET_CLOSE:
+			dprintf("Got BIO_SET_CLOSE");
 			BIO_set_shutdown(bio, num);
 			break;
 		case BIO_CTRL_EOF:
-			dprintf("BIO_CTRL_EOF");
+			dprintf("Got BIO_CTRL_EOF");
 			ret = Tcl_Eof(chan);
 			break;
 		case BIO_CTRL_PENDING:
+			dprintf("Got BIO_CTRL_PENDING");
 			ret = ((chan) ? 1 : 0);
 			dprintf("BIO_CTRL_PENDING(%d)", (int) ret);
 			break;
 		case BIO_CTRL_WPENDING:
+			dprintf("Got BIO_CTRL_WPENDING");
 			ret = 0;
 			break;
 		case BIO_CTRL_DUP:
+			dprintf("Got BIO_CTRL_DUP");
 			break;
 		case BIO_CTRL_FLUSH:
-			dprintf("BIO_CTRL_FLUSH");
-			if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-				ret = ((Tcl_WriteRaw(chan, "", 0) >= 0) ? 1 : -1);
-			} else {
-				ret = ((Tcl_Flush(chan) == TCL_OK) ? 1 : -1);
-			}
+			dprintf("Got BIO_CTRL_FLUSH");
+			ret = ((Tcl_WriteRaw(chan, "", 0) >= 0) ? 1 : -1);
 			dprintf("BIO_CTRL_FLUSH returning value %li", ret);
 			break;
 		default:
+			dprintf("Got unknown control command (%i)", cmd);
 			ret = 0;
 			break;
 	}

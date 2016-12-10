@@ -134,113 +134,10 @@ typedef struct State {
     char *err;
 } State;
 
-/*
- * The following definitions have to be usable for 8.2.0-8.3.1 and 8.3.2+.
- * The differences between these versions:
- *
- * 8.0-8.1:	There is no support for these in TLS 1.4 (get 1.3).  This
- *		was the version with the original patch.
- *
- * 8.2.0-	Changed semantics for Tcl_StackChannel (Tcl_ReplaceChannel).
- * 8.3.1:	Check at runtime to switch the behaviour. The patch is part
- *		of the core from now on.
- *
- * 8.3.2+:	Stacked channels rewritten for better behaviour in some
- *		situations (closing). Some new API's, semantic changes.
- *
- * The following magic was adapted from Trf 2.1 (Kupries).
- */
-
-#define TLS_CHANNEL_VERSION_1	0x1
-#define TLS_CHANNEL_VERSION_2	0x2
-extern int channelTypeVersion;
-
 #ifdef USE_TCL_STUBS
 #ifndef Tcl_StackChannel
-/*
- * The core we are compiling against is not patched, so supply the
- * necesssary definitions here by ourselves. The form chosen for
- * the procedure macros (reservedXXX) will notify us if the core
- * does not have these reserved locations anymore.
- *
- * !! Synchronize the procedure indices in their definitions with
- *    the patch to tcl.decls, as they have to be the same.
- */
-
-/* 281 */
-typedef Tcl_Channel (tls_StackChannel) _ANSI_ARGS_((Tcl_Interp* interp,
-						    Tcl_ChannelType* typePtr,
-						    ClientData instanceData,
-						    int mask,
-						    Tcl_Channel prevChan));
-/* 282 */
-typedef void (tls_UnstackChannel) _ANSI_ARGS_((Tcl_Interp* interp,
-					       Tcl_Channel chan));
-
-#define Tcl_StackChannel     ((tls_StackChannel*) tclStubsPtr->reserved281)
-#define Tcl_UnstackChannel ((tls_UnstackChannel*) tclStubsPtr->reserved282)
-
-#endif /* Tcl_StackChannel */
-
-#ifndef Tcl_GetStackedChannel
-/*
- * Separate definition, available in 8.2, but not 8.1 and before !
- */
-
-/* 283 */
-typedef Tcl_Channel (tls_GetStackedChannel) _ANSI_ARGS_((Tcl_Channel chan));
-
-#define Tcl_GetStackedChannel ((tls_GetStackedChannel*) tclStubsPtr->reserved283)
-
+#error "Unable to compile on this version of Tcl"
 #endif /* Tcl_GetStackedChannel */
-
-
-#ifndef TCL_CHANNEL_VERSION_2
-/*
- * Core is older than 8.3.2.  Supply the missing definitions for
- * the new API's in 8.3.2.
- */
-#define EMULATE_CHANNEL_VERSION_2
-
-typedef struct TlsChannelTypeVersion_* TlsChannelTypeVersion;
-#define TCL_CHANNEL_VERSION_2	((TlsChannelTypeVersion) 0x2)
-
-typedef int (TlsDriverHandlerProc) _ANSI_ARGS_((ClientData instanceData,
-					int interestMask));
-/* 394 */
-typedef int (tls_ReadRaw)  _ANSI_ARGS_((Tcl_Channel chan, char *dst,
-					int bytesToRead));
-/* 395 */
-typedef int (tls_WriteRaw) _ANSI_ARGS_((Tcl_Channel chan, char *src,
-					int srcLen));
-/* 397 */
-typedef int (tls_GetTopChannel) _ANSI_ARGS_((Tcl_Channel chan));
-
-/*
- * Generating code for accessing these parts of the stub table when
- * compiling against a core older than 8.3.2 is a hassle because even
- * the 'reservedXXX' fields of the structure are not defined yet. So
- * we have to write up some macros hiding some very hackish pointer
- * arithmetics to get at these fields. We assume that pointer to
- * functions are always of the same size.
- */
-
-#define STUB_BASE   ((char*)(&(tclStubsPtr->tcl_UtfNcasecmp))) /* field 370 */
-#define procPtrSize (sizeof (Tcl_DriverBlockModeProc *))
-#define IDX(n)      (((n)-370) * procPtrSize)
-#define SLOT(n)     (STUB_BASE + IDX(n))
-
-#define Tcl_ReadRaw		(*((tls_ReadRaw**)	(SLOT(394))))
-#define Tcl_WriteRaw		(*((tls_WriteRaw**)	(SLOT(395))))
-#define Tcl_GetTopChannel	(*((tls_GetTopChannel**)(SLOT(396))))
-
-/*
- * Required, easy emulation.
- */
-#define Tcl_ChannelGetOptionProc(chanDriver) ((chanDriver)->getOptionProc)
-
-#endif /* TCL_CHANNEL_VERSION_2 */
-
 #endif /* USE_TCL_STUBS */
 
 /*
@@ -248,15 +145,14 @@ typedef int (tls_GetTopChannel) _ANSI_ARGS_((Tcl_Channel chan));
  */
 
 Tcl_ChannelType *Tls_ChannelType _ANSI_ARGS_((void));
-Tcl_Channel	Tls_GetParent _ANSI_ARGS_((State *statePtr));
+Tcl_Channel     Tls_GetParent _ANSI_ARGS_((State *statePtr));
 
-Tcl_Obj*		Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
-void		Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
-void		Tls_Free _ANSI_ARGS_ ((char *blockPtr));
-void		Tls_Clean _ANSI_ARGS_ ((State *statePtr));
-int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
-							int *errorCodePtr));
+Tcl_Obj         *Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
+void            Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
+void            Tls_Free _ANSI_ARGS_ ((char *blockPtr));
+void            Tls_Clean _ANSI_ARGS_ ((State *statePtr));
+int             Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr, int *errorCodePtr));
 
-BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
+BIO             *BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
 
 #endif /* _TLSINT_H */

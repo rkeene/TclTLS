@@ -22,66 +22,23 @@
 /*
  * Forward declarations
  */
-
-static int	TlsBlockModeProc _ANSI_ARGS_((ClientData instanceData,
-			int mode));
-static int	TlsCloseProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp));
-static int	TlsInputProc _ANSI_ARGS_((ClientData instanceData,
-			char *buf, int bufSize, int *errorCodePtr));
-static int	TlsOutputProc _ANSI_ARGS_((ClientData instanceData,
-			CONST char *buf, int toWrite, int *errorCodePtr));
-static int	TlsGetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp, CONST84 char *optionName,
-			Tcl_DString *dsPtr));
-static void	TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
-static int	TlsGetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
-			int direction, ClientData *handlePtr));
-static int	TlsNotifyProc _ANSI_ARGS_ ((ClientData instanceData,
-			int mask));
-static void	TlsChannelHandler _ANSI_ARGS_ ((ClientData clientData,
-			int mask));
-static void	TlsChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
+static int  TlsBlockModeProc _ANSI_ARGS_((ClientData instanceData, int mode));
+static int  TlsCloseProc _ANSI_ARGS_((ClientData instanceData, Tcl_Interp *interp));
+static int  TlsInputProc _ANSI_ARGS_((ClientData instanceData, char *buf, int bufSize, int *errorCodePtr));
+static int  TlsOutputProc _ANSI_ARGS_((ClientData instanceData, CONST char *buf, int toWrite, int *errorCodePtr));
+static int  TlsGetOptionProc _ANSI_ARGS_((ClientData instanceData, Tcl_Interp *interp, CONST84 char *optionName, Tcl_DString *dsPtr));
+static void TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
+static int  TlsGetHandleProc _ANSI_ARGS_((ClientData instanceData, int direction, ClientData *handlePtr));
+static int  TlsNotifyProc _ANSI_ARGS_((ClientData instanceData, int mask));
+#if 0
+static void TlsChannelHandler _ANSI_ARGS_((ClientData clientData, int mask));
+#endif
+static void TlsChannelHandlerTimer _ANSI_ARGS_((ClientData clientData));
 
 /*
- * This structure describes the channel type structure for TCP socket
- * based IO.  These are what the structures should look like, but we
- * have to build them up at runtime to be correct depending on whether
- * we are loaded into an 8.2.0-8.3.1 or 8.3.2+ Tcl interpreter.
+ * TLS Channel Type
  */
-#ifdef TLS_STATIC_STRUCTURES_NOT_USED
-static Tcl_ChannelType tlsChannelType2 = {
-    "tls",		/* Type name. */
-    TCL_CHANNEL_VERSION_2,	/* A v2 channel (8.3.2+) */
-    TlsCloseProc,	/* Close proc. */
-    TlsInputProc,	/* Input proc. */
-    TlsOutputProc,	/* Output proc. */
-    NULL,		/* Seek proc. */
-    NULL,		/* Set option proc. */
-    TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,	/* Initialize notifier. */
-    TlsGetHandleProc,	/* Get file handle out of channel. */
-    NULL,		/* Close2Proc. */
-    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
-    NULL,		/* FlushProc. */
-    TlsNotifyProc,	/* handlerProc. */
-};
-
-static Tcl_ChannelType tlsChannelType1 = {
-    "tls",		/* Type name. */
-    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
-    TlsCloseProc,	/* Close proc. */
-    TlsInputProc,	/* Input proc. */
-    TlsOutputProc,	/* Output proc. */
-    NULL,		/* Seek proc. */
-    NULL,		/* Set option proc. */
-    TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,	/* Initialize notifier. */
-    TlsGetHandleProc,	/* Get file handle out of channel. */
-};
-#else
 static Tcl_ChannelType *tlsChannelType = NULL;
-#endif
 
 /*
  *-------------------------------------------------------------------
@@ -98,130 +55,65 @@ static Tcl_ChannelType *tlsChannelType = NULL;
  *
  *-------------------------------------------------------------------
  */
-Tcl_ChannelType *Tls_ChannelType()
-{
-    /*
-     * Initialize the channel type if necessary
-     */
-    if (tlsChannelType == NULL) {
-	/*
-	 * Allocation of a new channeltype structure is not easy, because of
-	 * the various verson of the core and subsequent changes to the
-	 * structure. The main challenge is to allocate enough memory for
-	 * odern versions even if this extyension is compiled against one
-	 * of the older variant!
-	 *
-	 * (1) Versions before stubs (8.0.x) are simple, because they are
-	 *     supported only if the extension is compiled against exactly
-	 *     that version of the core.
-	 *
-	 * (2) With stubs we just determine the difference between the older
-	 *     and modern variant and overallocate accordingly if compiled
-	 *     against an older variant.
-	 */
-
-	unsigned int size = sizeof(Tcl_ChannelType); /* Base size */
+Tcl_ChannelType *Tls_ChannelType(void) {
+	unsigned int size;
 
 	/*
-	 * Size of a procedure pointer. We assume that all procedure
-	 * pointers are of the same size, regardless of exact type
-	 * (arguments and return values).
-	 *
-	 * 8.2.   First version containing close2proc. Baseline.
-	 * 8.3.2  Three additional vectors. Moved blockMode, new flush- and
-	 *        handlerProc's.
-	 *
-	 * => Compilation against earlier version has to overallocate three
-	 *    procedure pointers.
+	 * Initialize the channel type if necessary
 	 */
+	if (tlsChannelType == NULL) {
+		/*
+		 * Allocation of a new channeltype structure is not easy, because of
+		 * the various verson of the core and subsequent changes to the
+		 * structure. The main challenge is to allocate enough memory for
+		 * modern versions even if this extsension is compiled against one
+		 * of the older variant!
+		 *
+		 * (1) Versions before stubs (8.0.x) are simple, because they are
+		 *     supported only if the extension is compiled against exactly
+		 *     that version of the core.
+		 *
+		 * (2) With stubs we just determine the difference between the older
+		 *     and modern variant and overallocate accordingly if compiled
+		 *     against an older variant.
+		 */
+		size = sizeof(Tcl_ChannelType); /* Base size */
 
-#ifdef EMULATE_CHANNEL_VERSION_2
-	size += 3 * procPtrSize;
-#endif
+		tlsChannelType = (Tcl_ChannelType *) ckalloc(size);
+		memset((VOID *) tlsChannelType, 0, size);
 
-	tlsChannelType = (Tcl_ChannelType *) ckalloc(size);
-	memset((VOID *) tlsChannelType, 0, size);
+		/*
+		 * Common elements of the structure (no changes in location or name)
+		 * close2Proc, seekProc, setOptionProc stay NULL.
+		 */
 
-	/*
-	 * Common elements of the structure (no changes in location or name)
-	 * close2Proc, seekProc, setOptionProc stay NULL.
-	 */
+		tlsChannelType->typeName	= "tls";
+		tlsChannelType->closeProc	= TlsCloseProc;
+		tlsChannelType->inputProc	= TlsInputProc;
+		tlsChannelType->outputProc	= TlsOutputProc;
+		tlsChannelType->getOptionProc	= TlsGetOptionProc;
+		tlsChannelType->watchProc	= TlsWatchProc;
+		tlsChannelType->getHandleProc	= TlsGetHandleProc;
 
-	tlsChannelType->typeName	= "tls";
-	tlsChannelType->closeProc	= TlsCloseProc;
-	tlsChannelType->inputProc	= TlsInputProc;
-	tlsChannelType->outputProc	= TlsOutputProc;
-	tlsChannelType->getOptionProc	= TlsGetOptionProc;
-	tlsChannelType->watchProc	= TlsWatchProc;
-	tlsChannelType->getHandleProc	= TlsGetHandleProc;
+		/*
+		 * Compiled against 8.3.2+. Direct access to all elements possible. Use
+		 * channelTypeVersion information to select the values to use.
+		 */
 
-	/*
-	 * blockModeProc is a twister.  We have to make some runtime-choices,
-	 * depending on the version we compiled against.
-	 */
-
-#ifdef EMULATE_CHANNEL_VERSION_2
-	/*
-	 * We are compiling against an 8.3.1- core.  We have to create some
-	 * definitions for the new elements as the compiler does not know them
-	 * by name.
-	 */
-
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	    /*
-	     * The 'version' element of 8.3.2 is in the the place of the
-	     * blockModeProc. For 8.2.0-8.3.1 we have to set our blockModeProc
-	     * into this place.
-	     */
-	    tlsChannelType->blockModeProc = TlsBlockModeProc;
-	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
-	    /*
-	     * For the 8.3.2 core we present ourselves as a version 2
-	     * driver. This means a special value in version (ex
-	     * blockModeProc), blockModeProc in a different place and of
-	     * course usage of the handlerProc.  The last two have to
-	     * referenced with pointer magic because they aren't defined
-	     * otherwise.
-	     */
-
-	    tlsChannelType->blockModeProc =
-		(Tcl_DriverBlockModeProc*) TLS_CHANNEL_VERSION_2;
-	    (*((Tcl_DriverBlockModeProc**)(&(tlsChannelType->close2Proc)+1)))
-		= TlsBlockModeProc;
-	    (*((TlsDriverHandlerProc**)(&(tlsChannelType->close2Proc)+3)))
-		= TlsNotifyProc;
+		/*
+		 * For the 8.3.2 core we present ourselves as a version 2
+		 * driver. This means a special value in version (ex
+		 * blockModeProc), blockModeProc in a different place and of
+		 * course usage of the handlerProc.
+		 */
+		tlsChannelType->version       = TCL_CHANNEL_VERSION_2;
+		tlsChannelType->blockModeProc = TlsBlockModeProc;
+		tlsChannelType->handlerProc   = TlsNotifyProc;
 	}
-#else
-	/*
-	 * Compiled against 8.3.2+. Direct access to all elements possible. Use
-	 * channelTypeVersion information to select the values to use.
-	 */
 
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	    /*
-	     * The 'version' element of 8.3.2 is in the the place of the
-	     * blockModeProc. For the original patch in 8.1.x and the firstly
-	     * included (8.2) we have to set our blockModeProc into this
-	     * place.
-	     */
-	    tlsChannelType->version = (Tcl_ChannelTypeVersion)TlsBlockModeProc;
-	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
-	    /*
-	     * For the 8.3.2 core we present ourselves as a version 2
-	     * driver. This means a special value in version (ex
-	     * blockModeProc), blockModeProc in a different place and of
-	     * course usage of the handlerProc.
-	     */
-
-	    tlsChannelType->version       = TCL_CHANNEL_VERSION_2;
-	    tlsChannelType->blockModeProc = TlsBlockModeProc;
-	    tlsChannelType->handlerProc   = TlsNotifyProc;
-	}
-#endif
-    }
-    return tlsChannelType;
+	return(tlsChannelType);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -237,28 +129,18 @@ Tcl_ChannelType *Tls_ChannelType()
  *
  *-------------------------------------------------------------------
  */
+static int TlsBlockModeProc(ClientData instanceData, int mode) {
+	State *statePtr = (State *) instanceData;
 
-static int
-TlsBlockModeProc(ClientData instanceData,	/* Socket state. */
-                 int mode)			/* The mode to set. Can be one of
-						* TCL_MODE_BLOCKING or
-						* TCL_MODE_NONBLOCKING. */
-{
-    State *statePtr = (State *) instanceData;
+	if (mode == TCL_MODE_NONBLOCKING) {
+		statePtr->flags |= TLS_TCL_ASYNC;
+	} else {
+		statePtr->flags &= ~(TLS_TCL_ASYNC);
+	}
 
-    if (mode == TCL_MODE_NONBLOCKING) {
-	statePtr->flags |= TLS_TCL_ASYNC;
-    } else {
-	statePtr->flags &= ~(TLS_TCL_ASYNC);
-    }
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	return 0;
-    } else {
-	return Tcl_SetChannelOption(statePtr->interp, Tls_GetParent(statePtr),
-		"-blocking", (mode == TCL_MODE_NONBLOCKING) ? "0" : "1");
-    }
+	return(0);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -286,21 +168,11 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 
     dprintf("TlsCloseProc(%p)", (void *) statePtr);
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	/*
-	 * Remove event handler to underlying channel, this could
-	 * be because we are closing for real, or being "unstacked".
-	 */
-
-	Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-		TlsChannelHandler, (ClientData) statePtr);
-    }
-
     Tls_Clean(statePtr);
     Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
     return TCL_OK;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -398,7 +270,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
     return bytesRead;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -511,7 +383,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     dprintf("Output(%d) -> %d", toWrite, written);
     return written;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -542,46 +414,24 @@ TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 {
     State *statePtr = (State *) instanceData;
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	Tcl_Channel downChan = Tls_GetParent(statePtr);
-	Tcl_DriverGetOptionProc *getOptionProc;
+   Tcl_Channel downChan = Tls_GetParent(statePtr);
+   Tcl_DriverGetOptionProc *getOptionProc;
 
-	getOptionProc = Tcl_ChannelGetOptionProc(Tcl_GetChannelType(downChan));
-	if (getOptionProc != NULL) {
-	    return (*getOptionProc)(Tcl_GetChannelInstanceData(downChan),
-		    interp, optionName, dsPtr);
-	} else if (optionName == (char*) NULL) {
-	    /*
-	     * Request is query for all options, this is ok.
-	     */
-	    return TCL_OK;
-	}
-	/*
-	 * Request for a specific option has to fail, we don't have any.
-	 */
-	return TCL_ERROR;
-    } else {
-#if 0
-	size_t len = 0;
-
-	if (optionName != (char *) NULL) {
-	    len = strlen(optionName);
-	}
-	if ((len == 0) || ((len > 1) && (optionName[1] == 'c') &&
-		(strncmp(optionName, "-cipher", len) == 0))) {
-	    if (len == 0) {
-		Tcl_DStringAppendElement(dsPtr, "-cipher");
-	    }
-	    Tcl_DStringAppendElement(dsPtr, SSL_get_cipher(statePtr->ssl));
-	    if (len) {
-		return TCL_OK;
-	    }
-	}
-#endif
-	return TCL_OK;
+    getOptionProc = Tcl_ChannelGetOptionProc(Tcl_GetChannelType(downChan));
+    if (getOptionProc != NULL) {
+        return (*getOptionProc)(Tcl_GetChannelInstanceData(downChan), interp, optionName, dsPtr);
+    } else if (optionName == (char*) NULL) {
+        /*
+         * Request is query for all options, this is ok.
+         */
+         return TCL_OK;
     }
+    /*
+     * Request for a specific option has to fail, we don't have any.
+     */
+    return TCL_ERROR;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -605,6 +455,7 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
                                          * combination of TCL_READABLE,
                                          * TCL_WRITABLE and TCL_EXCEPTION. */
 {
+    Tcl_Channel     downChan;
     State *statePtr = (State *) instanceData;
 
     dprintf("TlsWatchProc(0x%x)", mask);
@@ -612,9 +463,6 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
     /* Pretend to be dead as long as the verify callback is running. 
      * Otherwise that callback could be invoked recursively. */
     if (statePtr->flags & TLS_TCL_CALLBACK) { return; }
-
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	Tcl_Channel     downChan;
 
 	statePtr->watchMask = mask;
 
@@ -647,32 +495,8 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	    statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
 		    TlsChannelHandlerTimer, (ClientData) statePtr);
 	}
-    } else {
-	if (mask == statePtr->watchMask)
-	    return;
-
-	if (statePtr->watchMask) {
-	    /*
-	     * Remove event handler to underlying channel, this could
-	     * be because we are closing for real, or being "unstacked".
-	     */
-
-	    Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-		    TlsChannelHandler, (ClientData) statePtr);
-	}
-	statePtr->watchMask = mask;
-	if (statePtr->watchMask) {
-	    /*
-	     * Setup active monitor for events on underlying Channel.
-	     */
-
-	    Tcl_CreateChannelHandler(Tls_GetParent(statePtr),
-		    statePtr->watchMask, TlsChannelHandler,
-		    (ClientData) statePtr);
-	}
-    }
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -698,7 +522,7 @@ TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
 
     return Tcl_GetChannelHandle(Tls_GetParent(statePtr), direction, handlePtr);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -751,9 +575,14 @@ TlsNotifyProc(instanceData, mask)
 	int errorCode = 0;
 
         dprintf("Calling Tls_WaitForConnect");
-	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0 && errorCode == EAGAIN) {
-            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
-	    return 0;
+	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0) {
+            if (errorCode == EAGAIN) {
+                dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
+
+                return 0;
+            }
+
+            dprintf("Tls_WaitForConnect returned an error");
 	}
     }
 
@@ -761,7 +590,8 @@ TlsNotifyProc(instanceData, mask)
 
     return mask;
 }
-
+
+#if 0
 /*
  *------------------------------------------------------*
  *
@@ -841,7 +671,8 @@ TlsChannelHandler (clientData, mask)
     }
     Tcl_Release( (ClientData)statePtr);
 }
-
+#endif
+
 /*
  *------------------------------------------------------*
  *
@@ -878,7 +709,7 @@ ClientData clientData; /* Transformation to query */
     }
     Tcl_NotifyChannel(statePtr->self, mask);
 }
-
+
 /*
  *------------------------------------------------------*
  *
@@ -892,11 +723,7 @@ ClientData clientData; /* Transformation to query */
  *
  *------------------------------------------------------*
  */
-int
-Tls_WaitForConnect( statePtr, errorCodePtr)
-    State *statePtr;
-    int *errorCodePtr;		/* Where to store error code. */
-{
+int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
     int err;
 
     dprintf("WaitForConnect(%p)", (void *) statePtr);
@@ -985,50 +812,8 @@ Tls_WaitForConnect( statePtr, errorCodePtr)
     }
 }
 
-Tcl_Channel
-Tls_GetParent( statePtr )
-    State *statePtr;
-{
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	return Tcl_GetStackedChannel(statePtr->self);
-    } else {
-	/* The reason for the existence of this procedure is
-	 * the fact that stacking a transform over another
-	 * transform will leave our internal pointer unchanged,
-	 * and thus pointing to the new transform, and not the
-	 * Channel structure containing the saved state of this
-	 * transform. This is the price to pay for leaving
-	 * Tcl_Channel references intact. The only other solution
-	 * is an extension of Tcl_ChannelType with another driver
-	 * procedure to notify a Channel about the (un)stacking.
-	 *
-	 * It walks the chain of Channel structures until it
-	 * finds the one pointing having 'ctrl' as instanceData
-	 * and then returns the superceding channel to that. (AK)
-	 */
+Tcl_Channel Tls_GetParent(State *statePtr) {
+	dprintf("Requested to get parent of channel %p", statePtr->self);
 
-	Tcl_Channel self = statePtr->self;
-	Tcl_Channel next;
-
-	while ((ClientData) statePtr != Tcl_GetChannelInstanceData (self)) {
-	    next = Tcl_GetStackedChannel (self);
-	    if (next == (Tcl_Channel) NULL) {
-		/* 09/24/1999 Unstacking bug,
-		 * found by Matt Newman <matt@sensus.org>.
-		 *
-		 * We were unable to find the channel structure for this
-		 * transformation in the chain of stacked channel. This
-		 * means that we are currently in the process of unstacking
-		 * it *and* there were some bytes waiting which are now
-		 * flushed. In this situation the pointer to the channel
-		 * itself already refers to the parent channel we have to
-		 * write the bytes into, so we return that.
-		 */
-		return statePtr->self;
-	    }
-	    self = next;
-	}
-
-	return Tcl_GetStackedChannel (self);
-    }
+	return(Tcl_GetStackedChannel(statePtr->self));
 }

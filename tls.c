@@ -83,12 +83,6 @@ static int	TlsLibInit _ANSI_ARGS_ ((void)) ;
 #endif
 
 /*
- * Defined in Tls_Init to determine what kind of channels we are using
- * (old-style 8.2.0-8.3.1 or new-style 8.3.2+).
- */
-int channelTypeVersion = TLS_CHANNEL_VERSION_2;
-
-/*
  * We lose the tcl password callback when we use the RSA BSAFE SSL-C 1.1.2
  * libraries instead of the current OpenSSL libraries.
  */
@@ -630,12 +624,11 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
 	return TCL_ERROR;
     }
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	/*
-	 * Make sure to operate on the topmost channel
-	 */
-	chan = Tcl_GetTopChannel(chan);
-    }
+
+    /*
+     * Make sure to operate on the topmost channel
+     */
+    chan = Tcl_GetTopChannel(chan);
     if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
 	Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
 		"\": not a TLS channel", NULL);
@@ -753,12 +746,11 @@ ImportObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
 	return TCL_ERROR;
     }
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	/*
-	 * Make sure to operate on the topmost channel
-	 */
-	chan = Tcl_GetTopChannel(chan);
-    }
+
+    /*
+     * Make sure to operate on the topmost channel
+     */
+    chan = Tcl_GetTopChannel(chan);
 
     for (idx = 2; idx < objc; idx++) {
 	char *opt = Tcl_GetStringFromObj(objv[idx], NULL);
@@ -845,12 +837,11 @@ ImportObjCmd(clientData, interp, objc, objv)
 	    Tls_Free((char *) statePtr);
 	    return TCL_ERROR;
 	}
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	    /*
-	     * Make sure to operate on the topmost channel
-	     */
-	    chan = Tcl_GetTopChannel(chan);
-	}
+
+        /*
+         * Make sure to operate on the topmost channel
+         */
+        chan = Tcl_GetTopChannel(chan);
 	if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
 	    Tcl_AppendResult(interp, "bad channel \"",
 		    Tcl_GetChannelName(chan), "\": not a TLS channel", NULL);
@@ -875,18 +866,7 @@ ImportObjCmd(clientData, interp, objc, objv)
      * each channel in the stack maintained its own buffers.
      */
     Tcl_SetChannelOption(interp, chan, "-translation", "binary");
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	Tcl_SetChannelOption(interp, chan, "-buffering", "none");
-    }
-
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	statePtr->self = Tcl_StackChannel(interp, Tls_ChannelType(),
-		(ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
-    } else {
-	statePtr->self = chan;
-	Tcl_StackChannel(interp, Tls_ChannelType(),
-		(ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
-    }
+    statePtr->self = Tcl_StackChannel(interp, Tls_ChannelType(), (ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
     if (statePtr->self == (Tcl_Channel) NULL) {
 	/*
 	 * No use of Tcl_EventuallyFree because no possible Tcl_Preserve.
@@ -985,12 +965,10 @@ UnimportObjCmd(clientData, interp, objc, objv)
 	return TCL_ERROR;
     }
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	/*
-	 * Make sure to operate on the topmost channel
-	 */
-	chan = Tcl_GetTopChannel(chan);
-    }
+    /*
+     * Make sure to operate on the topmost channel
+     */
+    chan = Tcl_GetTopChannel(chan);
 
     if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
 	Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
@@ -1306,12 +1284,10 @@ StatusObjCmd(clientData, interp, objc, objv)
     if (chan == (Tcl_Channel) NULL) {
 	return TCL_ERROR;
     }
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	/*
-	 * Make sure to operate on the topmost channel
-	 */
-	chan = Tcl_GetTopChannel(chan);
-    }
+    /*
+     * Make sure to operate on the topmost channel
+     */
+    chan = Tcl_GetTopChannel(chan);
     if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
 	Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
 		"\": not a TLS channel", NULL);
@@ -1643,34 +1619,16 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
     int major, minor, patchlevel, release;
 
     /*
-     * The original 8.2.0 stacked channel implementation (and the patch
-     * that preceded it) had problems with scalability and robustness.
-     * These were address in 8.3.2 / 8.4a2, so we now require that as a
-     * minimum for TLS 1.4+.  We only support 8.2+ now (8.3.2+ preferred).
+     * We only support Tcl 8.4 or newer
      */
     if (
 #ifdef USE_TCL_STUBS
-	Tcl_InitStubs(interp, "8.2", 0)
+	Tcl_InitStubs(interp, "8.4", 0)
 #else
-	Tcl_PkgRequire(interp, "Tcl", "8.2", 0)
+	Tcl_PkgRequire(interp, "Tcl", "8.4", 0)
 #endif
 	== NULL) {
 	return TCL_ERROR;
-    }
-
-    /*
-     * Get the version so we can runtime switch on available functionality.
-     * TLS should really only be used in 8.3.2+, but the other works for
-     * some limited functionality, so an attempt at support is made.
-     */
-    Tcl_GetVersion(&major, &minor, &patchlevel, &release);
-    if ((major > 8) || ((major == 8) && ((minor > 3) || ((minor == 3) &&
-	    (release == TCL_FINAL_RELEASE) && (patchlevel >= 2))))) {
-	/* 8.3.2+ */
-	channelTypeVersion = TLS_CHANNEL_VERSION_2;
-    } else {
-	/* 8.2.0 - 8.3.1 */
-	channelTypeVersion = TLS_CHANNEL_VERSION_1;
     }
 
     if (TlsLibInit() != TCL_OK) {
@@ -1678,26 +1636,13 @@ Tls_Init(Tcl_Interp *interp)		/* Interpreter in which the package is
 	return TCL_ERROR;
     }
 
-    Tcl_CreateObjCommand(interp, "tls::ciphers", CiphersObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::handshake", HandshakeObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::import", ImportObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::unimport", UnimportObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::version", VersionObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
-
-    Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd,
-	    (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::ciphers", CiphersObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::handshake", HandshakeObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::import", ImportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::unimport", UnimportObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::status", StatusObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::version", VersionObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
+    Tcl_CreateObjCommand(interp, "tls::misc", MiscObjCmd, (ClientData) 0, (Tcl_CmdDeleteProc *) NULL);
 
     if (interp) {
         Tcl_Eval(interp, tlsTclInitScript);
