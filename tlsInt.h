@@ -90,6 +90,7 @@
                                 if (((statePtr)->flags & TLS_TCL_DEBUG) == TLS_TCL_DEBUG) { fprintf(stderr,"|TLS_TCL_DEBUG"); }; \
                                 if (((statePtr)->flags & TLS_TCL_CALLBACK) == TLS_TCL_CALLBACK) { fprintf(stderr,"|TLS_TCL_CALLBACK"); }; \
                                 if (((statePtr)->flags & TLS_TCL_HANDSHAKE_FAILED) == TLS_TCL_HANDSHAKE_FAILED) { fprintf(stderr,"|TLS_TCL_HANDSHAKE_FAILED"); }; \
+                                if (((statePtr)->flags & TLS_TCL_FASTPATH) == TLS_TCL_FASTPATH) { fprintf(stderr,"|TLS_TCL_FASTPATH"); }; \
                                 fprintf(stderr, "\n"); \
                               }
 #else
@@ -116,7 +117,7 @@
 #define TLS_TCL_HANDSHAKE_FAILED (1<<5) /* Set on handshake failures and once
                                          * set, all further I/O will result
                                          * in ECONNABORTED errors. */
-
+#define TLS_TCL_FASTPATH (1<<6)         /* The parent channel is being used directly by the SSL library */
 #define TLS_TCL_DELAY (5)
 
 /*
@@ -156,7 +157,7 @@ typedef struct State {
  * Forward declarations
  */
 Tcl_ChannelType *Tls_ChannelType(void);
-Tcl_Channel     Tls_GetParent(State *statePtr);
+Tcl_Channel     Tls_GetParent(State *statePtr, int maskFlags);
 
 Tcl_Obj         *Tls_NewX509Obj(Tcl_Interp *interp, X509 *cert);
 void            Tls_Error(State *statePtr, char *msg);

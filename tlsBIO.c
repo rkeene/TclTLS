@@ -71,7 +71,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	 * If the channel can be mapped back to a file descriptor, just use the file descriptor
 	 * with the SSL library since it will likely be optimized for this.
 	 */
-	parentChannel = Tls_GetParent(statePtr);
+	parentChannel = Tls_GetParent(statePtr, 0);
 	parentChannelType = Tcl_GetChannelType(parentChannel);
 
 	validParentChannelFd = 0;
@@ -93,6 +93,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	if (validParentChannelFd) {
 		dprintf("We found a shortcut, this channel is backed by a file descriptor: %i", parentChannelFdIn);
 		bio = BIO_new_socket(parentChannelFd, flags);
+		statePtr->flags |= TLS_TCL_FASTPATH;
 		return(bio);
 	}
 
@@ -112,7 +113,7 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	int ret;
 	int tclEofChan;
 
-	chan = Tls_GetParent((State *) BIO_get_data(bio));
+	chan = Tls_GetParent((State *) BIO_get_data(bio), 0);
 
 	dprintf("[chan=%p] BioWrite(%p, <buf>, %d)", (void *)chan, (void *) bio, bufLen);
 
@@ -147,7 +148,7 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 	int ret = 0;
 	int tclEofChan;
 
-	chan = Tls_GetParent((State *) BIO_get_data(bio));
+	chan = Tls_GetParent((State *) BIO_get_data(bio), 0);
 
 	dprintf("[chan=%p] BioRead(%p, <buf>, %d)", (void *) chan, (void *) bio, bufLen);
 
@@ -199,7 +200,7 @@ static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
 	Tcl_Channel chan;
 	long ret = 1;
 
-	chan = Tls_GetParent((State *) BIO_get_data(bio));
+	chan = Tls_GetParent((State *) BIO_get_data(bio), 0);
 
 	dprintf("BioCtrl(%p, 0x%x, 0x%x, %p)", (void *) bio, (unsigned int) cmd, (unsigned int) num, (void *) ptr);
 

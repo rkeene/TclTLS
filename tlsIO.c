@@ -422,7 +422,7 @@ TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 {
     State *statePtr = (State *) instanceData;
 
-   Tcl_Channel downChan = Tls_GetParent(statePtr);
+   Tcl_Channel downChan = Tls_GetParent(statePtr, TLS_TCL_FASTPATH);
    Tcl_DriverGetOptionProc *getOptionProc;
 
     getOptionProc = Tcl_ChannelGetOptionProc(Tcl_GetChannelType(downChan));
@@ -477,7 +477,7 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 
     dprintFlags(statePtr);
 
-    downChan = Tls_GetParent(statePtr);
+    downChan = Tls_GetParent(statePtr, TLS_TCL_FASTPATH);
 
     if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
         dprintf("Asked to watch a socket with a failed handshake -- nothing can happen here");
@@ -542,14 +542,10 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
  *
  *-------------------------------------------------------------------
  */
-static int
-TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
-                 int direction,		/* Which Tcl_File to retrieve? */
-                 ClientData *handlePtr)	/* Where to store the handle.  */
-{
-    State *statePtr = (State *) instanceData;
+static int TlsGetHandleProc(ClientData instanceData, int direction, ClientData *handlePtr) {
+	State *statePtr = (State *) instanceData;
 
-    return Tcl_GetChannelHandle(Tls_GetParent(statePtr), direction, handlePtr);
+	return(Tcl_GetChannelHandle(Tls_GetParent(statePtr, TLS_TCL_FASTPATH), direction, handlePtr));
 }
 
 /*
@@ -569,11 +565,7 @@ TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsNotifyProc(instanceData, mask)
-    ClientData	   instanceData; /* The state of the notified transformation */
-    int		   mask;       /* The mask of occuring events */
-{
+static int TlsNotifyProc(ClientData instanceData, int mask) {
     State *statePtr = (State *) instanceData;
 
     /*
@@ -887,8 +879,13 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 	return(0);
 }
 
-Tcl_Channel Tls_GetParent(State *statePtr) {
+Tcl_Channel Tls_GetParent(State *statePtr, int maskFlags) {
 	dprintf("Requested to get parent of channel %p", statePtr->self);
+
+	if ((statePtr->flags & ~maskFlags) & TLS_TCL_FASTPATH) {
+		dprintf("Asked to get the parent channel while we are using FastPath -- returning NULL");
+		return(NULL);
+	}
 
 	return(Tcl_GetStackedChannel(statePtr->self));
 }
