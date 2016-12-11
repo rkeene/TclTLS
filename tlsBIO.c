@@ -146,7 +146,7 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 
 	chan = Tls_GetParent((State *) BIO_get_data(bio));
 
-	dprintf("[chan=%p] BioRead(%p, <buf>, %d) [%p]", (void *) chan, (void *) bio, bufLen);
+	dprintf("[chan=%p] BioRead(%p, <buf>, %d)", (void *) chan, (void *) bio, bufLen);
 
 	if (buf == NULL) {
 		return 0;
