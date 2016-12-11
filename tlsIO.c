@@ -250,7 +250,6 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     ERR_clear_error();
     bytesRead = BIO_read(statePtr->bio, buf, bufSize);
     dprintf("BIO_read -> %d", bytesRead);
-    dprintBuffer(buf, bytesRead);
 
     if (bytesRead <= 0) {
 	int err = SSL_get_error(statePtr->ssl, bytesRead);
@@ -263,7 +262,7 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 	    *errorCodePtr = EAGAIN;
 	} else {
 	    *errorCodePtr = Tcl_GetErrno();
-	    if (*errorCodePtr == ECONNRESET) {
+	    if (*errorCodePtr == ECONNRESET || bytesRead < 0) {
 		/* Soft EOF */
 		*errorCodePtr = 0;
 		bytesRead = 0;
@@ -271,6 +270,8 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
                 dprintf("Got an unexpected error: %i", *errorCodePtr);
             }
 	}
+    } else {
+        dprintBuffer(buf, bytesRead);
     }
     input:
     dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
@@ -752,92 +753,138 @@ ClientData clientData; /* Transformation to query */
  *------------------------------------------------------*
  */
 int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
-    int err;
+	unsigned long backingError;
+	int err, rc;
+	int bioShouldRetry;
 
-    dprintf("WaitForConnect(%p)", (void *) statePtr);
+	dprintf("WaitForConnect(%p)", (void *) statePtr);
+	dprintFlags(statePtr);
 
-    if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
-        /*
-         * We choose ECONNRESET over ECONNABORTED here because some server
-         * side code, on the wiki for example, sets up a read handler that
-         * does a read and if eof closes the channel. There is no catch/try
-         * around the reads so exceptions will result in potentially many
-         * dangling channels hanging around that should have been closed.
-         * (Backgroun: ECONNABORTED maps to a Tcl exception and 
-         * ECONNRESET maps to graceful EOF).
-         */
-        *errorCodePtr = ECONNRESET;
-        return -1;
-    }
-
-    for (;;) {
-	/* Not initialized yet! */
-	if (statePtr->flags & TLS_TCL_SERVER) {
-            dprintf("Calling SSL_accept()");
-	    err = SSL_accept(statePtr->ssl);
-	} else {
-            dprintf("Calling SSL_connect()");
-	    err = SSL_connect(statePtr->ssl);
+	if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+		/*
+		 * We choose ECONNRESET over ECONNABORTED here because some server
+		 * side code, on the wiki for example, sets up a read handler that
+		 * does a read and if eof closes the channel. There is no catch/try
+		 * around the reads so exceptions will result in potentially many
+		 * dangling channels hanging around that should have been closed.
+		 * (Backgroun: ECONNABORTED maps to a Tcl exception and 
+		 * ECONNRESET maps to graceful EOF).
+		 */
+		*errorCodePtr = ECONNRESET;
+		return(-1);
 	}
 
-	/*SSL_write(statePtr->ssl, (char*)&err, 0);	HACK!!! */
-	if (err > 0) {
-            dprintf("That seems to have gone okay");
-	    BIO_flush(statePtr->bio);
-	} else {
-	    int rc = SSL_get_error(statePtr->ssl, err);
+	for (;;) {
+		/* Not initialized yet! */
+		if (statePtr->flags & TLS_TCL_SERVER) {
+			dprintf("Calling SSL_accept()");
 
-            dprintf("Got error: %i (rc = %i)", err, rc);
-
-	    if (rc == SSL_ERROR_SSL) {
-		Tls_Error(statePtr,
-			(char *)ERR_reason_error_string(ERR_get_error()));
-                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-		*errorCodePtr = ECONNABORTED;
-		return -1;
-	    } else if (BIO_should_retry(statePtr->bio)) {
-		if (statePtr->flags & TLS_TCL_ASYNC) {
-		    dprintf("E! ");
-		    *errorCodePtr = EAGAIN;
-		    return -1;
+			err = SSL_accept(statePtr->ssl);
 		} else {
-		    continue;
+			dprintf("Calling SSL_connect()");
+
+			err = SSL_connect(statePtr->ssl);
 		}
-	    } else if (err <= 0) {
-                if (SSL_in_init(statePtr->ssl)) {
-                    dprintf("SSL_in_init() is true");
-                }
 
-                if (Tcl_Eof(statePtr->self)) {
-                    dprintf("Error = 0 and EOF is set");
+		if (err > 0) {
+			dprintf("That seems to have gone okay");
 
-                    if (rc != SSL_ERROR_SYSCALL) {
-                        dprintf("Error from some reason other than our BIO, returning 0");
-                        return 0;
-                    }
-                }
-		dprintf("CR! ");
-                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-		*errorCodePtr = ECONNRESET;
-		return -1;
-	    }
-	    if (statePtr->flags & TLS_TCL_SERVER) {
+			BIO_flush(statePtr->bio);
+		}
+
+		rc = SSL_get_error(statePtr->ssl, err);
+
+		dprintf("Got error: %i (rc = %i)", err, rc);
+
+		bioShouldRetry = 0;
+		if (err <= 0) {
+			if (rc == SSL_ERROR_WANT_CONNECT || rc == SSL_ERROR_WANT_ACCEPT) {
+				bioShouldRetry = 1;
+			} else if (BIO_should_retry(statePtr->bio)) {
+				bioShouldRetry = 1;
+			}
+		}
+
+		if (bioShouldRetry) {
+			dprintf("The I/O did not complete -- but we should try it again");
+
+			if (statePtr->flags & TLS_TCL_ASYNC) {
+				dprintf("Returning EAGAIN so that it can be retried later");
+
+				*errorCodePtr = EAGAIN;
+
+				return(-1);
+			} else {
+				dprintf("Doing so now");
+
+				continue;
+			}
+		}
+
+		dprintf("We have either completely established the session or completely failed it -- there is no more need to ever retry it though");
+		break;
+	}
+
+
+	*errorCodePtr = EINVAL;
+
+	switch (rc) {
+		case SSL_ERROR_NONE:
+			/* The connection is up, we are done here */
+			dprintf("The connection is up");
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			dprintf("SSL_ERROR_ZERO_RETURN: Connect returned an invalid value...")
+			return(-1);
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+			dprintf("SSL_ERROR_WANT read/write -- not sure what to do here");
+
+			return(-1);
+		case SSL_ERROR_SYSCALL:
+			backingError = ERR_get_error();
+			dprintf("I/O error occured");
+
+			if (backingError == 0 && err == 0) {
+				dprintf("EOF reached")
+			}
+
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNRESET;
+			return(-1);
+		case SSL_ERROR_SSL:
+			dprintf("Got permenant fatal SSL error, aborting immediately");
+			Tls_Error(statePtr, (char *)ERR_reason_error_string(ERR_get_error()));
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNABORTED;
+			return(-1);
+		case SSL_ERROR_WANT_CONNECT:
+		case SSL_ERROR_WANT_ACCEPT:
+		case SSL_ERROR_WANT_X509_LOOKUP:
+		default:
+			dprintf("We got a confusing reply: %i", rc);
+			*errorCodePtr = Tcl_GetErrno();
+			dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
+			return(-1);
+	}
+
+
+	if (statePtr->flags & TLS_TCL_SERVER) {
+		dprintf("This is an TLS server, checking the certificate for the peer");
+
 		err = SSL_get_verify_result(statePtr->ssl);
 		if (err != X509_V_OK) {
-		    Tls_Error(statePtr,
-			    (char *)X509_verify_cert_error_string(err));
-                    statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-		    *errorCodePtr = ECONNABORTED;
-		    return -1;
+			dprintf("Invalid certificate, returning in failure");
+
+			Tls_Error(statePtr, (char *)X509_verify_cert_error_string(err));
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNABORTED;
+			return(-1);
 		}
-	    }
-	    *errorCodePtr = Tcl_GetErrno();
-	    dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
-	    return -1;
 	}
-	dprintf("R0! ");
-	return 1;
-    }
+
+	*errorCodePtr = 0;
+	return(0);
 }
 
 Tcl_Channel Tls_GetParent(State *statePtr) {
