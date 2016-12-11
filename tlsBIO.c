@@ -65,6 +65,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 		return(NULL);
 	}
 
+#ifdef TCLTLS_SSL_USE_FASTPATH
 	/*
 	 * If the channel can be mapped back to a file descriptor, just use the file descriptor
 	 * with the SSL library since it will likely be optimized for this.
@@ -93,13 +94,16 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	if (validParentChannelFd) {
 		dprintf("We found a shortcut, this channel is backed by a file descriptor: %i", parentChannelFdIn);
 		bio = BIO_new_socket(parentChannelFd, flags);
-	} else {
-		dprintf("Falling back to Tcl I/O for this channel");
-		bio = BIO_new(BioMethods);
-		BIO_set_data(bio, statePtr);
-		BIO_set_shutdown(bio, flags);
-		BIO_set_init(bio, 1);
+		return(bio);
 	}
+
+	dprintf("Falling back to Tcl I/O for this channel");
+#endif
+
+	bio = BIO_new(BioMethods);
+	BIO_set_data(bio, statePtr);
+	BIO_set_shutdown(bio, flags);
+	BIO_set_init(bio, 1);
 
 	return(bio);
 }
