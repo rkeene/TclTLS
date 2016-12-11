@@ -170,6 +170,9 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
 
     Tls_Clean(statePtr);
     Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
+
+    dprintf("Returning TCL_OK");
+
     return TCL_OK;
 }
 
@@ -247,15 +250,16 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
     ERR_clear_error();
     bytesRead = BIO_read(statePtr->bio, buf, bufSize);
     dprintf("BIO_read -> %d", bytesRead);
+    dprintBuffer(buf, bytesRead);
 
-    if (bytesRead < 0) {
+    if (bytesRead <= 0) {
 	int err = SSL_get_error(statePtr->ssl, bytesRead);
 
 	if (err == SSL_ERROR_SSL) {
 	    Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
 	    *errorCodePtr = ECONNABORTED;
 	} else if (BIO_should_retry(statePtr->bio)) {
-	    dprintf("RE! ");
+	    dprintf("retry based on EAGAIN");
 	    *errorCodePtr = EAGAIN;
 	} else {
 	    *errorCodePtr = Tcl_GetErrno();
@@ -263,7 +267,9 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
 		/* Soft EOF */
 		*errorCodePtr = 0;
 		bytesRead = 0;
-	    }
+	    } else {
+                dprintf("Got an unexpected error: %i", *errorCodePtr);
+            }
 	}
     }
     input:
@@ -301,6 +307,7 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
     *errorCodePtr = 0;
 
     dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
+    dprintBuffer(buf, toWrite);
 
     if (statePtr->flags & TLS_TCL_CALLBACK) {
        /* don't process any bytes while verify callback is running */
@@ -462,7 +469,25 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 
     /* Pretend to be dead as long as the verify callback is running. 
      * Otherwise that callback could be invoked recursively. */
-    if (statePtr->flags & TLS_TCL_CALLBACK) { return; }
+    if (statePtr->flags & TLS_TCL_CALLBACK) {
+        dprintf("Callback is on-going, doing nothing");
+        return;
+    }
+
+    dprintFlags(statePtr);
+
+    downChan = Tls_GetParent(statePtr);
+
+    if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+        dprintf("Asked to watch a socket with a failed handshake -- nothing can happen here");
+
+	dprintf("Unregistering interest in the lower channel");
+	(Tcl_GetChannelType(downChan))->watchProc(Tcl_GetChannelInstanceData(downChan), 0);
+
+	statePtr->watchMask = 0;
+
+        return;
+    }
 
 	statePtr->watchMask = mask;
 
@@ -474,8 +499,8 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	 * the request down, unchanged.
 	 */
 
-	downChan = Tls_GetParent(statePtr);
 
+        dprintf("Registering our interest in the lower channel (chan=%p)", (void *) downChan);
 	(Tcl_GetChannelType(downChan))
 	    ->watchProc(Tcl_GetChannelInstanceData(downChan), mask);
 
@@ -484,14 +509,17 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	 */
 
 	if (statePtr->timer != (Tcl_TimerToken) NULL) {
+            dprintf("A timer was found, deleting it");
 	    Tcl_DeleteTimerHandler(statePtr->timer);
 	    statePtr->timer = (Tcl_TimerToken) NULL;
 	}
+
 	if ((mask & TCL_READABLE) && Tcl_InputBuffered(statePtr->self) > 0) {
 	    /*
 	     * There is interest in readable events and we actually have
 	     * data waiting, so generate a timer to flush that.
 	     */
+            dprintf("Creating a new timer since data appears to be waiting");
 	    statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
 		    TlsChannelHandlerTimer, (ClientData) statePtr);
 	}

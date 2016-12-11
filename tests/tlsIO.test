@@ -798,11 +798,11 @@ test tlsIO-3.2 {server with several clients} {socket stdio} {
 	    127.0.0.1 8828]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
-	puts $s1 hello,s1
+	puts $s1 hello,tlsIO-3.2,s1
 	gets $s1
-	puts $s2 hello,s2
+	puts $s2 hello,tlsIO-3.2,s2
 	gets $s2
-	puts $s3 hello,s3
+	puts $s3 hello,tlsIO-3.2,s3
 	gets $s3
     }
     close $s1
@@ -1453,11 +1453,11 @@ test tlsIO-11.7 {server with several clients} {socket doTestsWithRemoteServer} {
 	    $remoteServerIP 8836]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
-	puts $s1 hello,s1
+	puts $s1 hello,tlsIO-11.7,s1
 	gets $s1
-	puts $s2 hello,s2
+	puts $s2 hello,tlsIO-11.7,s2
 	gets $s2
-	puts $s3 hello,s3
+	puts $s3 hello,tlsIO-11.7,s3
 	gets $s3
     }
     close $s1

@@ -40,7 +40,12 @@ static int BioFree  _ANSI_ARGS_((BIO *h));
 
 BIO *BIO_new_tcl(State *statePtr, int flags) {
 	BIO *bio;
+	Tcl_Channel parentChannel;
+	const Tcl_ChannelType *parentChannelType;
 	static BIO_METHOD *BioMethods = NULL;
+	int parentChannelFdIn, parentChannelFdOut, parentChannelFd;
+	int validParentChannelFd;
+	int tclGetChannelHandleRet;
 
 	dprintf("BIO_new_tcl() called");
 
@@ -54,11 +59,47 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 		BIO_meth_set_destroy(BioMethods, BioFree);
 	}
 
-	bio = BIO_new(BioMethods);
+	if (statePtr == NULL) {
+		dprintf("Asked to setup a NULL state, just creating the initial configuration");
 
-	BIO_set_data(bio, statePtr);
-	BIO_set_init(bio, 1);
-	BIO_set_shutdown(bio, flags);
+		return(NULL);
+	}
+
+	/*
+	 * If the channel can be mapped back to a file descriptor, just use the file descriptor
+	 * with the SSL library since it will likely be optimized for this.
+	 */
+	parentChannel = Tls_GetParent(statePtr);
+	parentChannelType = Tcl_GetChannelType(parentChannel);
+
+	/* If we do not get the channel name here, we segfault later :-( */
+	dprintf("Channel Name is valid: %s", Tcl_GetChannelName(statePtr->self));
+	dprintf("Parent Channel Name is valid: %s", Tcl_GetChannelName(parentChannel));
+
+	validParentChannelFd = 0;
+	if (strcmp(parentChannelType->typeName, "tcp") == 0) {
+		tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_READABLE, (ClientData) &parentChannelFdIn);
+		if (tclGetChannelHandleRet == TCL_OK) {
+			tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_WRITABLE, (ClientData) &parentChannelFdOut);
+			if (tclGetChannelHandleRet == TCL_OK) {
+				if (parentChannelFdIn == parentChannelFdOut) {
+					parentChannelFd = parentChannelFdIn;
+					validParentChannelFd = 1;
+				}
+			}
+		}
+	}
+
+	if (validParentChannelFd) {
+		dprintf("We found a shortcut, this channel is backed by a file descriptor: %i", parentChannelFdIn);
+		bio = BIO_new_socket(parentChannelFd, flags);
+	} else {
+		dprintf("Falling back to Tcl I/O for this channel");
+		bio = BIO_new(BioMethods);
+		BIO_set_data(bio, statePtr);
+		BIO_set_shutdown(bio, flags);
+		BIO_set_init(bio, 1);
+	}
 
 	return(bio);
 }
@@ -66,21 +107,28 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	Tcl_Channel chan;
 	int ret;
+	int tclEofChan;
 
 	chan = Tls_GetParent((State *) BIO_get_data(bio));
 
-	dprintf("BioWrite(%p, <buf>, %d) [%p]", (void *) bio, bufLen, (void *) chan);
+	dprintf("[chan=%p] BioWrite(%p, <buf>, %d)", (void *)chan, (void *) bio, bufLen);
 
 	ret = Tcl_WriteRaw(chan, buf, bufLen);
 
-	dprintf("[%p] BioWrite(%d) -> %d [%d.%d]", (void *) chan, bufLen, ret, Tcl_Eof(chan), Tcl_GetErrno());
+	tclEofChan = Tcl_Eof(chan);
+
+	dprintf("[chan=%p] BioWrite(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
 
 	BIO_clear_flags(bio, BIO_FLAGS_WRITE | BIO_FLAGS_SHOULD_RETRY);
 
 	if (ret == 0) {
-		if (!Tcl_Eof(chan)) {
-			BIO_set_retry_write(bio);
+		if (tclEofChan) {
+			dprintf("Unable to write bytes and EOF is set, returning in failure");
+			Tcl_SetErrno(ECONNRESET);
 			ret = -1;
+		} else {
+			dprintf("Unable to write bytes but we do not have EOF set... will retry");
+			BIO_set_retry_write(bio);
 		}
 	}
 
@@ -98,7 +146,7 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 
 	chan = Tls_GetParent((State *) BIO_get_data(bio));
 
-	dprintf("BioRead(%p, <buf>, %d) [%p]", (void *) bio, bufLen, (void *) chan);
+	dprintf("[chan=%p] BioRead(%p, <buf>, %d) [%p]", (void *) chan, (void *) bio, bufLen);
 
 	if (buf == NULL) {
 		return 0;
@@ -108,24 +156,29 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 
 	tclEofChan = Tcl_Eof(chan);
 
-	dprintf("[%p] BioRead(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
+	dprintf("[chan=%p] BioRead(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
 
 	BIO_clear_flags(bio, BIO_FLAGS_READ | BIO_FLAGS_SHOULD_RETRY);
 
+	if (BIO_should_write(bio)) {
+		dprintf("Setting should retry write flag");
+
+		BIO_set_retry_write(bio);
+	}
+
 	if (ret == 0) {
-		if (!tclEofChan) {
-			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set -- ret == -1 now");
-			BIO_set_retry_read(bio);
+		if (tclEofChan) {
+			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set; ret = -1");
+			Tcl_SetErrno(ECONNRESET);
 			ret = -1;
 		} else {
-			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set");
+			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set; ret = 0");
+			dprintf("Setting retry read flag");
+			BIO_set_retry_read(bio);
+			ret = 0;
 		}
 	} else {
 		dprintf("Got non-zero from Tcl_Read or Tcl_ReadRaw; ret == %i", ret);
-	}
-
-	if (BIO_should_write(bio)) {
-		BIO_set_retry_write(bio);
 	}
 
 	dprintf("BioRead(%p, <buf>, %d) [%p] returning %i", (void *) bio, bufLen, (void *) chan, ret);
@@ -200,7 +253,7 @@ static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
 			break;
 		default:
 			dprintf("Got unknown control command (%i)", cmd);
-			ret = 0;
+			ret = -2;
 			break;
 	}
 
