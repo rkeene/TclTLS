@@ -21,6 +21,7 @@
 #include "tls.h"
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef __WIN32__
 #define WIN32_LEAN_AND_MEAN
@@ -164,5 +165,7 @@ void            Tls_Clean(State *statePtr);
 int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr);
 
 BIO             *BIO_new_tcl(State* statePtr, int flags);
+
+#define PTR2INT(x) ((int) ((intptr_t) (x)))
 
 #endif /* _TLSINT_H */

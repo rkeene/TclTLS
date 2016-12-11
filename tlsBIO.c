@@ -43,6 +43,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	Tcl_Channel parentChannel;
 	const Tcl_ChannelType *parentChannelType;
 	static BIO_METHOD *BioMethods = NULL;
+	void *parentChannelFdIn_p, *parentChannelFdOut_p;
 	int parentChannelFdIn, parentChannelFdOut, parentChannelFd;
 	int validParentChannelFd;
 	int tclGetChannelHandleRet;
@@ -73,16 +74,14 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	parentChannel = Tls_GetParent(statePtr);
 	parentChannelType = Tcl_GetChannelType(parentChannel);
 
-	/* If we do not get the channel name here, we segfault later :-( */
-	dprintf("Channel Name is valid: %s", Tcl_GetChannelName(statePtr->self));
-	dprintf("Parent Channel Name is valid: %s", Tcl_GetChannelName(parentChannel));
-
 	validParentChannelFd = 0;
 	if (strcmp(parentChannelType->typeName, "tcp") == 0) {
-		tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_READABLE, (ClientData) &parentChannelFdIn);
+		tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_READABLE, (ClientData) &parentChannelFdIn_p);
 		if (tclGetChannelHandleRet == TCL_OK) {
-			tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_WRITABLE, (ClientData) &parentChannelFdOut);
+			tclGetChannelHandleRet = Tcl_GetChannelHandle(parentChannel, TCL_WRITABLE, (ClientData) &parentChannelFdOut_p);
 			if (tclGetChannelHandleRet == TCL_OK) {
+				parentChannelFdIn = PTR2INT(parentChannelFdIn_p);
+				parentChannelFdOut = PTR2INT(parentChannelFdOut_p);
 				if (parentChannelFdIn == parentChannelFdOut) {
 					parentChannelFd = parentChannelFdIn;
 					validParentChannelFd = 1;
