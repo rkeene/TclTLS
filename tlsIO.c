@@ -195,87 +195,81 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsInputProc(ClientData instanceData,	/* Socket state. */
-	char *buf,			/* Where to store data read. */
-	int bufSize,			/* How much space is available
-					 * in the buffer? */
-	int *errorCodePtr)		/* Where to store error code. */
-{
-    State *statePtr = (State *) instanceData;
-    int bytesRead;			/* How many bytes were read? */
+static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *errorCodePtr) {
+	State *statePtr = (State *) instanceData;
+	int bytesRead;
+	int tlsConnect;
+	int err;
 
-    *errorCodePtr = 0;
+	*errorCodePtr = 0;
 
-    dprintf("BIO_read(%d)", bufSize);
+	dprintf("BIO_read(%d)", bufSize);
 
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-       /* don't process any bytes while verify callback is running */
-       dprintf("Callback is running, reading 0 bytes");
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		/* don't process any bytes while verify callback is running */
+		dprintf("Callback is running, reading 0 bytes");
 
-       bytesRead = 0;
-       goto input;
-    }
-
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-        dprintf("Calling Tls_WaitForConnect");
-	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
-	if (bytesRead <= 0) {
-            dprintf("Got an error (bytesRead = %i)", bytesRead);
-
-	    if (*errorCodePtr == ECONNRESET) {
-                dprintf("Got connection reset");
-		/* Soft EOF */
-		*errorCodePtr = 0;
 		bytesRead = 0;
-	    }
-	    goto input;
+		return(0);
 	}
-    }
 
-    if (statePtr->flags & TLS_TCL_INIT) {
-	statePtr->flags &= ~(TLS_TCL_INIT);
-    }
-    /*
-     * We need to clear the SSL error stack now because we sometimes reach
-     * this function with leftover errors in the stack.  If BIO_read
-     * returns -1 and intends EAGAIN, there is a leftover error, it will be
-     * misconstrued as an error, not EAGAIN.
-     *
-     * Alternatively, we may want to handle the <0 return codes from
-     * BIO_read specially (as advised in the RSA docs).  TLS's lower level BIO
-     * functions play with the retry flags though, and this seems to work
-     * correctly.  Similar fix in TlsOutputProc. - hobbs
-     */
-    ERR_clear_error();
-    bytesRead = BIO_read(statePtr->bio, buf, bufSize);
-    dprintf("BIO_read -> %d", bytesRead);
+	dprintf("Calling Tls_WaitForConnect");
+	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr);
+	if (tlsConnect < 0) {
+		dprintf("Got an error (bytesRead = %i)", bytesRead);
 
-    if (bytesRead <= 0) {
-	int err = SSL_get_error(statePtr->ssl, bytesRead);
-
-	if (err == SSL_ERROR_SSL) {
-	    Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
-	    *errorCodePtr = ECONNABORTED;
-	} else if (BIO_should_retry(statePtr->bio)) {
-	    dprintf("retry based on EAGAIN");
-	    *errorCodePtr = EAGAIN;
-	} else {
-	    *errorCodePtr = Tcl_GetErrno();
-	    if (*errorCodePtr == ECONNRESET || bytesRead < 0) {
-		/* Soft EOF */
-		*errorCodePtr = 0;
-		bytesRead = 0;
-	    } else {
-                dprintf("Got an unexpected error: %i", *errorCodePtr);
-            }
+		if (*errorCodePtr == ECONNRESET) {
+			dprintf("Got connection reset");
+			/* Soft EOF */
+			*errorCodePtr = 0;
+			bytesRead = 0;
+		}
+		return(bytesRead);
 	}
-    } else {
-        dprintBuffer(buf, bytesRead);
-    }
-    input:
-    dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
-    return bytesRead;
+
+	if (statePtr->flags & TLS_TCL_INIT) {
+		statePtr->flags &= ~(TLS_TCL_INIT);
+	}
+
+	/*
+	 * We need to clear the SSL error stack now because we sometimes reach
+	 * this function with leftover errors in the stack.  If BIO_read
+	 * returns -1 and intends EAGAIN, there is a leftover error, it will be
+	 * misconstrued as an error, not EAGAIN.
+	 *
+	 * Alternatively, we may want to handle the <0 return codes from
+	 * BIO_read specially (as advised in the RSA docs).  TLS's lower level BIO
+	 * functions play with the retry flags though, and this seems to work
+	 * correctly.  Similar fix in TlsOutputProc. - hobbs
+	 */
+	ERR_clear_error();
+	bytesRead = BIO_read(statePtr->bio, buf, bufSize);
+	dprintf("BIO_read -> %d", bytesRead);
+
+	err = SSL_get_error(statePtr->ssl, bytesRead);
+
+	if (BIO_should_retry(statePtr->bio)) {
+		dprintf("I/O failed, will retry based on EAGAIN");
+		*errorCodePtr = EAGAIN;
+	}
+
+	switch (err) {
+		case SSL_ERROR_NONE:
+			dprintBuffer(buf, bytesRead);
+			break;
+		case SSL_ERROR_SSL:
+			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
+			*errorCodePtr = ECONNABORTED;
+			break;
+		case SSL_ERROR_SYSCALL:
+			dprintf("I/O error reading, treating it as EOF");
+			*errorCodePtr = 0;
+			bytesRead = 0;
+			break;
+	}
+input:
+	dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
+	return bytesRead;
 }
 
 /*
@@ -296,45 +290,38 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsOutputProc(ClientData instanceData,	/* Socket state. */
-              CONST char *buf,		/* The data buffer. */
-              int toWrite,		/* How many bytes to write? */
-              int *errorCodePtr)	/* Where to store error code. */
-{
-    State *statePtr = (State *) instanceData;
-    int written, err;
+static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, int *errorCodePtr) {
+	State *statePtr = (State *) instanceData;
+	int written, err;
 
-    *errorCodePtr = 0;
+	*errorCodePtr = 0;
 
-    dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
-    dprintBuffer(buf, toWrite);
+	dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
+	dprintBuffer(buf, toWrite);
 
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-       /* don't process any bytes while verify callback is running */
-       written = -1;
-       *errorCodePtr = EAGAIN;
-       goto output;
-    }
-
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-        dprintf("Calling Tls_WaitForConnect");
-	written = Tls_WaitForConnect(statePtr, errorCodePtr);
-	if (written <= 0) {
-            dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
-
-	    goto output;
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		dprintf("Don't process output while callbacks are running")
+		written = -1;
+		*errorCodePtr = EAGAIN;
+		return(-1);
 	}
-    }
-    if (statePtr->flags & TLS_TCL_INIT) {
-	statePtr->flags &= ~(TLS_TCL_INIT);
-    }
-    if (toWrite == 0) {
-	dprintf("zero-write");
-	BIO_flush(statePtr->bio);
-	written = 0;
-	goto output;
-    } else {
+
+	dprintf("Calling Tls_WaitForConnect");
+	written = Tls_WaitForConnect(statePtr, errorCodePtr);
+	if (written < 0) {
+		dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
+
+		return(-1);
+	}
+
+	if (toWrite == 0) {
+		dprintf("zero-write");
+		BIO_flush(statePtr->bio);
+		written = 0;
+		*errorCodePtr = 0;
+		return(0);
+	}
+
 	/*
 	 * We need to clear the SSL error stack now because we sometimes reach
 	 * this function with leftover errors in the stack.  If BIO_write
@@ -348,48 +335,45 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	 */
 	ERR_clear_error();
 	written = BIO_write(statePtr->bio, buf, toWrite);
-	dprintf("BIO_write(%p, %d) -> [%d]",
-		(void *) statePtr, toWrite, written);
-    }
-    if (written <= 0) {
-	switch ((err = SSL_get_error(statePtr->ssl, written))) {
-	    case SSL_ERROR_NONE:
-		if (written < 0) {
-		    written = 0;
-		}
-		break;
-	    case SSL_ERROR_WANT_WRITE:
-		dprintf(" write W BLOCK");
-		break;
-	    case SSL_ERROR_WANT_READ:
-		dprintf(" write R BLOCK");
-		break;
-	    case SSL_ERROR_WANT_X509_LOOKUP:
-		dprintf(" write X BLOCK");
-		break;
-	    case SSL_ERROR_ZERO_RETURN:
-		dprintf(" closed");
-		written = 0;
-		break;
-	    case SSL_ERROR_SYSCALL:
-		*errorCodePtr = Tcl_GetErrno();
-		dprintf(" [%d] syscall errr: %d",
-			written, *errorCodePtr);
-		written = -1;
-		break;
-	    case SSL_ERROR_SSL:
-		Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, written));
-		*errorCodePtr = ECONNABORTED;
-		written = -1;
-		break;
-	    default:
-		dprintf(" unknown err: %d", err);
-		break;
+	dprintf("BIO_write(%p, %d) -> [%d]", (void *) statePtr, toWrite, written);
+
+	err = SSL_get_error(statePtr->ssl, written);
+	switch (err) {
+		case SSL_ERROR_NONE:
+			if (written < 0) {
+				written = 0;
+			}
+			break;
+		case SSL_ERROR_WANT_WRITE:
+			dprintf(" write W BLOCK");
+			break;
+		case SSL_ERROR_WANT_READ:
+			dprintf(" write R BLOCK");
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			dprintf(" write X BLOCK");
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			dprintf(" closed");
+			written = 0;
+			break;
+		case SSL_ERROR_SYSCALL:
+			*errorCodePtr = Tcl_GetErrno();
+			dprintf(" [%d] syscall errr: %d", written, *errorCodePtr);
+			written = -1;
+			break;
+		case SSL_ERROR_SSL:
+			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, written));
+			*errorCodePtr = ECONNABORTED;
+			written = -1;
+			break;
+		default:
+			dprintf(" unknown err: %d", err);
+			break;
 	}
-    }
-    output:
-    dprintf("Output(%d) -> %d", toWrite, written);
-    return written;
+output:
+	dprintf("Output(%d) -> %d", toWrite, written);
+	return(written);
 }
 
 /*
@@ -566,50 +550,46 @@ static int TlsGetHandleProc(ClientData instanceData, int direction, ClientData *
  */
 
 static int TlsNotifyProc(ClientData instanceData, int mask) {
-    State *statePtr = (State *) instanceData;
+	State *statePtr = (State *) instanceData;
+	int errorCode;
 
-    /*
-     * An event occured in the underlying channel.  This
-     * transformation doesn't process such events thus returns the
-     * incoming mask unchanged.
-     */
-
-    if (statePtr->timer != (Tcl_TimerToken) NULL) {
 	/*
-	 * Delete an existing timer. It was not fired, yet we are
-	 * here, so the channel below generated such an event and we
-	 * don't have to. The renewal of the interest after the
-	 * execution of channel handlers will eventually cause us to
-	 * recreate the timer (in WatchProc).
+	 * An event occured in the underlying channel.  This
+	 * transformation doesn't process such events thus returns the
+	 * incoming mask unchanged.
 	 */
-
-	Tcl_DeleteTimerHandler(statePtr->timer);
-	statePtr->timer = (Tcl_TimerToken) NULL;
-    }
-
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-        dprintf("Returning 0 due to callback");
-	return 0;
-    }
-
-    if ((statePtr->flags & TLS_TCL_INIT) && !SSL_is_init_finished(statePtr->ssl)) {
-	int errorCode = 0;
-
-        dprintf("Calling Tls_WaitForConnect");
-	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0) {
-            if (errorCode == EAGAIN) {
-                dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
-
-                return 0;
-            }
-
-            dprintf("Tls_WaitForConnect returned an error");
+	if (statePtr->timer != (Tcl_TimerToken) NULL) {
+		/*
+		 * Delete an existing timer. It was not fired, yet we are
+		 * here, so the channel below generated such an event and we
+		 * don't have to. The renewal of the interest after the
+		 * execution of channel handlers will eventually cause us to
+		 * recreate the timer (in WatchProc).
+		 */
+		Tcl_DeleteTimerHandler(statePtr->timer);
+		statePtr->timer = (Tcl_TimerToken) NULL;
 	}
-    }
 
-    dprintf("Returning %i", mask);
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		dprintf("Returning 0 due to callback");
+		return 0;
+	}
 
-    return mask;
+	dprintf("Calling Tls_WaitForConnect");
+	errorCode = 0;
+	if (Tls_WaitForConnect(statePtr, &errorCode) < 0) {
+		if (errorCode == EAGAIN) {
+			dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
+
+			return 0;
+		}
+
+		dprintf("Tls_WaitForConnect returned an error");
+	}
+
+	dprintf("Returning %i", mask);
+
+	return(mask);
 }
 
 #if 0
@@ -713,22 +693,32 @@ TlsChannelHandler (clientData, mask)
  *------------------------------------------------------*
  */
 
-static void
-TlsChannelHandlerTimer (clientData)
-ClientData clientData; /* Transformation to query */
-{
-    State *statePtr = (State *) clientData;
-    int mask = 0;
+static void TlsChannelHandlerTimer(ClientData clientData) {
+	State *statePtr = (State *) clientData;
+	int mask = 0;
 
-    statePtr->timer = (Tcl_TimerToken) NULL;
+	dprintf("Called");
 
-    if (BIO_wpending(statePtr->bio)) {
-	mask |= TCL_WRITABLE;
-    }
-    if (BIO_pending(statePtr->bio)) {
-	mask |= TCL_READABLE;
-    }
-    Tcl_NotifyChannel(statePtr->self, mask);
+	statePtr->timer = (Tcl_TimerToken) NULL;
+
+	if (BIO_wpending(statePtr->bio)) {
+		dprintf("[chan=%p] BIO writable", statePtr->self);
+
+		mask |= TCL_WRITABLE;
+	}
+
+	if (BIO_pending(statePtr->bio)) {
+		dprintf("[chan=%p] BIO readable", statePtr->self);
+
+		mask |= TCL_READABLE;
+	}
+
+	dprintf("Notifying ourselves");
+	Tcl_NotifyChannel(statePtr->self, mask);
+
+	dprintf("Returning");
+
+	return;
 }
 
 /*
@@ -751,6 +741,12 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 
 	dprintf("WaitForConnect(%p)", (void *) statePtr);
 	dprintFlags(statePtr);
+
+	if (!(statePtr->flags & TLS_TCL_INIT)) {
+		dprintf("Tls_WaitForConnect called on already initialized channel -- returning with immediate success");
+		*errorCodePtr = 0;
+		return(0);
+	}
 
 	if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
 		/*
@@ -790,9 +786,13 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 
 		bioShouldRetry = 0;
 		if (err <= 0) {
-			if (rc == SSL_ERROR_WANT_CONNECT || rc == SSL_ERROR_WANT_ACCEPT) {
+			if (rc == SSL_ERROR_WANT_CONNECT || rc == SSL_ERROR_WANT_ACCEPT || rc == SSL_ERROR_WANT_READ || rc == SSL_ERROR_WANT_WRITE) {
 				bioShouldRetry = 1;
 			} else if (BIO_should_retry(statePtr->bio)) {
+				bioShouldRetry = 1;
+			}
+		} else {
+			if (!SSL_is_init_finished(statePtr->ssl)) {
 				bioShouldRetry = 1;
 			}
 		}
@@ -828,11 +828,6 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 		case SSL_ERROR_ZERO_RETURN:
 			dprintf("SSL_ERROR_ZERO_RETURN: Connect returned an invalid value...")
 			return(-1);
-		case SSL_ERROR_WANT_READ:
-		case SSL_ERROR_WANT_WRITE:
-			dprintf("SSL_ERROR_WANT read/write -- not sure what to do here");
-
-			return(-1);
 		case SSL_ERROR_SYSCALL:
 			backingError = ERR_get_error();
 			dprintf("I/O error occured");
@@ -845,7 +840,7 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 			*errorCodePtr = ECONNRESET;
 			return(-1);
 		case SSL_ERROR_SSL:
-			dprintf("Got permenant fatal SSL error, aborting immediately");
+			dprintf("Got permanent fatal SSL error, aborting immediately");
 			Tls_Error(statePtr, (char *)ERR_reason_error_string(ERR_get_error()));
 			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
 			*errorCodePtr = ECONNABORTED;
@@ -859,7 +854,6 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 			dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
 			return(-1);
 	}
-
 
 	if (statePtr->flags & TLS_TCL_SERVER) {
 		dprintf("This is an TLS server, checking the certificate for the peer");
@@ -875,7 +869,12 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 		}
 	}
 
+	dprintf("Removing the \"TLS_TCL_INIT\" flag since we have completed the handshake");
+	statePtr->flags &= ~TLS_TCL_INIT;
+
+	dprintf("Returning in success");
 	*errorCodePtr = 0;
+
 	return(0);
 }
 

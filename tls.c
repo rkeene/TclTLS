@@ -878,6 +878,7 @@ ImportObjCmd(clientData, interp, objc, objv)
      * each channel in the stack maintained its own buffers.
      */
     Tcl_SetChannelOption(interp, chan, "-translation", "binary");
+    Tcl_SetChannelOption(interp, chan, "-blocking", "true");
     dprintf("Consuming Tcl channel %s", Tcl_GetChannelName(chan));
     statePtr->self = Tcl_StackChannel(interp, Tls_ChannelType(), (ClientData) statePtr, (TCL_READABLE | TCL_WRITABLE), chan);
     dprintf("Created channel named %s", Tcl_GetChannelName(statePtr->self));
