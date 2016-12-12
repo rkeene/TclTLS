@@ -855,6 +855,7 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 			return(-1);
 	}
 
+#if 0
 	if (statePtr->flags & TLS_TCL_SERVER) {
 		dprintf("This is an TLS server, checking the certificate for the peer");
 
@@ -868,6 +869,7 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 			return(-1);
 		}
 	}
+#endif
 
 	dprintf("Removing the \"TLS_TCL_INIT\" flag since we have completed the handshake");
 	statePtr->flags &= ~TLS_TCL_INIT;
