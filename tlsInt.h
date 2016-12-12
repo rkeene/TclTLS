@@ -67,7 +67,13 @@
 
 #ifdef TCLEXT_TCLTLS_DEBUG
 #include <ctype.h>
-#define dprintf(...) { fprintf(stderr, "%s:%i:%s():", __FILE__, __LINE__, __func__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
+#define dprintf(...) { \
+                       char dprintfBuffer[8192], *dprintfBuffer_p; \
+                       dprintfBuffer_p = &dprintfBuffer[0]; \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():", __FILE__, __LINE__, __func__); \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, __VA_ARGS__); \
+                       fprintf(stderr, "%s\n", dprintfBuffer); \
+                     }
 #define dprintBuffer(bufferName, bufferLength) { \
                                                  int dprintBufferIdx; \
                                                  unsigned char dprintBufferChar; \
@@ -83,15 +89,17 @@
                                                  fprintf(stderr, "}\n"); \
                                                }
 #define dprintFlags(statePtr) { \
-                                fprintf(stderr, "%s:%i:%s():%s->flags=0", __FILE__, __LINE__, __func__, #statePtr); \
-                                if (((statePtr)->flags & TLS_TCL_ASYNC) == TLS_TCL_ASYNC) { fprintf(stderr,"|TLS_TCL_ASYNC"); }; \
-                                if (((statePtr)->flags & TLS_TCL_SERVER) == TLS_TCL_SERVER) { fprintf(stderr,"|TLS_TCL_SERVER"); }; \
-                                if (((statePtr)->flags & TLS_TCL_INIT) == TLS_TCL_INIT) { fprintf(stderr,"|TLS_TCL_INIT"); }; \
-                                if (((statePtr)->flags & TLS_TCL_DEBUG) == TLS_TCL_DEBUG) { fprintf(stderr,"|TLS_TCL_DEBUG"); }; \
-                                if (((statePtr)->flags & TLS_TCL_CALLBACK) == TLS_TCL_CALLBACK) { fprintf(stderr,"|TLS_TCL_CALLBACK"); }; \
-                                if (((statePtr)->flags & TLS_TCL_HANDSHAKE_FAILED) == TLS_TCL_HANDSHAKE_FAILED) { fprintf(stderr,"|TLS_TCL_HANDSHAKE_FAILED"); }; \
-                                if (((statePtr)->flags & TLS_TCL_FASTPATH) == TLS_TCL_FASTPATH) { fprintf(stderr,"|TLS_TCL_FASTPATH"); }; \
-                                fprintf(stderr, "\n"); \
+                                char dprintfBuffer[8192], *dprintfBuffer_p; \
+                                dprintfBuffer_p = &dprintfBuffer[0]; \
+                                dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():%s->flags=0", __FILE__, __LINE__, __func__, #statePtr); \
+                                if (((statePtr)->flags & TLS_TCL_ASYNC) == TLS_TCL_ASYNC) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_ASYNC"); }; \
+                                if (((statePtr)->flags & TLS_TCL_SERVER) == TLS_TCL_SERVER) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_SERVER"); }; \
+                                if (((statePtr)->flags & TLS_TCL_INIT) == TLS_TCL_INIT) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_INIT"); }; \
+                                if (((statePtr)->flags & TLS_TCL_DEBUG) == TLS_TCL_DEBUG) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_DEBUG"); }; \
+                                if (((statePtr)->flags & TLS_TCL_CALLBACK) == TLS_TCL_CALLBACK) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_CALLBACK"); }; \
+                                if (((statePtr)->flags & TLS_TCL_HANDSHAKE_FAILED) == TLS_TCL_HANDSHAKE_FAILED) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_HANDSHAKE_FAILED"); }; \
+                                if (((statePtr)->flags & TLS_TCL_FASTPATH) == TLS_TCL_FASTPATH) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_FASTPATH"); }; \
+                                fprintf(stderr, "%s\n", dprintfBuffer); \
                               }
 #else
 #define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
