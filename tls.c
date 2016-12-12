@@ -65,7 +65,7 @@ static SSL_CTX *CTX_Init(State *statePtr, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers,
 			char *DHparams);
 
-static int	TlsLibInit(void);
+static int	TlsLibInit(int uninitialize);
 
 #define TLS_PROTO_SSL2		0x01
 #define TLS_PROTO_SSL3		0x02
@@ -117,29 +117,22 @@ static int	TlsLibInit(void);
  * Based from /crypto/cryptlib.c of OpenSSL and NSOpenSSL.
  */
 
-#ifndef CRYPTO_NUM_LOCKS
-#define CRYPTO_NUM_LOCKS 128
-#endif
-static Tcl_Mutex locks[CRYPTO_NUM_LOCKS];
+static Tcl_Mutex *locks = NULL;
 static Tcl_Mutex init_mx;
 
-static void          CryptoThreadLockCallback (int mode, int n, const char *file, int line);
-static unsigned long CryptoThreadIdCallback   (void);
+static void          CryptoThreadLockCallback(int mode, int n, const char *file, int line);
+static unsigned long CryptoThreadIdCallback(void);
 
-static void
-CryptoThreadLockCallback(int mode, int n, const char *file, int line)
-{
-    if (mode & CRYPTO_LOCK) {
-       Tcl_MutexLock(&locks[n]);
-    } else {
-       Tcl_MutexUnlock(&locks[n]);
-    }
+static void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
+	if (mode & CRYPTO_LOCK) {
+		Tcl_MutexLock(&locks[n]);
+	} else {
+		Tcl_MutexUnlock(&locks[n]);
+	}
 }
 
-static unsigned long
-CryptoThreadIdCallback(void)
-{
-    return (unsigned long) Tcl_GetCurrentThread();
+static unsigned long CryptoThreadIdCallback(void) {
+	return (unsigned long) Tcl_GetCurrentThread();
 }
 #endif /* OPENSSL_THREADS */
 #endif /* TCL_THREADS */
@@ -1626,7 +1619,7 @@ int Tls_Init(Tcl_Interp *interp) {
 		return TCL_ERROR;
 	}
 
-	if (TlsLibInit() != TCL_OK) {
+	if (TlsLibInit(0) != TCL_OK) {
 		Tcl_AppendResult(interp, "could not initialize SSL library", NULL);
 		return TCL_ERROR;
 	}
@@ -1686,9 +1679,40 @@ int Tls_SafeInit(Tcl_Interp *interp) {
  *
  *------------------------------------------------------*
  */
-static int TlsLibInit(void) {
+static int TlsLibInit(int uninitialize) {
 	static int initialized = 0;
 	int status = TCL_OK;
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+	size_t num_locks;
+#endif
+
+	if (uninitialize) {
+		if (!initialized) {
+			dprintf("Asked to uninitialize, but we are not initialized");
+
+			return(TCL_OK);
+		}
+
+		dprintf("Asked to uninitialize");
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+		Tcl_MutexLock(&init_mx);
+
+		CRYPTO_set_locking_callback(NULL);
+		CRYPTO_set_id_callback(NULL);
+
+		if (locks) {
+			free(locks);
+			locks = NULL;
+		}
+#endif
+		initialized = 0;
+
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+		Tcl_MutexUnlock(&init_mx);
+#endif
+
+		return(TCL_OK);
+	}
 
 	if (initialized) {
 		return(status);
@@ -1697,18 +1721,10 @@ static int TlsLibInit(void) {
 	initialized = 1;
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-	size_t num_locks;
-
 	Tcl_MutexLock(&init_mx);
-#endif
 
-#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-	/* should we consider allocating mutexes? */
 	num_locks = CRYPTO_num_locks();
-	if (num_locks > CRYPTO_NUM_LOCKS) {
-		status = TCL_ERROR;
-		goto done;
-	}
+	locks = malloc(sizeof(*locks) * num_locks);
 
 	CRYPTO_set_locking_callback(CryptoThreadLockCallback);
 	CRYPTO_set_id_callback(CryptoThreadIdCallback);
