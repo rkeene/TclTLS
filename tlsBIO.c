@@ -91,7 +91,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 	}
 
 	if (validParentChannelFd) {
-		dprintf("We found a shortcut, this channel is backed by a file descriptor: %i", parentChannelFdIn);
+		dprintf("We found a shortcut, this channel is backed by a socket: %i", parentChannelFdIn);
 		bio = BIO_new_socket(parentChannelFd, flags);
 		statePtr->flags |= TLS_TCL_FASTPATH;
 		return(bio);
