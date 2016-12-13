@@ -132,7 +132,7 @@ void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
 		Tcl_MutexUnlock(&locks[n]);
 	}
 
-	dprintf("Returning");
+	/* dprintf("Returning"); */
 
 	return;
 	file = file;
