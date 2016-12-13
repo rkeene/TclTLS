@@ -156,7 +156,11 @@ AC_DEFUN([TCLEXT_INIT], [
 	AC_SUBST(TCL_DEFS)
 
 	dnl Needed for package installation
-	TCL_PACKAGE_PATH="`echo "${TCL_PACKAGE_PATH}" | sed 's@  *$''@@' | awk '{ print [$]1 }'`"
+	if test "$prefix" = 'NONE' -a "$exec_prefix" = 'NONE' -a "${libdir}" = '${exec_prefix}/lib'; then
+		TCL_PACKAGE_PATH="`echo "${TCL_PACKAGE_PATH}" | sed 's@  *$''@@' | awk '{ print [$]1 }'`"
+	else
+		TCL_PACKAGE_PATH='${libdir}'
+	fi
 	AC_SUBST(TCL_PACKAGE_PATH)
 
 	AC_SUBST(LIBS)
