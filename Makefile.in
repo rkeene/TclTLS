@@ -54,6 +54,10 @@ install: @EXTENSION_TARGET@ pkgIndex.tcl
 	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
 	$(INSTALL) -t '$(DESTDIR)$(PACKAGE_INSTALL_DIR)' @EXTENSION_TARGET@ pkgIndex.tcl
 
+# Test target, run the automated test suite
+test: @EXTENSION_TARGET@
+	cd tests && @TCLSH_PROG@ all.tcl
+
 # Clean the local build directory for rebuild against the same configuration
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
@@ -76,4 +80,4 @@ mrproper: distclean
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/autom4te.cache
 
-.PHONY: all install clean distclean mrproper
+.PHONY: all install clean distclean mrproper test
