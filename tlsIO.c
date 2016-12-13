@@ -215,8 +215,9 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 	dprintf("Calling Tls_WaitForConnect");
 	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (tlsConnect < 0) {
-		dprintf("Got an error (bytesRead = %i)", bytesRead);
+		dprintf("Got an error waiting to connect (tlsConnect = %i, *errorCodePtr = %i)", tlsConnect, *errorCodePtr);
 
+		bytesRead = -1;
 		if (*errorCodePtr == ECONNRESET) {
 			dprintf("Got connection reset");
 			/* Soft EOF */
@@ -224,7 +225,7 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			bytesRead = 0;
 		}
 
-		return(0);
+		return(bytesRead);
 	}
 
 	/*
@@ -307,6 +308,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 	unsigned long backingError;
 	State *statePtr = (State *) instanceData;
 	int written, err;
+	int tlsConnect;
 
 	*errorCodePtr = 0;
 
@@ -321,11 +323,19 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 	}
 
 	dprintf("Calling Tls_WaitForConnect");
-	written = Tls_WaitForConnect(statePtr, errorCodePtr);
-	if (written < 0) {
-		dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
+	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr);
+	if (tlsConnect < 0) {
+		dprintf("Got an error waiting to connect (tlsConnect = %i, *errorCodePtr = %i)", tlsConnect, *errorCodePtr);
 
-		return(-1);
+		written = -1;
+		if (*errorCodePtr == ECONNRESET) {
+			dprintf("Got connection reset");
+			/* Soft EOF */
+			*errorCodePtr = 0;
+			written = 0;
+		}
+
+		return(written);
 	}
 
 	if (toWrite == 0) {
