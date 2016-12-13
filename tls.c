@@ -636,6 +636,7 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     Tcl_Channel chan;		/* The channel to set a mode on. */
     State *statePtr;		/* client state for ssl socket */
     int ret = 1;
+    int err = 0;
 
     dprintf("Called");
 
@@ -660,16 +661,16 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     }
     statePtr = (State *)Tcl_GetChannelInstanceData(chan);
 
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-	int err = 0;
         dprintf("Calling Tls_WaitForConnect");
-	ret = Tls_WaitForConnect(statePtr, &err);
+	ret = Tls_WaitForConnect(statePtr, &err, 1);
         dprintf("Tls_WaitForConnect returned: %i", ret);
 
+     if (ret < 0) {
 	if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
             dprintf("Async set and err = EAGAIN");
 	    ret = 0;
 	}
+     }
 
 	if (ret < 0) {
 	    CONST char *errStr = statePtr->err;
@@ -683,9 +684,11 @@ HandshakeObjCmd(clientData, interp, objc, objv)
 	    Tcl_AppendResult(interp, "handshake failed: ", errStr, (char *) NULL);
             dprintf("Returning TCL_ERROR with handshake failed: %s", errStr);
 	    return TCL_ERROR;
-	}
-    }
+	} else {
+          ret = 1;
+        }
 
+    dprintf("Returning TCL_OK with data \"%i\"", ret);
     Tcl_SetObjResult(interp, Tcl_NewIntObj(ret));
     return TCL_OK;
     	clientData = clientData;

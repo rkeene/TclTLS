@@ -171,7 +171,7 @@ Tcl_Obj         *Tls_NewX509Obj(Tcl_Interp *interp, X509 *cert);
 void            Tls_Error(State *statePtr, char *msg);
 void            Tls_Free(char *blockPtr);
 void            Tls_Clean(State *statePtr);
-int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr);
+int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr, int handshakeFailureIsPermanent);
 
 BIO             *BIO_new_tcl(State* statePtr, int flags);
 
