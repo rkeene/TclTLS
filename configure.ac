@@ -130,9 +130,11 @@ dnl Find "pkg-config" since we need to use it
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
 
 dnl Determine if we have been asked to use a fast path if possible
-tcltls_ssl_fastpath='yes'
+tcltls_ssl_fastpath='no'
 AC_ARG_ENABLE([ssl-fastpath], AS_HELP_STRING([--disable-ssl-fastpath], [disable using the underlying file descriptor for talking directly to the SSL library]), [
-	if test "$enableval" = 'no'; then
+	if test "$enableval" = 'yes'; then
+		tcltls_ssl_fastpath='yes'
+	else
 		tcltls_ssl_fastpath='no'
 	fi
 ])
