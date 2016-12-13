@@ -226,10 +226,6 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 		return(0);
 	}
 
-	if (statePtr->flags & TLS_TCL_INIT) {
-		statePtr->flags &= ~(TLS_TCL_INIT);
-	}
-
 	/*
 	 * We need to clear the SSL error stack now because we sometimes reach
 	 * this function with leftover errors in the stack.  If BIO_read
