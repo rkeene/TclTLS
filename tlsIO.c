@@ -259,8 +259,12 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			dprintBuffer(buf, bytesRead);
 			break;
 		case SSL_ERROR_SSL:
+			dprintf("SSL negotiation error, indicating that the connection has been aborted");
+
 			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
 			*errorCodePtr = ECONNABORTED;
+			bytesRead = -1;
+
 			break;
 		case SSL_ERROR_SYSCALL:
 			backingError = ERR_get_error();
@@ -279,6 +283,16 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 				bytesRead = -1;
 			}
 
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			dprintf("Got SSL_ERROR_ZERO_RETURN, this means an EOF has been reached");
+			bytesRead = 0;
+			*errorCodePtr = 0;
+			break;
+		default:
+			dprintf("Unknown error (err = %i), mapping to EOF", err);
+			*errorCodePtr = 0;
+			bytesRead = 0;
 			break;
 	}
 
@@ -389,6 +403,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 		case SSL_ERROR_ZERO_RETURN:
 			dprintf(" closed");
 			written = 0;
+			*errorCodePtr = 0;
 			break;
 		case SSL_ERROR_SYSCALL:
 			backingError = ERR_get_error();
