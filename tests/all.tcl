@@ -18,6 +18,7 @@ if {[lsearch [namespace children] ::tcltest] == -1} {
 
 set ::tcltest::testSingleFile false
 set ::tcltest::testsDirectory [file dir [info script]]
+::tcltest::configure -verbose start
 
 # We should ensure that the testsDirectory is absolute.
 # This was introduced in Tcl 8.3+'s tcltest, so we need a catch.
