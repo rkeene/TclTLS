@@ -69,6 +69,10 @@ else
 fi
 
 automake --add-missing --copy --force-missing >/dev/null 2>/dev/null
+if ! [ -f install-sh -o -f install.sh -o -f shtool ]; then
+	echo "automake failed" >&2
+	exit 1
+fi
 
 autoconf
 

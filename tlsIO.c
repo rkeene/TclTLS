@@ -467,6 +467,11 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			bytesRead = 0;
 			*errorCodePtr = 0;
 			break;
+		case SSL_ERROR_WANT_READ:
+			dprintf("Got SSL_ERROR_WANT_READ, mapping this to EAGAIN");
+			bytesRead = -1;
+			*errorCodePtr = EAGAIN;
+			break;
 		default:
 			dprintf("Unknown error (err = %i), mapping to EOF", err);
 			*errorCodePtr = 0;
@@ -570,7 +575,9 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 			}
 			break;
 		case SSL_ERROR_WANT_WRITE:
-			dprintf(" write W BLOCK");
+			dprintf("Got SSL_ERROR_WANT_WRITE, mapping it to EAGAIN");
+			*errorCodePtr = EAGAIN;
+			written = -1;
 			break;
 		case SSL_ERROR_WANT_READ:
 			dprintf(" write R BLOCK");

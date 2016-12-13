@@ -141,17 +141,14 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 
 		if (tclErrno == EAGAIN) {
 			dprintf("It's EAGAIN");
-			ret = 0;
 		} else {
 			dprintf("It's an unepxected error: %s/%i", Tcl_ErrnoMsg(tclErrno), tclErrno);
-			Tcl_SetErrno(ECONNRESET);
-			ret = -1;
 		}
 	} else {
 		dprintf("Successfully wrote some data");
 	}
 
-	if (ret != -1) {
+	if (ret != -1 || (ret == -1 && tclErrno == EAGAIN)) {
 		if (BIO_should_read(bio)) {
 			dprintf("Setting should retry read flag");
 
@@ -197,17 +194,14 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 
 		if (tclErrno == EAGAIN) {
 			dprintf("It's EAGAIN");
-			ret = 0;
 		} else {
 			dprintf("It's an unepxected error: %s/%i", Tcl_ErrnoMsg(tclErrno), tclErrno);
-			Tcl_SetErrno(ECONNRESET);
-			ret = -1;
 		}
 	} else {
 		dprintf("Successfully read some data");
 	}
 
-	if (ret != -1) {
+	if (ret != -1 || (ret == -1 && tclErrno == EAGAIN)) {
 		if (BIO_should_write(bio)) {
 			dprintf("Setting should retry write flag");
 

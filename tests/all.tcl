@@ -9,7 +9,8 @@
 # 
 # RCS: @(#) $Id: all.tcl,v 1.5 2000/08/15 18:45:01 hobbs Exp $
 
-set auto_path [linsert $auto_path 0 [file normalize [file join [file dirname [info script]] ..]]]
+#set auto_path [linsert $auto_path 0 [file normalize [file join [file dirname [info script]] ..]]]
+set auto_path [linsert $auto_path 0 [file normalize [pwd]]]
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
     package require tcltest

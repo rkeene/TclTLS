@@ -58,7 +58,7 @@ install: @EXTENSION_TARGET@ pkgIndex.tcl
 
 # Test target, run the automated test suite
 test: @EXTENSION_TARGET@
-	cd tests && @TCLSH_PROG@ all.tcl
+	@TCLSH_PROG@ @srcdir@/tests/all.tcl $(TESTFLAGS) -load "lappend auto_path $(shell pwd)"
 
 # Clean the local build directory for rebuild against the same configuration
 clean:
