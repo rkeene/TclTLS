@@ -37,7 +37,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-tls.tcl.h: @srcdir@/tls.tcl
+tls.tcl.h: @srcdir@/tls.tcl Makefile
 	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
 	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
 	rm -f tls.tcl.h.new.1
@@ -75,8 +75,7 @@ clean:
 	rm -f tcltls.@SHOBJEXT@
 	rm -f tcltls.@SHOBJEXT@.a tcltls.@SHOBJEXT@.def
 	rm -f tcltls.a.new tcltls.a
-	rm -f tls.tcl.h.new.1 tls.tcl.h.new.2
-	@if [ '@srcdir@' != '.' ]; then echo rm -f tls.tcl.h; rm -f tls.tcl.h; fi
+	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
 
 # Clean the local build directory back to what it was after unpacking the
 # distribution tarball
@@ -92,6 +91,5 @@ mrproper: distclean
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/autom4te.cache
-	rm -f @srcdir@/tls.tcl.h
 
 .PHONY: all install uninstall clean distclean mrproper test
