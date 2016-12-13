@@ -111,7 +111,7 @@ BIO *BIO_new_tcl(State *statePtr, int flags) {
 static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	Tcl_Channel chan;
 	int ret;
-	int tclEofChan;
+	int tclEofChan, tclErrno;
 
 	chan = Tls_GetParent((State *) BIO_get_data(bio), 0);
 
@@ -120,24 +120,41 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	ret = Tcl_WriteRaw(chan, buf, bufLen);
 
 	tclEofChan = Tcl_Eof(chan);
+	tclErrno = Tcl_GetErrno();
 
 	dprintf("[chan=%p] BioWrite(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
 
 	BIO_clear_flags(bio, BIO_FLAGS_WRITE | BIO_FLAGS_SHOULD_RETRY);
 
-	if (ret == 0) {
-		if (tclEofChan) {
-			dprintf("Unable to write bytes and EOF is set, returning in failure");
+	if (tclEofChan && ret <= 0) {
+		dprintf("Got %i from Tcl_WriteRaw, and EOF is set; ret = -1", ret);
+		Tcl_SetErrno(ECONNRESET);
+		ret = -1;
+	} else if (ret == 0) {
+		dprintf("Got 0 from Tcl_WriteRaw, and EOF is not set; ret = 0");
+		dprintf("Setting retry read flag");
+		BIO_set_retry_read(bio);
+	} else if (ret < 0) {
+		dprintf("We got some kind of I/O error");
+
+		if (tclErrno == EAGAIN) {
+			dprintf("It's EAGAIN");
+			ret = 0;
+		} else {
+			dprintf("It's an unepxected error: %s/%i", Tcl_ErrnoMsg(tclErrno), tclErrno);
 			Tcl_SetErrno(ECONNRESET);
 			ret = -1;
-		} else {
-			dprintf("Unable to write bytes but we do not have EOF set... will retry");
-			BIO_set_retry_write(bio);
 		}
+	} else {
+		dprintf("Successfully wrote some data");
 	}
 
-	if (BIO_should_read(bio)) {
-		BIO_set_retry_read(bio);
+	if (ret != -1) {
+		if (BIO_should_read(bio)) {
+			dprintf("Setting should retry read flag");
+
+			BIO_set_retry_read(bio);
+		}
 	}
 
 	return(ret);
@@ -146,7 +163,7 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 static int BioRead(BIO *bio, char *buf, int bufLen) {
 	Tcl_Channel chan;
 	int ret = 0;
-	int tclEofChan;
+	int tclEofChan, tclErrno;
 
 	chan = Tls_GetParent((State *) BIO_get_data(bio), 0);
 
@@ -159,30 +176,41 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 	ret = Tcl_ReadRaw(chan, buf, bufLen);
 
 	tclEofChan = Tcl_Eof(chan);
+	tclErrno = Tcl_GetErrno();
 
-	dprintf("[chan=%p] BioRead(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
+	dprintf("[chan=%p] BioRead(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, tclErrno);
 
 	BIO_clear_flags(bio, BIO_FLAGS_READ | BIO_FLAGS_SHOULD_RETRY);
 
-	if (BIO_should_write(bio)) {
-		dprintf("Setting should retry write flag");
+	if (tclEofChan && ret <= 0) {
+		dprintf("Got %i from Tcl_Read or Tcl_ReadRaw, and EOF is set; ret = -1", ret);
+		Tcl_SetErrno(ECONNRESET);
+		ret = -1;
+	} else if (ret == 0) {
+		dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set; ret = 0");
+		dprintf("Setting retry read flag");
+		BIO_set_retry_read(bio);
+	} else if (ret < 0) {
+		dprintf("We got some kind of I/O error");
 
-		BIO_set_retry_write(bio);
-	}
-
-	if (ret == 0) {
-		if (tclEofChan) {
-			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is set; ret = -1");
+		if (tclErrno == EAGAIN) {
+			dprintf("It's EAGAIN");
+			ret = 0;
+		} else {
+			dprintf("It's an unepxected error: %s/%i", Tcl_ErrnoMsg(tclErrno), tclErrno);
 			Tcl_SetErrno(ECONNRESET);
 			ret = -1;
-		} else {
-			dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set; ret = 0");
-			dprintf("Setting retry read flag");
-			BIO_set_retry_read(bio);
-			ret = 0;
 		}
 	} else {
-		dprintf("Got non-zero from Tcl_Read or Tcl_ReadRaw; ret == %i", ret);
+		dprintf("Successfully read some data");
+	}
+
+	if (ret != -1) {
+		if (BIO_should_write(bio)) {
+			dprintf("Setting should retry write flag");
+
+			BIO_set_retry_write(bio);
+		}
 	}
 
 	dprintf("BioRead(%p, <buf>, %d) [%p] returning %i", (void *) bio, bufLen, (void *) chan, ret);
