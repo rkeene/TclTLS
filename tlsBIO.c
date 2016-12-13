@@ -40,13 +40,15 @@ static int BioFree  _ANSI_ARGS_((BIO *h));
 
 BIO *BIO_new_tcl(State *statePtr, int flags) {
 	BIO *bio;
+	static BIO_METHOD *BioMethods = NULL;
+#ifdef TCLTLS_SSL_USE_FASTPATH
 	Tcl_Channel parentChannel;
 	const Tcl_ChannelType *parentChannelType;
-	static BIO_METHOD *BioMethods = NULL;
 	void *parentChannelFdIn_p, *parentChannelFdOut_p;
 	int parentChannelFdIn, parentChannelFdOut, parentChannelFd;
 	int validParentChannelFd;
 	int tclGetChannelHandleRet;
+#endif
 
 	dprintf("BIO_new_tcl() called");
 
