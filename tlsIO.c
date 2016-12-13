@@ -244,10 +244,14 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 
 	err = SSL_get_error(statePtr->ssl, bytesRead);
 
-	if (BIO_should_retry(statePtr->bio)) {
-		dprintf("I/O failed, will retry based on EAGAIN");
-		*errorCodePtr = EAGAIN;
+#if 0
+	if (bytesRead <= 0) {
+		if (BIO_should_retry(statePtr->bio)) {
+			dprintf("I/O failed, will retry based on EAGAIN");
+			*errorCodePtr = EAGAIN;
+		}
 	}
+#endif
 
 	switch (err) {
 		case SSL_ERROR_NONE:
@@ -260,14 +264,18 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 		case SSL_ERROR_SYSCALL:
 			backingError = ERR_get_error();
 
-			if (backingError == 0 && err == 0) {
+			if (backingError == 0 && bytesRead == 0) {
 				dprintf("EOF reached")
 				*errorCodePtr = 0;
 				bytesRead = 0;
+			} else if (backingError == 0 && bytesRead == -1) {
+				dprintf("I/O error occured (errno = %lu)", (unsigned long) Tcl_GetErrno());
+				*errorCodePtr = Tcl_GetErrno();
+				bytesRead = -1;
 			} else {
 				dprintf("I/O error occured (backingError = %lu)", backingError);
 				*errorCodePtr = backingError;
-				bytesRead = 0;
+				bytesRead = -1;
 			}
 
 			break;
@@ -296,6 +304,7 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
  */
 
 static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, int *errorCodePtr) {
+	unsigned long backingError;
 	State *statePtr = (State *) instanceData;
 	int written, err;
 
@@ -372,9 +381,22 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 			written = 0;
 			break;
 		case SSL_ERROR_SYSCALL:
-			*errorCodePtr = Tcl_GetErrno();
-			dprintf(" [%d] syscall errr: %d", written, *errorCodePtr);
-			written = -1;
+			backingError = ERR_get_error();
+
+			if (backingError == 0 && written == 0) {
+				dprintf("EOF reached")
+				*errorCodePtr = 0;
+				written = 0;
+			} else if (backingError == 0 && written == -1) {
+				dprintf("I/O error occured (errno = %lu)", (unsigned long) Tcl_GetErrno());
+				*errorCodePtr = Tcl_GetErrno();
+				written = -1;
+			} else {
+				dprintf("I/O error occured (backingError = %lu)", backingError);
+				*errorCodePtr = backingError;
+				written = -1;
+			}
+
 			break;
 		case SSL_ERROR_SSL:
 			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, written));
