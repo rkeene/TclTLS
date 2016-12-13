@@ -160,20 +160,20 @@ static int TlsBlockModeProc(ClientData instanceData, int mode) {
  *
  *-------------------------------------------------------------------
  */
-static int
-TlsCloseProc(ClientData instanceData,	/* The socket to close. */
-             Tcl_Interp *interp)	/* For error reporting - unused. */
-{
-    State *statePtr = (State *) instanceData;
+static int TlsCloseProc(ClientData instanceData, Tcl_Interp *interp) {
+	State *statePtr = (State *) instanceData;
 
-    dprintf("TlsCloseProc(%p)", (void *) statePtr);
+	dprintf("TlsCloseProc(%p)", (void *) statePtr);
 
-    Tls_Clean(statePtr);
-    Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
+	Tls_Clean(statePtr);
+	Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
 
-    dprintf("Returning TCL_OK");
+	dprintf("Returning TCL_OK");
 
-    return TCL_OK;
+	return(TCL_OK);
+
+	/* Interp is unused. */
+	interp = interp;
 }
 
 /*
@@ -267,7 +267,7 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			bytesRead = 0;
 			break;
 	}
-input:
+
 	dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
 	return bytesRead;
 }
@@ -316,7 +316,16 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 
 	if (toWrite == 0) {
 		dprintf("zero-write");
-		BIO_flush(statePtr->bio);
+		err = BIO_flush(statePtr->bio);
+
+		if (err <= 0) {
+			dprintf("Flushing failed");
+
+			*errorCodePtr = EIO;
+			written = 0;
+			return(-1);
+		}
+
 		written = 0;
 		*errorCodePtr = 0;
 		return(0);
@@ -371,7 +380,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 			dprintf(" unknown err: %d", err);
 			break;
 	}
-output:
+
 	dprintf("Output(%d) -> %d", toWrite, written);
 	return(written);
 }
@@ -777,7 +786,11 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 		if (err > 0) {
 			dprintf("That seems to have gone okay");
 
-			BIO_flush(statePtr->bio);
+			err = BIO_flush(statePtr->bio);
+
+			if (err <= 0) {
+				dprintf("Flushing the lower layers failed, this will probably terminate this session");
+			}
 		}
 
 		rc = SSL_get_error(statePtr->ssl, err);
