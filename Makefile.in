@@ -10,6 +10,7 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
 VPATH = @srcdir@
+srcdir = @srcdir@
 
 all: @EXTENSION_TARGET@
 
@@ -32,8 +33,8 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-tls.tcl.h: @srcdir@/tls.tcl
-	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
+tls.tcl.h: $(srcdir)/tls.tcl
+	od -A n -v -t xC < '$(srcdir)/tls.tcl' > tls.tcl.h.new.1
 	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
 	rm -f tls.tcl.h.new.1
 	mv tls.tcl.h.new.2 tls.tcl.h
