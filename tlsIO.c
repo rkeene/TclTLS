@@ -208,8 +208,6 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 	if (statePtr->flags & TLS_TCL_CALLBACK) {
 		/* don't process any bytes while verify callback is running */
 		dprintf("Callback is running, reading 0 bytes");
-
-		bytesRead = 0;
 		return(0);
 	}
 
@@ -224,7 +222,8 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			*errorCodePtr = 0;
 			bytesRead = 0;
 		}
-		return(bytesRead);
+
+		return(0);
 	}
 
 	if (statePtr->flags & TLS_TCL_INIT) {
@@ -269,7 +268,7 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 	}
 
 	dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
-	return bytesRead;
+	return(bytesRead);
 }
 
 /*
