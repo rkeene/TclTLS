@@ -10,6 +10,7 @@ PACKAGE_VERSION = @PACKAGE_VERSION@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
 VPATH = @srcdir@
+srcdir = @srcdir@
 
 all: @EXTENSION_TARGET@
 
@@ -24,7 +25,7 @@ tcltls.@AREXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
-tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h Makefile
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h Makefile
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
@@ -32,9 +33,11 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-@srcdir@/tls.tcl.h: @srcdir@/tls.tcl
-	@XXD@ -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
-	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
+tls.tcl.h: $(srcdir)/tls.tcl
+	od -A n -v -t xC < '$(srcdir)/tls.tcl' > tls.tcl.h.new.1
+	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
+	rm -f tls.tcl.h.new.1
+	mv tls.tcl.h.new.2 tls.tcl.h
 
 # Create default DH parameters
 dh_params.h: @srcdir@/gen_dh_params Makefile
@@ -51,11 +54,16 @@ install: @EXTENSION_TARGET@ pkgIndex.tcl
 	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
 	$(INSTALL) -t '$(DESTDIR)$(PACKAGE_INSTALL_DIR)' @EXTENSION_TARGET@ pkgIndex.tcl
 
+# Test target, run the automated test suite
+test: @EXTENSION_TARGET@
+	cd tests && @TCLSH_PROG@ all.tcl
+
 # Clean the local build directory for rebuild against the same configuration
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
 	rm -f tcltls.a.new tcltls.a
+	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
 
 # Clean the local build directory back to what it was after unpacking the
 # distribution tarball
@@ -68,9 +76,8 @@ distclean: clean
 # Clean the local build directory back to only thing things that exist in
 # version control system
 mrproper: distclean
-	rm -f @srcdir@/tls.tcl.h
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/autom4te.cache
 
-.PHONY: all install clean distclean mrproper
+.PHONY: all install clean distclean mrproper test

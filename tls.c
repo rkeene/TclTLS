@@ -132,7 +132,7 @@ void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
 		Tcl_MutexUnlock(&locks[n]);
 	}
 
-	dprintf("Returning");
+	/* dprintf("Returning"); */
 
 	return;
 	file = file;
@@ -636,6 +636,7 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     Tcl_Channel chan;		/* The channel to set a mode on. */
     State *statePtr;		/* client state for ssl socket */
     int ret = 1;
+    int err = 0;
 
     dprintf("Called");
 
@@ -660,16 +661,16 @@ HandshakeObjCmd(clientData, interp, objc, objv)
     }
     statePtr = (State *)Tcl_GetChannelInstanceData(chan);
 
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-	int err = 0;
         dprintf("Calling Tls_WaitForConnect");
-	ret = Tls_WaitForConnect(statePtr, &err);
+	ret = Tls_WaitForConnect(statePtr, &err, 1);
         dprintf("Tls_WaitForConnect returned: %i", ret);
 
+     if (ret < 0) {
 	if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
             dprintf("Async set and err = EAGAIN");
 	    ret = 0;
 	}
+     }
 
 	if (ret < 0) {
 	    CONST char *errStr = statePtr->err;
@@ -683,9 +684,11 @@ HandshakeObjCmd(clientData, interp, objc, objv)
 	    Tcl_AppendResult(interp, "handshake failed: ", errStr, (char *) NULL);
             dprintf("Returning TCL_ERROR with handshake failed: %s", errStr);
 	    return TCL_ERROR;
-	}
-    }
+	} else {
+          ret = 1;
+        }
 
+    dprintf("Returning TCL_OK with data \"%i\"", ret);
     Tcl_SetObjResult(interp, Tcl_NewIntObj(ret));
     return TCL_OK;
     	clientData = clientData;
@@ -734,35 +737,28 @@ ImportObjCmd(clientData, interp, objc, objv)
 #ifndef OPENSSL_NO_TLSEXT
     char *servername	= NULL;	/* hostname for Server Name Indication */
 #endif
-#if defined(NO_SSL2)
-    int ssl2 = 0;
-#else
-    int ssl2 = 1;
-#endif
-#if defined(NO_SSL3)
-    int ssl3 = 0;
-#else
-    int ssl3 = 1;
-#endif
-#if defined(NO_TLS1)
-    int tls1 = 0;
-#else
-    int tls1 = 1;
-#endif
-#if defined(NO_TLS1_1)
-    int tls1_1 = 0;
-#else
-    int tls1_1 = 1;
-#endif
-#if defined(NO_TLS1_2)
-    int tls1_2 = 0;
-#else
-    int tls1_2 = 1;
-#endif
+    int ssl2 = 0, ssl3 = 0;
+    int tls1 = 1, tls1_1 = 1, tls1_2 = 1;
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
     dprintf("Called");
+
+#if defined(NO_TLS1) && defined(NO_TLS1_1) && defined(NO_TLS1_2) && defined(NO_SSL3) && !defined(NO_SSL2)
+    ssl2 = 1;
+#endif
+#if defined(NO_TLS1) && defined(NO_TLS1_1) && defined(NO_TLS1_2) && defined(NO_SSL2) && !defined(NO_SSL3)
+    ssl3 = 1;
+#endif
+#if defined(NO_TLS1)
+    tls1 = 0;
+#endif
+#if defined(NO_TLS1_1)
+    tls1_1 = 0;
+#endif
+#if defined(NO_TLS1_2)
+    tls1_2 = 0;
+#endif
 
     if (objc < 2) {
 	Tcl_WrongNumArgs(interp, 1, objv, "channel ?options?");
@@ -1662,7 +1658,7 @@ void Tls_Clean(State *statePtr) {
 int Tls_Init(Tcl_Interp *interp) {
 	const char tlsTclInitScript[] = {
 #include "tls.tcl.h"
-            , 0x00
+            0x00
 	};
 
         dprintf("Called");
