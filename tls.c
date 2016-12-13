@@ -126,6 +126,9 @@ void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
 	} else {
 		Tcl_MutexUnlock(&locks[n]);
 	}
+	return;
+	file = file;
+	line = line;
 }
 
 unsigned long CryptoThreadIdCallback(void) {
@@ -403,6 +406,9 @@ static int
 PasswordCallback(char *buf, int size, int verify)
 {
     return -1;
+    	buf = buf;
+	size = size;
+	verify = verify;
 }
 #else
 static int
@@ -448,6 +454,7 @@ PasswordCallback(char *buf, int size, int verify, void *udata)
     } else {
 	return -1;
     }
+    	verify = verify;
 }
 #endif
 
@@ -583,6 +590,7 @@ CiphersObjCmd(clientData, interp, objc, objv)
 
     Tcl_SetObjResult( interp, objPtr);
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
@@ -664,6 +672,7 @@ HandshakeObjCmd(clientData, interp, objc, objv)
 
     Tcl_SetObjResult(interp, Tcl_NewIntObj(ret));
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
@@ -934,6 +943,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     Tcl_SetResult(interp, (char *) Tcl_GetChannelName(statePtr->self),
 	    TCL_VOLATILE);
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
@@ -989,6 +999,7 @@ UnimportObjCmd(clientData, interp, objc, objv)
     }
 
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
@@ -1332,6 +1343,7 @@ StatusObjCmd(clientData, interp, objc, objv)
     }
     Tcl_SetObjResult( interp, objPtr);
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
@@ -1362,6 +1374,9 @@ VersionObjCmd(clientData, interp, objc, objv)
 
     Tcl_SetObjResult(interp, objPtr);
     return TCL_OK;
+    	clientData = clientData;
+    	objc = objc;
+    	objv = objv;
 }
 
 /*
@@ -1526,6 +1541,7 @@ MiscObjCmd(clientData, interp, objc, objv)
 	break;
     }
     return TCL_OK;
+    	clientData = clientData;
 }
 
 /*
