@@ -120,10 +120,7 @@ static int	TlsLibInit(int uninitialize);
 static Tcl_Mutex *locks = NULL;
 static Tcl_Mutex init_mx;
 
-static void          CryptoThreadLockCallback(int mode, int n, const char *file, int line);
-static unsigned long CryptoThreadIdCallback(void);
-
-static void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
+void CryptoThreadLockCallback(int mode, int n, const char *file, int line) {
 	if (mode & CRYPTO_LOCK) {
 		Tcl_MutexLock(&locks[n]);
 	} else {
@@ -131,7 +128,7 @@ static void CryptoThreadLockCallback(int mode, int n, const char *file, int line
 	}
 }
 
-static unsigned long CryptoThreadIdCallback(void) {
+unsigned long CryptoThreadIdCallback(void) {
 	return (unsigned long) Tcl_GetCurrentThread();
 }
 #endif /* OPENSSL_THREADS */
@@ -1727,6 +1724,7 @@ static int TlsLibInit(int uninitialize) {
 		}
 
 		dprintf("Asked to uninitialize");
+
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
 		Tcl_MutexLock(&init_mx);
 
@@ -1754,11 +1752,12 @@ static int TlsLibInit(int uninitialize) {
 
 	dprintf("Called");
 
+#if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
+	Tcl_MutexLock(&init_mx);
+#endif
 	initialized = 1;
 
 #if defined(OPENSSL_THREADS) && defined(TCL_THREADS)
-	Tcl_MutexLock(&init_mx);
-
 	num_locks = CRYPTO_num_locks();
 	locks = malloc(sizeof(*locks) * num_locks);
 
