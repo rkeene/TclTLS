@@ -54,7 +54,7 @@ dh_params.h: @srcdir@/gen_dh_params Makefile
 # Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
 	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
-	$(INSTALL) -t '$(DESTDIR)$(PACKAGE_INSTALL_DIR)' @EXTENSION_TARGET@ pkgIndex.tcl
+	$(INSTALL) -c @EXTENSION_TARGET@ pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
 
 # Test target, run the automated test suite
 test: @EXTENSION_TARGET@
