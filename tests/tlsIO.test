@@ -168,7 +168,7 @@ if {$doTestsWithRemoteServer} {
 	    if {[catch {set remoteProcChan \
 		    [open "|[list $::tcltest::tcltest $remoteFile \
 		    -serverIsSilent -port $remoteServerPort \
-		    -address $remoteServerIP]" w+]} msg] == 0} {
+		    -address $remoteServerIP] 2> /dev/null" w+]} msg] == 0} {
 		after 1000
 		if {[catch {set commandSocket [tls::socket -cafile $caCert \
 			-certfile $clientCert -keyfile $clientKey \
@@ -322,7 +322,7 @@ test tlsIO-2.1 {tcp connection} {socket stdio} {
 	puts $x
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
 	-keyfile $clientKey 127.0.0.1 8828} msg]} {
@@ -364,7 +364,7 @@ test tlsIO-2.2 {tcp connection with client port specified} {socket stdio} {
 	close $f
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     global port
     if {[catch {tls::socket -myport $port \
@@ -404,7 +404,7 @@ test tlsIO-2.3 {tcp connection with client interface specified} {socket stdio} {
 	close $f
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     if {[catch {tls::socket -myaddr 127.0.0.1 \
 	-certfile $clientCert -cafile $caCert \
@@ -442,7 +442,7 @@ test tlsIO-2.4 {tcp connection with server interface specified} {socket stdio} {
 	close $f
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
 	-keyfile $clientKey [info hostname] 8831} sock]} {
@@ -479,7 +479,7 @@ test tlsIO-2.5 {tcp connection with redundant server port} {socket stdio} {
 	close $f
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     if {[catch {tls::socket -certfile $clientCert -cafile $caCert \
 	-keyfile $clientKey 127.0.0.1 8832} sock]} {
@@ -535,7 +535,7 @@ test tlsIO-2.7 {echo server, one line} {socket stdio} {
 	puts done
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f
     set s [tls::socket -certfile $clientCert -cafile $caCert \
 	-keyfile $clientKey 127.0.0.1 8834]
@@ -582,7 +582,7 @@ test tlsIO-2.8 {echo server, loop 50 times, single connection} {socket stdio} {
 	puts "done $i"
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f
     set s [tls::socket -certfile $clientCert -cafile $caCert \
 	-keyfile $clientKey 127.0.0.1 8835]
@@ -707,7 +707,7 @@ test tlsIO-2.12 {tcp connection; no certificates specified} \
 	puts $x
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f x
     if {[catch {tls::socket 127.0.0.1 8828} msg]} {
         set x $msg
@@ -734,7 +734,7 @@ test tlsIO-3.1 {socket conflict} {socket stdio} {
 	close $f
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r+]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     gets $f
     set x [list [catch {tls::socket \
 	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
@@ -783,7 +783,7 @@ test tlsIO-3.2 {server with several clients} {socket stdio} {
 	puts $x
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r+]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     set x [gets $f]
     set s1 [tls::socket \
 	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
@@ -798,11 +798,11 @@ test tlsIO-3.2 {server with several clients} {socket stdio} {
 	    127.0.0.1 8828]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
-	puts $s1 hello,s1
+	puts $s1 hello,tlsIO-3.2,s1
 	gets $s1
-	puts $s2 hello,s2
+	puts $s2 hello,tlsIO-3.2,s2
 	gets $s2
-	puts $s3 hello,s3
+	puts $s3 hello,tlsIO-3.2,s3
 	gets $s3
     }
     close $s1
@@ -834,11 +834,11 @@ test tlsIO-4.1 {server with several clients} {socket stdio} {
 	gets stdin
     }
     close $f
-    set p1 [open "|[list $::tcltest::tcltest script]" r+]
+    set p1 [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     fconfigure $p1 -buffering line
-    set p2 [open "|[list $::tcltest::tcltest script]" r+]
+    set p2 [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     fconfigure $p2 -buffering line
-    set p3 [open "|[list $::tcltest::tcltest script]" r+]
+    set p3 [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     fconfigure $p3 -buffering line
     proc accept {s a p} {
 	fconfigure $s -buffering line
@@ -932,7 +932,7 @@ test tlsIO-6.1 {accept callback error} {socket stdio} {
     }
     puts $f [list tls::socket -cafile $caCert 127.0.0.1 8848]
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r+]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r+]
     proc bgerror args {
 	global x
 	set x $args
@@ -970,7 +970,7 @@ test tlsIO-7.1 {testing socket specific options} {socket stdio} {
 	after cancel $timer
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f
     set s [tls::socket \
 	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
@@ -1003,7 +1003,7 @@ test tlsIO-7.2 {testing socket specific options} {socket stdio} {
 	after cancel $timer
     }
     close $f
-    set f [open "|[list $::tcltest::tcltest script]" r]
+    set f [open "|[list $::tcltest::tcltest script] 2> /dev/null" r]
     gets $f
     set s [tls::socket \
 	    -certfile $clientCert -cafile $caCert -keyfile $clientKey \
@@ -1453,11 +1453,11 @@ test tlsIO-11.7 {server with several clients} {socket doTestsWithRemoteServer} {
 	    $remoteServerIP 8836]
     fconfigure $s3 -buffering line
     for {set i 0} {$i < 100} {incr i} {
-	puts $s1 hello,s1
+	puts $s1 hello,tlsIO-11.7,s1
 	gets $s1
-	puts $s2 hello,s2
+	puts $s2 hello,tlsIO-11.7,s2
 	gets $s2
-	puts $s3 hello,s3
+	puts $s3 hello,tlsIO-11.7,s3
 	gets $s3
     }
     close $s1
@@ -2055,6 +2055,11 @@ test tls-bug58-1.0 {test protocol negotiation failure} {socket} {
     puts $c a ; flush $c
     after 5000 [list set ::done timeout]
     vwait ::done
+    switch -exact -- $::done {
+        "handshake failed: wrong ssl version" {
+            set ::done "handshake failed: wrong version number"
+        }
+    }
     set ::done
 } {handshake failed: wrong version number}
 

@@ -16,5 +16,7 @@ tls_openssl_bio.o
 tlsIO.o
 tlsX509.o
 tls.tcl.h
+tls.tcl.h.new.1
+tls.tcl.h.new.2
 build/work
 dh_params.h

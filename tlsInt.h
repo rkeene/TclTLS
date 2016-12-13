@@ -21,6 +21,7 @@
 #include "tls.h"
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef __WIN32__
 #define WIN32_LEAN_AND_MEAN
@@ -65,9 +66,45 @@
 #endif
 
 #ifdef TCLEXT_TCLTLS_DEBUG
-#define dprintf(...) { fprintf(stderr, "%s:%i:", __func__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
+#include <ctype.h>
+#define dprintf(...) { \
+                       char dprintfBuffer[8192], *dprintfBuffer_p; \
+                       dprintfBuffer_p = &dprintfBuffer[0]; \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():", __FILE__, __LINE__, __func__); \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, __VA_ARGS__); \
+                       fprintf(stderr, "%s\n", dprintfBuffer); \
+                     }
+#define dprintBuffer(bufferName, bufferLength) { \
+                                                 int dprintBufferIdx; \
+                                                 unsigned char dprintBufferChar; \
+                                                 fprintf(stderr, "%s:%i:%s():%s[%llu]={", __FILE__, __LINE__, __func__, #bufferName, (unsigned long long) bufferLength); \
+                                                 for (dprintBufferIdx = 0; dprintBufferIdx < bufferLength; dprintBufferIdx++) { \
+                                                         dprintBufferChar = bufferName[dprintBufferIdx]; \
+                                                         if (isalpha(dprintBufferChar) || isdigit(dprintBufferChar)) { \
+                                                                 fprintf(stderr, "'%c' ", dprintBufferChar); \
+                                                         } else { \
+                                                                 fprintf(stderr, "%02x ", (unsigned int) dprintBufferChar); \
+                                                         }; \
+                                                 }; \
+                                                 fprintf(stderr, "}\n"); \
+                                               }
+#define dprintFlags(statePtr) { \
+                                char dprintfBuffer[8192], *dprintfBuffer_p; \
+                                dprintfBuffer_p = &dprintfBuffer[0]; \
+                                dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():%s->flags=0", __FILE__, __LINE__, __func__, #statePtr); \
+                                if (((statePtr)->flags & TLS_TCL_ASYNC) == TLS_TCL_ASYNC) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_ASYNC"); }; \
+                                if (((statePtr)->flags & TLS_TCL_SERVER) == TLS_TCL_SERVER) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_SERVER"); }; \
+                                if (((statePtr)->flags & TLS_TCL_INIT) == TLS_TCL_INIT) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_INIT"); }; \
+                                if (((statePtr)->flags & TLS_TCL_DEBUG) == TLS_TCL_DEBUG) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_DEBUG"); }; \
+                                if (((statePtr)->flags & TLS_TCL_CALLBACK) == TLS_TCL_CALLBACK) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_CALLBACK"); }; \
+                                if (((statePtr)->flags & TLS_TCL_HANDSHAKE_FAILED) == TLS_TCL_HANDSHAKE_FAILED) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_HANDSHAKE_FAILED"); }; \
+                                if (((statePtr)->flags & TLS_TCL_FASTPATH) == TLS_TCL_FASTPATH) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_FASTPATH"); }; \
+                                fprintf(stderr, "%s\n", dprintfBuffer); \
+                              }
 #else
 #define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
+#define dprintBuffer(bufferName, bufferLength) /**/
+#define dprintFlags(statePtr) /**/
 #endif
 
 #define TCLTLS_SSL_ERROR(ssl,err) ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
@@ -88,7 +125,7 @@
 #define TLS_TCL_HANDSHAKE_FAILED (1<<5) /* Set on handshake failures and once
                                          * set, all further I/O will result
                                          * in ECONNABORTED errors. */
-
+#define TLS_TCL_FASTPATH (1<<6)         /* The parent channel is being used directly by the SSL library */
 #define TLS_TCL_DELAY (5)
 
 /*
@@ -128,14 +165,16 @@ typedef struct State {
  * Forward declarations
  */
 Tcl_ChannelType *Tls_ChannelType(void);
-Tcl_Channel     Tls_GetParent(State *statePtr);
+Tcl_Channel     Tls_GetParent(State *statePtr, int maskFlags);
 
 Tcl_Obj         *Tls_NewX509Obj(Tcl_Interp *interp, X509 *cert);
 void            Tls_Error(State *statePtr, char *msg);
 void            Tls_Free(char *blockPtr);
 void            Tls_Clean(State *statePtr);
-int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr);
+int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr, int handshakeFailureIsPermanent);
 
 BIO             *BIO_new_tcl(State* statePtr, int flags);
+
+#define PTR2INT(x) ((int) ((intptr_t) (x)))
 
 #endif /* _TLSINT_H */

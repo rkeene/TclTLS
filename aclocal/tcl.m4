@@ -113,6 +113,13 @@ AC_DEFUN([TCLEXT_INIT], [
 	AC_DEFINE_UNQUOTED([MODULE_SCOPE], [static], [Define how to declare a function should only be visible to the current module])
 
 	TCLEXT_BUILD='shared'
+	AC_ARG_ENABLE([shared], AS_HELP_STRING([--disable-shared], [disable the shared build (same as --enable-static)]), [
+		if test "$enableval" = "no"; then
+			TCLEXT_BUILD='static'
+			TCL_SUPPORTS_STUBS=0
+		fi
+	])
+
 	AC_ARG_ENABLE([static], AS_HELP_STRING([--enable-static], [enable a static build]), [
 		if test "$enableval" = "yes"; then
 			TCLEXT_BUILD='static'
@@ -156,7 +163,11 @@ AC_DEFUN([TCLEXT_INIT], [
 	AC_SUBST(TCL_DEFS)
 
 	dnl Needed for package installation
-	TCL_PACKAGE_PATH="`echo "${TCL_PACKAGE_PATH}" | sed 's@  *$''@@' | awk '{ print [$]1 }'`"
+	if test "$prefix" = 'NONE' -a "$exec_prefix" = 'NONE' -a "${libdir}" = '${exec_prefix}/lib'; then
+		TCL_PACKAGE_PATH="`echo "${TCL_PACKAGE_PATH}" | sed 's@  *$''@@' | awk '{ print [$]1 }'`"
+	else
+		TCL_PACKAGE_PATH='${libdir}'
+	fi
 	AC_SUBST(TCL_PACKAGE_PATH)
 
 	AC_SUBST(LIBS)

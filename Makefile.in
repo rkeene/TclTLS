@@ -5,10 +5,15 @@ CFLAGS = @CFLAGS@ @SHOBJFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I@srcdir@ -I. @DEFS@ @TCL_DEFS@
 LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
 LIBS = @LIBS@
-INSTALL = @INSTALL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+libdir = @libdir@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
 VPATH = @srcdir@
 
 all: @EXTENSION_TARGET@
@@ -24,7 +29,7 @@ tcltls.@AREXT@: tls.o tls_@TCLTLS_SSL_LIB@_bio.o tlsIO.o tlsX509.o Makefile
 	mv tcltls.a.new tcltls.a
 
 # Dependencies for all our targets
-tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h @srcdir@/tls.tcl.h dh_params.h Makefile
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
 tls_openssl_bio.o: @srcdir@/tls_openssl_bio.c @srcdir@/tlsInt.h Makefile
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
@@ -32,9 +37,11 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-@srcdir@/tls.tcl.h: @srcdir@/tls.tcl
-	@XXD@ -i < '@srcdir@/tls.tcl' > '@srcdir@/tls.tcl.h.new'
-	mv '@srcdir@/tls.tcl.h.new' '@srcdir@/tls.tcl.h'
+tls.tcl.h: @srcdir@/tls.tcl Makefile
+	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
+	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
+	rm -f tls.tcl.h.new.1
+	mv tls.tcl.h.new.2 tls.tcl.h
 
 # Create default DH parameters
 dh_params.h: @srcdir@/gen_dh_params Makefile
@@ -49,13 +56,26 @@ dh_params.h: @srcdir@/gen_dh_params Makefile
 # Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
 	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
-	$(INSTALL) -t '$(DESTDIR)$(PACKAGE_INSTALL_DIR)' @EXTENSION_TARGET@ pkgIndex.tcl
+	$(INSTALL_PROGRAM) @EXTENSION_TARGET@ '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_DATA)    pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# A convienent helper to undo the installation just done
+uninstall:
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/@EXTENSION_TARGET@'
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/pkgIndex.tcl'
+	-rmdir '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# Test target, run the automated test suite
+test: @EXTENSION_TARGET@
+	@TCLSH_PROG@ @srcdir@/tests/all.tcl $(TESTFLAGS) -load "lappend auto_path $(shell pwd)"
 
 # Clean the local build directory for rebuild against the same configuration
 clean:
 	rm -f tls.o tls_openssl_bio.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
+	rm -f tcltls.@SHOBJEXT@.a tcltls.@SHOBJEXT@.def
 	rm -f tcltls.a.new tcltls.a
+	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
 
 # Clean the local build directory back to what it was after unpacking the
 # distribution tarball
@@ -68,9 +88,8 @@ distclean: clean
 # Clean the local build directory back to only thing things that exist in
 # version control system
 mrproper: distclean
-	rm -f @srcdir@/tls.tcl.h
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/autom4te.cache
 
-.PHONY: all install clean distclean mrproper
+.PHONY: all install uninstall clean distclean mrproper test

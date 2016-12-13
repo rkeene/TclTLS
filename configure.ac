@@ -59,26 +59,32 @@ fi
 AC_SUBST(GEN_DH_PARAMS_ARGS)
 
 dnl Allow the user to manually disable protocols
-dnl ## SSLv2: Disabled by default
-tcltls_ssl_ssl2='false'
-AC_ARG_ENABLE([sslv2], AS_HELP_STRING([--enable-sslv2], [enable SSLv2 protocol]), [
+dnl ## SSLv2: Enabled by default
+tcltls_ssl_ssl2='true'
+AC_ARG_ENABLE([sslv2], AS_HELP_STRING([--disable-sslv2], [disable SSLv2 protocol]), [
 	if test "$enableval" = "yes"; then
 		tcltls_ssl_ssl2='force'
+	else
+		tcltls_ssl_ssl2='false'
 	fi
 ])
 
-dnl ## SSLv3: Disabled by default
-tcltls_ssl_ssl3='false'
-AC_ARG_ENABLE([sslv3], AS_HELP_STRING([--enable-sslv3], [enable SSLv3 protocol]), [
+dnl ## SSLv3: Enabled by default
+tcltls_ssl_ssl3='true'
+AC_ARG_ENABLE([sslv3], AS_HELP_STRING([--disable-sslv3], [disable SSLv3 protocol]), [
 	if test "$enableval" = "yes"; then
 		tcltls_ssl_ssl3='force'
+	else
+		tcltls_ssl_ssl3='false'
 	fi
 ])
 
 dnl ## TLSv1.0: Enabled by default
 tcltls_ssl_tls1_0='true'
 AC_ARG_ENABLE([tlsv1.0], AS_HELP_STRING([--disable-tlsv1.0], [disable TLSv1.0 protocol]), [
-	if test "$enableval" = "no"; then
+	if test "$enableval" = "yes"; then
+		tcltls_ssl_tls1_0='force'
+	else
 		tcltls_ssl_tls1_0='false'
 	fi
 ])
@@ -86,7 +92,9 @@ AC_ARG_ENABLE([tlsv1.0], AS_HELP_STRING([--disable-tlsv1.0], [disable TLSv1.0 pr
 dnl ## TLSv1.1: Enabled by default
 tcltls_ssl_tls1_1='true'
 AC_ARG_ENABLE([tlsv1.1], AS_HELP_STRING([--disable-tlsv1.1], [disable TLSv1.1 protocol]), [
-	if test "$enableval" = "no"; then
+	if test "$enableval" = "yes"; then
+		tcltls_ssl_tls1_1='force'
+	else
 		tcltls_ssl_tls1_1='false'
 	fi
 ])
@@ -94,7 +102,9 @@ AC_ARG_ENABLE([tlsv1.1], AS_HELP_STRING([--disable-tlsv1.1], [disable TLSv1.1 pr
 dnl ## TLSv1.1: Enabled by default
 tcltls_ssl_tls1_2='true'
 AC_ARG_ENABLE([tlsv1.2], AS_HELP_STRING([--disable-tlsv1.2], [disable TLSv1.2 protocol]), [
-	if test "$enableval" = "no"; then
+	if test "$enableval" = "yes"; then
+		tcltls_ssl_tls1_2='force'
+	else
 		tcltls_ssl_tls1_2='false'
 	fi
 ])
@@ -108,13 +118,30 @@ AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [enable debugging parame
 ])
 if test "$tcltls_debug" = 'true'; then
 	AC_DEFINE(TCLEXT_TCLTLS_DEBUG, [1], [Enable debugging build])
+	AX_CHECK_COMPILE_FLAG([-fcheck-pointer-bounds], [CFLAGS="$CFLAGS -fcheck-pointer-bounds"])
+else
+	dnl If we are not doing debugging disable some of the more annoying warnings
+	AX_CHECK_COMPILE_FLAG([-Wno-unused-value], [CFLAGS="$CFLAGS -Wno-unused-value"])
+	AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], [CFLAGS="$CFLAGS -Wno-unused-parameter"])
+	AX_CHECK_COMPILE_FLAG([-Wno-deprecated-declarations], [CFLAGS="$CFLAGS -Wno-deprecated-declarations"])
 fi
-
-dnl Find "xxd" so we can build the tls.tcl.h file
-AC_CHECK_PROG([XXD], [xxd], [xxd], [__xxd__not__found])
 
 dnl Find "pkg-config" since we need to use it
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
+
+dnl Determine if we have been asked to use a fast path if possible
+tcltls_ssl_fastpath='no'
+AC_ARG_ENABLE([ssl-fastpath], AS_HELP_STRING([--enable-ssl-fastpath], [enable using the underlying file descriptor for talking directly to the SSL library]), [
+	if test "$enableval" = 'yes'; then
+		tcltls_ssl_fastpath='yes'
+	else
+		tcltls_ssl_fastpath='no'
+	fi
+])
+
+if test "$tcltls_ssl_fastpath" = 'yes'; then
+	AC_DEFINE(TCLTLS_SSL_USE_FASTPATH, [1], [Define this to enable using the underlying file descriptor for talking directly to the SSL library])
+fi
 
 dnl Determine if we have been asked to statically link to the SSL library
 TCLEXT_TLS_STATIC_SSL='no'
@@ -123,6 +150,18 @@ AC_ARG_ENABLE([static-ssl], AS_HELP_STRING([--enable-static-ssl], [enable static
 		TCLEXT_TLS_STATIC_SSL='yes'
 	fi
 ])
+
+dnl Enable compiler warnings
+AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="$CFLAGS -Wall"])
+AX_CHECK_COMPILE_FLAG([-W], [
+	CFLAGS="$CFLAGS -W"
+	AX_CHECK_COMPILE_FLAG([-Wno-self-assign], [CFLAGS="$CFLAGS -Wno-self-assign"])
+])
+
+dnl Enable hardening
+AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [CFLAGS="$CFLAGS -fstack-protector-all"])
+AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CFLAGS="$CFLAGS -fno-strict-overflow"])
+AC_DEFINE([_FORTIFY_SOURCE], [2], [Enable fortification])
 
 dnl XXX:TODO: Automatically determine the SSL library to use
 dnl           defaulting to OpenSSL for compatibility reasons

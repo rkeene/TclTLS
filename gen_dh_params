@@ -102,6 +102,10 @@ if [ "$1" = 'fallback' ]; then
 	exit 1
 fi
 
+echo "*****************************" >&2
+echo "** Generating DH Primes.   **" >&2
+echo "** This will take a while. **" >&2
+echo "*****************************" >&2
 gen_dh_params_openssl && exit 0
 gen_dh_params_remote && exit 0
 gen_dh_params_fallback && exit 0
