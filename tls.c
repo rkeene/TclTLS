@@ -734,35 +734,28 @@ ImportObjCmd(clientData, interp, objc, objv)
 #ifndef OPENSSL_NO_TLSEXT
     char *servername	= NULL;	/* hostname for Server Name Indication */
 #endif
-#if defined(NO_SSL2)
-    int ssl2 = 0;
-#else
-    int ssl2 = 1;
-#endif
-#if defined(NO_SSL3)
-    int ssl3 = 0;
-#else
-    int ssl3 = 1;
-#endif
-#if defined(NO_TLS1)
-    int tls1 = 0;
-#else
-    int tls1 = 1;
-#endif
-#if defined(NO_TLS1_1)
-    int tls1_1 = 0;
-#else
-    int tls1_1 = 1;
-#endif
-#if defined(NO_TLS1_2)
-    int tls1_2 = 0;
-#else
-    int tls1_2 = 1;
-#endif
+    int ssl2 = 0, ssl3 = 0;
+    int tls1 = 1, tls1_1 = 1, tls1_2 = 1;
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
     dprintf("Called");
+
+#if defined(NO_TLS1) && defined(NO_TLS1_1) && defined(NO_TLS1_2) && defined(NO_SSL3) && !defined(NO_SSL2)
+    ssl2 = 1;
+#endif
+#if defined(NO_TLS1) && defined(NO_TLS1_1) && defined(NO_TLS1_2) && defined(NO_SSL2) && !defined(NO_SSL3)
+    ssl3 = 1;
+#endif
+#if defined(NO_TLS1)
+    tls1 = 0;
+#endif
+#if defined(NO_TLS1_1)
+    tls1_1 = 0;
+#endif
+#if defined(NO_TLS1_2)
+    tls1_2 = 0;
+#endif
 
     if (objc < 2) {
 	Tcl_WrongNumArgs(interp, 1, objv, "channel ?options?");
