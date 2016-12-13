@@ -121,25 +121,25 @@ Tls_NewX509Obj( interp, cert)
 	n = BIO_read(bio, subject, min(BIO_pending(bio), BUFSIZ - 1));
 	n = max(n, 0);
 	subject[n] = 0;
-	BIO_flush(bio);
+	(void)BIO_flush(bio);
 
 	X509_NAME_print_ex(bio, X509_get_issuer_name(cert), 0, flags);
 	n = BIO_read(bio, issuer, min(BIO_pending(bio), BUFSIZ - 1));
 	n = max(n, 0);
 	issuer[n] = 0;
-	BIO_flush(bio);
+	(void)BIO_flush(bio);
 
 	i2a_ASN1_INTEGER(bio, X509_get_serialNumber(cert));
 	n = BIO_read(bio, serial, min(BIO_pending(bio), BUFSIZ - 1));
 	n = max(n, 0);
 	serial[n] = 0;
-	BIO_flush(bio);
+	(void)BIO_flush(bio);
 
         if (PEM_write_bio_X509(bio, cert)) {
             n = BIO_read(bio, certStr, min(BIO_pending(bio), BUFSIZ - 1));
             n = max(n, 0);
             certStr[n] = 0;
-            BIO_flush(bio);
+            (void)BIO_flush(bio);
         }
 
 	BIO_free(bio);
