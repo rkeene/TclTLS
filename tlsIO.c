@@ -810,16 +810,12 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 	}
 
 	if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+		dprintf("Asked to wait for a TLS handshake that has already failed.  Returning fatal error");
 		/*
-		 * We choose ECONNRESET over ECONNABORTED here because some server
-		 * side code, on the wiki for example, sets up a read handler that
-		 * does a read and if eof closes the channel. There is no catch/try
-		 * around the reads so exceptions will result in potentially many
-		 * dangling channels hanging around that should have been closed.
-		 * (Backgroun: ECONNABORTED maps to a Tcl exception and 
-		 * ECONNRESET maps to graceful EOF).
+		 * If we get here, we've already returned a soft-failure once.
+		 * Return a hard failure now.
 		 */
-		*errorCodePtr = ECONNRESET;
+		*errorCodePtr = ECONNABORTED;
 		return(-1);
 	}
 
@@ -897,14 +893,26 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 			return(-1);
 		case SSL_ERROR_SYSCALL:
 			backingError = ERR_get_error();
-			dprintf("I/O error occured");
 
 			if (backingError == 0 && err == 0) {
 				dprintf("EOF reached")
+				*errorCodePtr = ECONNRESET;
+			} else if (backingError == 0 && err == -1) {
+				dprintf("I/O error occured (errno = %lu)", (unsigned long) Tcl_GetErrno());
+				*errorCodePtr = Tcl_GetErrno();
+				if (*errorCodePtr == ECONNRESET) {
+					*errorCodePtr = ECONNABORTED;
+				}
+			} else {
+				dprintf("I/O error occured (backingError = %lu)", backingError);
+				*errorCodePtr = backingError;
+				if (*errorCodePtr == ECONNRESET) {
+					*errorCodePtr = ECONNABORTED;
+				}
 			}
 
 			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-			*errorCodePtr = ECONNRESET;
+
 			return(-1);
 		case SSL_ERROR_SSL:
 			dprintf("Got permanent fatal SSL error, aborting immediately");
