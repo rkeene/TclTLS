@@ -1662,7 +1662,7 @@ void Tls_Clean(State *statePtr) {
 int Tls_Init(Tcl_Interp *interp) {
 	const char tlsTclInitScript[] = {
 #include "tls.tcl.h"
-            , 0x00
+            0x00
 	};
 
         dprintf("Called");
