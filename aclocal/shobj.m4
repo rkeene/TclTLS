@@ -41,28 +41,24 @@ AC_DEFUN([DC_GET_SHOBJFLAGS], [
   AC_MSG_CHECKING(how to create shared objects)
 
   if test -z "$SHOBJFLAGS" -a -z "$SHOBJLDFLAGS" -a -z "$SHOBJCPPFLAGS"; then
-    DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -rdynamic], [
-      DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared], [
-	DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -rdynamic -mimpure-text], [
-	  DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -mimpure-text], [
-	    DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -rdynamic -Wl,-G,-z,textoff], [
-	      DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -Wl,-G], [
-		DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -dynamiclib -flat_namespace -undefined suppress -bind_at_load], [
-		  DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib -flat_namespace -undefined suppress -bind_at_load], [
-		    DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-Wl,-dynamiclib -Wl,-flat_namespace -Wl,-undefined,suppress -Wl,-bind_at_load], [
-		      DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib -flat_namespace -undefined suppress], [
-		        DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib], [
-		          AC_MSG_RESULT(cant)
-		          AC_MSG_ERROR([We are unable to make shared objects.])
-                        ])
-		      ])
-		    ])
-		  ])
-		])
-	      ])
-	    ])
-	  ])
-	])
+    DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared], [
+      DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -mimpure-text], [
+        DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -rdynamic -Wl,-G,-z,textoff], [
+          DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -Wl,-G], [
+            DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-shared -dynamiclib -flat_namespace -undefined suppress -bind_at_load], [
+              DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib -flat_namespace -undefined suppress -bind_at_load], [
+                DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-Wl,-dynamiclib -Wl,-flat_namespace -Wl,-undefined,suppress -Wl,-bind_at_load], [
+                  DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib -flat_namespace -undefined suppress], [
+                    DC_TEST_SHOBJFLAGS([-fPIC], [-DPIC], [-dynamiclib], [
+                      AC_MSG_RESULT(cant)
+                      AC_MSG_ERROR([We are unable to make shared objects.])
+                    ])
+                  ])
+                ])
+              ])
+            ])
+          ])
+        ])
       ])
     ])
   fi
