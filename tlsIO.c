@@ -196,6 +196,7 @@ static int TlsCloseProc(ClientData instanceData, Tcl_Interp *interp) {
  */
 
 static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *errorCodePtr) {
+	unsigned long backingError;
 	State *statePtr = (State *) instanceData;
 	int bytesRead;
 	int tlsConnect;
@@ -257,9 +258,18 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			*errorCodePtr = ECONNABORTED;
 			break;
 		case SSL_ERROR_SYSCALL:
-			dprintf("I/O error reading, treating it as EOF");
-			*errorCodePtr = 0;
-			bytesRead = 0;
+			backingError = ERR_get_error();
+
+			if (backingError == 0 && err == 0) {
+				dprintf("EOF reached")
+				*errorCodePtr = 0;
+				bytesRead = 0;
+			} else {
+				dprintf("I/O error occured (backingError = %lu)", backingError);
+				*errorCodePtr = backingError;
+				bytesRead = 0;
+			}
+
 			break;
 	}
 
