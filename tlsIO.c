@@ -802,6 +802,8 @@ int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
 				bioShouldRetry = 1;
 			} else if (BIO_should_retry(statePtr->bio)) {
 				bioShouldRetry = 1;
+			} else if (rc == SSL_ERROR_SYSCALL && Tcl_GetErrno() == EAGAIN) {
+				bioShouldRetry = 1;
 			}
 		} else {
 			if (!SSL_is_init_finished(statePtr->ssl)) {
