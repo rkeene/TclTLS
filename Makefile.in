@@ -61,6 +61,7 @@ test: @EXTENSION_TARGET@
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
 	rm -f tcltls.@SHOBJEXT@
+	rm -f tcltls.@SHOBJEXT@.a tcltls.@SHOBJEXT@.def
 	rm -f tcltls.a.new tcltls.a
 	rm -f tls.tcl.h.new.1 tls.tcl.h.new.2
 	@if [ '@srcdir@' != '.' ]; then echo rm -f tls.tcl.h; rm -f tls.tcl.h; fi
