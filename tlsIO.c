@@ -217,11 +217,6 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 	if (tlsConnect < 0) {
 		dprintf("Got an error waiting to connect (tlsConnect = %i, *errorCodePtr = %i)", tlsConnect, *errorCodePtr);
 
-		if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
-			dprintf("The handshake completely failed, returning in failure");
-			return(-1);
-		}
-
 		bytesRead = -1;
 		if (*errorCodePtr == ECONNRESET) {
 			dprintf("Got connection reset");
@@ -345,11 +340,6 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr);
 	if (tlsConnect < 0) {
 		dprintf("Got an error waiting to connect (tlsConnect = %i, *errorCodePtr = %i)", tlsConnect, *errorCodePtr);
-
-		if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
-			dprintf("The handshake completely failed, returning in failure");
-			return(-1);
-		}
 
 		written = -1;
 		if (*errorCodePtr == ECONNRESET) {
