@@ -37,9 +37,8 @@ gen_dh_params_remote() {
 
 gen_dh_params_fallback() {
 	cat << \_EOF_
-DH *get_dh2048()
-	{
-	static unsigned char dh2048_p[]={
+DH *get_dh2048(void) {
+	static unsigned char dhp_2048[] = {
 		0xC1,0x51,0x58,0x69,0xFB,0xE8,0x6C,0x47,0x2B,0x86,0x61,0x4F,
 		0x20,0x2E,0xD3,0xFC,0x19,0xEE,0xB8,0xF3,0x35,0x7D,0xBA,0x86,
 		0x2A,0xC3,0xC8,0x6E,0xF4,0x99,0x75,0x65,0xD3,0x7A,0x9E,0xDF,
@@ -62,19 +61,37 @@ DH *get_dh2048()
 		0x24,0x54,0xE9,0x1D,0x01,0x68,0x89,0xC4,0x7B,0x3C,0x48,0x62,
 		0x9B,0x83,0x11,0x3A,0x0B,0x0D,0xEF,0x5A,0xE4,0x7A,0xA0,0x69,
 		0xF4,0x54,0xB5,0x5B,
-		};
-	static unsigned char dh2048_g[]={
+	};
+	static unsigned char dhg_2048[] = {
 		0x02,
-		};
-	DH *dh;
+	};
 
-	if ((dh=DH_new()) == NULL) return(NULL);
-	dh->p=BN_bin2bn(dh2048_p,sizeof(dh2048_p),NULL);
-	dh->g=BN_bin2bn(dh2048_g,sizeof(dh2048_g),NULL);
-	if ((dh->p == NULL) || (dh->g == NULL))
-		{ DH_free(dh); return(NULL); }
-	return(dh);
+	DH *dh = DH_new();;
+	BIGNUM *dhp_bn, *dhg_bn;
+
+	if (dh == NULL) {
+		return NULL;
 	}
+
+	dhp_bn = BN_bin2bn(dhp_2048, sizeof (dhp_2048), NULL);
+	dhg_bn = BN_bin2bn(dhg_2048, sizeof (dhg_2048), NULL);
+
+#ifdef TCLTLS_OPENSSL_PRE_1_1_API
+	dh->p = dhp_bn;
+	dh->g = dhg_bn;
+
+	if (dhp_bn == NULL || dhg_bn == NULL) {
+#else
+	if (dhp_bn == NULL || dhg_bn == NULL || !DH_set0_pqg(dh, dhp_bn, NULL, dhg_bn)) {
+#endif
+		DH_free(dh);
+		BN_free(dhp_bn);
+		BN_free(dhg_bn);
+		return(NULL);
+	}
+
+	return(dh);
+}
 _EOF_
 }
 
@@ -85,6 +102,10 @@ if [ "$1" = 'fallback' ]; then
 	exit 1
 fi
 
+echo "*****************************"
+echo "** Generating DH Primes.   **"
+echo "** This will take a while. **"
+echo "*****************************"
 gen_dh_params_openssl && exit 0
 gen_dh_params_remote && exit 0
 gen_dh_params_fallback && exit 0

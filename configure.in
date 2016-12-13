@@ -108,6 +108,14 @@ AC_ARG_ENABLE([debug], AS_HELP_STRING([--enable-debug], [enable debugging parame
 ])
 if test "$tcltls_debug" = 'true'; then
 	AC_DEFINE(TCLEXT_TCLTLS_DEBUG, [1], [Enable debugging build])
+	AX_CHECK_COMPILE_FLAG([-fcheck-pointer-bounds], [CFLAGS="$CFLAGS -fcheck-pointer-bounds"])
+	AX_CHECK_COMPILE_FLAG([-fsanitize=address], [CFLAGS="$CFLAGS -fsanitize=address"])
+	AX_CHECK_COMPILE_FLAG([-fsanitize=undefined], [CFLAGS="$CFLAGS -fsanitize=undefined"])
+else
+	dnl If we are not doing debugging disable some of the more annoying warnings
+	AX_CHECK_COMPILE_FLAG([-Wno-unused-value], [CFLAGS="$CFLAGS -Wno-unused-value"])
+	AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], [CFLAGS="$CFLAGS -Wno-unused-parameter"])
+	AX_CHECK_COMPILE_FLAG([-Wno-deprecated-declarations], [CFLAGS="$CFLAGS -Wno-deprecated-declarations"])
 fi
 
 dnl Find "xxd" so we can build the tls.tcl.h file
@@ -116,6 +124,18 @@ AC_CHECK_PROG([XXD], [xxd], [xxd], [__xxd__not__found])
 dnl Find "pkg-config" since we need to use it
 AC_CHECK_TOOL([PKGCONFIG], [pkg-config], [false])
 
+dnl Determine if we have been asked to use a fast path if possible
+tcltls_ssl_fastpath='yes'
+AC_ARG_ENABLE([ssl-fastpath], AS_HELP_STRING([--disable-ssl-fast-path], [disable using the underlying file descriptor for talking directly to the SSL library]), [
+	if test "$enableval" = 'no'; then
+		tcltls_ssl_fastpath='no'
+	fi
+])
+
+if test "$tcltls_ssl_fastpath" = 'yes'; then
+	AC_DEFINE(TCLTLS_SSL_USE_FASTPATH, [1], [Define this to enable using the underlying file descriptor for talking directly to the SSL library])
+fi
+
 dnl Determine if we have been asked to statically link to the SSL library
 TCLEXT_TLS_STATIC_SSL='no'
 AC_ARG_ENABLE([static-ssl], AS_HELP_STRING([--enable-static-ssl], [enable statically linking to the specified SSL library]), [
@@ -123,6 +143,18 @@ AC_ARG_ENABLE([static-ssl], AS_HELP_STRING([--enable-static-ssl], [enable static
 		TCLEXT_TLS_STATIC_SSL='yes'
 	fi
 ])
+
+dnl Enable compiler warnings
+AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="$CFLAGS -Wall"])
+AX_CHECK_COMPILE_FLAG([-W], [
+	CFLAGS="$CFLAGS -W"
+	AX_CHECK_COMPILE_FLAG([-Wno-self-assign], [CFLAGS="$CFLAGS -Wno-self-assign"])
+])
+
+dnl Enable hardening
+AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [CFLAGS="$CFLAGS -fstack-protector-all"])
+AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CFLAGS="$CFLAGS -fno-strict-overflow"])
+AC_DEFINE([_FORTIFY_SOURCE], [2], [Enable fortification])
 
 dnl XXX:TODO: Automatically determine the SSL library to use
 dnl           defaulting to OpenSSL for compatibility reasons

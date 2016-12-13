@@ -21,6 +21,7 @@
 #include "tls.h"
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef __WIN32__
 #define WIN32_LEAN_AND_MEAN
@@ -44,37 +45,19 @@
 #  endif
 #endif
 
-#ifdef BSAFE
-#include <ssl.h>
-#include <err.h>
-#include <rand.h>
-#else
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/opensslv.h>
+
+/*
+ * Determine if we should use the pre-OpenSSL 1.1.0 API
+ */
+#undef TCLTLS_OPENSSL_PRE_1_1
+#if (defined(LIBRESSL_VERSION_NUMBER)) || OPENSSL_VERSION_NUMBER < 0x10100000L
+#  define TCLTLS_OPENSSL_PRE_1_1_API 1
 #endif
 
-#ifndef NO_TLS1_1
-#  ifndef SSL_OP_NO_TLSv1_1
-#    define NO_TLS1_1
-#  endif
-#endif
-
-#ifndef NO_TLS1_2
-#  ifndef SSL_OP_NO_TLSv1_2
-#    define NO_TLS1_2
-#  endif
-#endif
-
-#ifdef TCL_STORAGE_CLASS
-# undef TCL_STORAGE_CLASS
-#endif
-#ifdef BUILD_tls
-# define TCL_STORAGE_CLASS DLLEXPORT
-#else
-# define TCL_STORAGE_CLASS DLLIMPORT
-#endif
- 
 #ifndef ECONNABORTED
 #define ECONNABORTED	130	/* Software caused connection abort */
 #endif
@@ -83,13 +66,48 @@
 #endif
 
 #ifdef TCLEXT_TCLTLS_DEBUG
-#define dprintf(...) { fprintf(stderr, "%s:%i:", __func__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
+#include <ctype.h>
+#define dprintf(...) { \
+                       char dprintfBuffer[8192], *dprintfBuffer_p; \
+                       dprintfBuffer_p = &dprintfBuffer[0]; \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():", __FILE__, __LINE__, __func__); \
+                       dprintfBuffer_p += sprintf(dprintfBuffer_p, __VA_ARGS__); \
+                       fprintf(stderr, "%s\n", dprintfBuffer); \
+                     }
+#define dprintBuffer(bufferName, bufferLength) { \
+                                                 int dprintBufferIdx; \
+                                                 unsigned char dprintBufferChar; \
+                                                 fprintf(stderr, "%s:%i:%s():%s[%llu]={", __FILE__, __LINE__, __func__, #bufferName, (unsigned long long) bufferLength); \
+                                                 for (dprintBufferIdx = 0; dprintBufferIdx < bufferLength; dprintBufferIdx++) { \
+                                                         dprintBufferChar = bufferName[dprintBufferIdx]; \
+                                                         if (isalpha(dprintBufferChar) || isdigit(dprintBufferChar)) { \
+                                                                 fprintf(stderr, "'%c' ", dprintBufferChar); \
+                                                         } else { \
+                                                                 fprintf(stderr, "%02x ", (unsigned int) dprintBufferChar); \
+                                                         }; \
+                                                 }; \
+                                                 fprintf(stderr, "}\n"); \
+                                               }
+#define dprintFlags(statePtr) { \
+                                char dprintfBuffer[8192], *dprintfBuffer_p; \
+                                dprintfBuffer_p = &dprintfBuffer[0]; \
+                                dprintfBuffer_p += sprintf(dprintfBuffer_p, "%s:%i:%s():%s->flags=0", __FILE__, __LINE__, __func__, #statePtr); \
+                                if (((statePtr)->flags & TLS_TCL_ASYNC) == TLS_TCL_ASYNC) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_ASYNC"); }; \
+                                if (((statePtr)->flags & TLS_TCL_SERVER) == TLS_TCL_SERVER) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_SERVER"); }; \
+                                if (((statePtr)->flags & TLS_TCL_INIT) == TLS_TCL_INIT) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_INIT"); }; \
+                                if (((statePtr)->flags & TLS_TCL_DEBUG) == TLS_TCL_DEBUG) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_DEBUG"); }; \
+                                if (((statePtr)->flags & TLS_TCL_CALLBACK) == TLS_TCL_CALLBACK) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_CALLBACK"); }; \
+                                if (((statePtr)->flags & TLS_TCL_HANDSHAKE_FAILED) == TLS_TCL_HANDSHAKE_FAILED) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_HANDSHAKE_FAILED"); }; \
+                                if (((statePtr)->flags & TLS_TCL_FASTPATH) == TLS_TCL_FASTPATH) { dprintfBuffer_p += sprintf(dprintfBuffer_p, "|TLS_TCL_FASTPATH"); }; \
+                                fprintf(stderr, "%s\n", dprintfBuffer); \
+                              }
 #else
 #define dprintf(...) if (0) { fprintf(stderr, __VA_ARGS__); }
+#define dprintBuffer(bufferName, bufferLength) /**/
+#define dprintFlags(statePtr) /**/
 #endif
 
-#define SSL_ERROR(ssl,err)	\
-    ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
+#define TCLTLS_SSL_ERROR(ssl,err) ((char*)ERR_reason_error_string((unsigned long)SSL_get_error((ssl),(err))))
 /*
  * OpenSSL BIO Routines
  */
@@ -107,7 +125,7 @@
 #define TLS_TCL_HANDSHAKE_FAILED (1<<5) /* Set on handshake failures and once
                                          * set, all further I/O will result
                                          * in ECONNABORTED errors. */
-
+#define TLS_TCL_FASTPATH (1<<6)         /* The parent channel is being used directly by the SSL library */
 #define TLS_TCL_DELAY (5)
 
 /*
@@ -117,149 +135,46 @@
  * The SSL processing context is maintained here, in the ClientData
  */
 typedef struct State {
-    Tcl_Channel self;	/* this socket channel */
-    Tcl_TimerToken timer;
+	Tcl_Channel self;       /* this socket channel */
+	Tcl_TimerToken timer;
 
-    int flags;		/* see State.flags above  */
-    int watchMask;	/* current WatchProc mask */
-    int mode;		/* current mode of parent channel */
+	int flags;              /* see State.flags above  */
+	int watchMask;          /* current WatchProc mask */
+	int mode;               /* current mode of parent channel */
 
-    Tcl_Interp *interp;	/* interpreter in which this resides */
-    Tcl_Obj *callback;	/* script called for tracing, verifying and errors */
-    Tcl_Obj *password;	/* script called for certificate password */ 
+	Tcl_Interp *interp;     /* interpreter in which this resides */
+	Tcl_Obj *callback;      /* script called for tracing, verifying and errors */
+	Tcl_Obj *password;      /* script called for certificate password */ 
 
-    int vflags;		/* verify flags */
-    SSL *ssl;		/* Struct for SSL processing */
-    SSL_CTX *ctx;	/* SSL Context */
-    BIO *bio;		/* Struct for SSL processing */
-    BIO *p_bio;		/* Parent BIO (that is layered on Tcl_Channel) */
+	int vflags;             /* verify flags */
+	SSL *ssl;               /* Struct for SSL processing */
+	SSL_CTX *ctx;           /* SSL Context */
+	BIO *bio;               /* Struct for SSL processing */
+	BIO *p_bio;             /* Parent BIO (that is layered on Tcl_Channel) */
 
-    char *err;
+	char *err;
 } State;
-
-/*
- * The following definitions have to be usable for 8.2.0-8.3.1 and 8.3.2+.
- * The differences between these versions:
- *
- * 8.0-8.1:	There is no support for these in TLS 1.4 (get 1.3).  This
- *		was the version with the original patch.
- *
- * 8.2.0-	Changed semantics for Tcl_StackChannel (Tcl_ReplaceChannel).
- * 8.3.1:	Check at runtime to switch the behaviour. The patch is part
- *		of the core from now on.
- *
- * 8.3.2+:	Stacked channels rewritten for better behaviour in some
- *		situations (closing). Some new API's, semantic changes.
- *
- * The following magic was adapted from Trf 2.1 (Kupries).
- */
-
-#define TLS_CHANNEL_VERSION_1	0x1
-#define TLS_CHANNEL_VERSION_2	0x2
-extern int channelTypeVersion;
 
 #ifdef USE_TCL_STUBS
 #ifndef Tcl_StackChannel
-/*
- * The core we are compiling against is not patched, so supply the
- * necesssary definitions here by ourselves. The form chosen for
- * the procedure macros (reservedXXX) will notify us if the core
- * does not have these reserved locations anymore.
- *
- * !! Synchronize the procedure indices in their definitions with
- *    the patch to tcl.decls, as they have to be the same.
- */
-
-/* 281 */
-typedef Tcl_Channel (tls_StackChannel) _ANSI_ARGS_((Tcl_Interp* interp,
-						    Tcl_ChannelType* typePtr,
-						    ClientData instanceData,
-						    int mask,
-						    Tcl_Channel prevChan));
-/* 282 */
-typedef void (tls_UnstackChannel) _ANSI_ARGS_((Tcl_Interp* interp,
-					       Tcl_Channel chan));
-
-#define Tcl_StackChannel     ((tls_StackChannel*) tclStubsPtr->reserved281)
-#define Tcl_UnstackChannel ((tls_UnstackChannel*) tclStubsPtr->reserved282)
-
-#endif /* Tcl_StackChannel */
-
-#ifndef Tcl_GetStackedChannel
-/*
- * Separate definition, available in 8.2, but not 8.1 and before !
- */
-
-/* 283 */
-typedef Tcl_Channel (tls_GetStackedChannel) _ANSI_ARGS_((Tcl_Channel chan));
-
-#define Tcl_GetStackedChannel ((tls_GetStackedChannel*) tclStubsPtr->reserved283)
-
+#error "Unable to compile on this version of Tcl"
 #endif /* Tcl_GetStackedChannel */
-
-
-#ifndef TCL_CHANNEL_VERSION_2
-/*
- * Core is older than 8.3.2.  Supply the missing definitions for
- * the new API's in 8.3.2.
- */
-#define EMULATE_CHANNEL_VERSION_2
-
-typedef struct TlsChannelTypeVersion_* TlsChannelTypeVersion;
-#define TCL_CHANNEL_VERSION_2	((TlsChannelTypeVersion) 0x2)
-
-typedef int (TlsDriverHandlerProc) _ANSI_ARGS_((ClientData instanceData,
-					int interestMask));
-/* 394 */
-typedef int (tls_ReadRaw)  _ANSI_ARGS_((Tcl_Channel chan, char *dst,
-					int bytesToRead));
-/* 395 */
-typedef int (tls_WriteRaw) _ANSI_ARGS_((Tcl_Channel chan, char *src,
-					int srcLen));
-/* 397 */
-typedef int (tls_GetTopChannel) _ANSI_ARGS_((Tcl_Channel chan));
-
-/*
- * Generating code for accessing these parts of the stub table when
- * compiling against a core older than 8.3.2 is a hassle because even
- * the 'reservedXXX' fields of the structure are not defined yet. So
- * we have to write up some macros hiding some very hackish pointer
- * arithmetics to get at these fields. We assume that pointer to
- * functions are always of the same size.
- */
-
-#define STUB_BASE   ((char*)(&(tclStubsPtr->tcl_UtfNcasecmp))) /* field 370 */
-#define procPtrSize (sizeof (Tcl_DriverBlockModeProc *))
-#define IDX(n)      (((n)-370) * procPtrSize)
-#define SLOT(n)     (STUB_BASE + IDX(n))
-
-#define Tcl_ReadRaw		(*((tls_ReadRaw**)	(SLOT(394))))
-#define Tcl_WriteRaw		(*((tls_WriteRaw**)	(SLOT(395))))
-#define Tcl_GetTopChannel	(*((tls_GetTopChannel**)(SLOT(396))))
-
-/*
- * Required, easy emulation.
- */
-#define Tcl_ChannelGetOptionProc(chanDriver) ((chanDriver)->getOptionProc)
-
-#endif /* TCL_CHANNEL_VERSION_2 */
-
 #endif /* USE_TCL_STUBS */
 
 /*
  * Forward declarations
  */
+Tcl_ChannelType *Tls_ChannelType(void);
+Tcl_Channel     Tls_GetParent(State *statePtr, int maskFlags);
 
-Tcl_ChannelType *Tls_ChannelType _ANSI_ARGS_((void));
-Tcl_Channel	Tls_GetParent _ANSI_ARGS_((State *statePtr));
+Tcl_Obj         *Tls_NewX509Obj(Tcl_Interp *interp, X509 *cert);
+void            Tls_Error(State *statePtr, char *msg);
+void            Tls_Free(char *blockPtr);
+void            Tls_Clean(State *statePtr);
+int             Tls_WaitForConnect(State *statePtr, int *errorCodePtr);
 
-Tcl_Obj*		Tls_NewX509Obj _ANSI_ARGS_ (( Tcl_Interp *interp, X509 *cert));
-void		Tls_Error _ANSI_ARGS_ ((State *statePtr, char *msg));
-void		Tls_Free _ANSI_ARGS_ ((char *blockPtr));
-void		Tls_Clean _ANSI_ARGS_ ((State *statePtr));
-int		Tls_WaitForConnect _ANSI_ARGS_(( State *statePtr,
-							int *errorCodePtr));
+BIO             *BIO_new_tcl(State* statePtr, int flags);
 
-BIO *		BIO_new_tcl _ANSI_ARGS_((State* statePtr, int flags));
+#define PTR2INT(x) ((int) ((intptr_t) (x)))
 
 #endif /* _TLSINT_H */

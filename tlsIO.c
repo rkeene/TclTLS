@@ -22,66 +22,23 @@
 /*
  * Forward declarations
  */
-
-static int	TlsBlockModeProc _ANSI_ARGS_((ClientData instanceData,
-			int mode));
-static int	TlsCloseProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp));
-static int	TlsInputProc _ANSI_ARGS_((ClientData instanceData,
-			char *buf, int bufSize, int *errorCodePtr));
-static int	TlsOutputProc _ANSI_ARGS_((ClientData instanceData,
-			CONST char *buf, int toWrite, int *errorCodePtr));
-static int	TlsGetOptionProc _ANSI_ARGS_ ((ClientData instanceData,
-			Tcl_Interp *interp, CONST84 char *optionName,
-			Tcl_DString *dsPtr));
-static void	TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
-static int	TlsGetHandleProc _ANSI_ARGS_ ((ClientData instanceData,
-			int direction, ClientData *handlePtr));
-static int	TlsNotifyProc _ANSI_ARGS_ ((ClientData instanceData,
-			int mask));
-static void	TlsChannelHandler _ANSI_ARGS_ ((ClientData clientData,
-			int mask));
-static void	TlsChannelHandlerTimer _ANSI_ARGS_ ((ClientData clientData));
+static int  TlsBlockModeProc _ANSI_ARGS_((ClientData instanceData, int mode));
+static int  TlsCloseProc _ANSI_ARGS_((ClientData instanceData, Tcl_Interp *interp));
+static int  TlsInputProc _ANSI_ARGS_((ClientData instanceData, char *buf, int bufSize, int *errorCodePtr));
+static int  TlsOutputProc _ANSI_ARGS_((ClientData instanceData, CONST char *buf, int toWrite, int *errorCodePtr));
+static int  TlsGetOptionProc _ANSI_ARGS_((ClientData instanceData, Tcl_Interp *interp, CONST84 char *optionName, Tcl_DString *dsPtr));
+static void TlsWatchProc _ANSI_ARGS_((ClientData instanceData, int mask));
+static int  TlsGetHandleProc _ANSI_ARGS_((ClientData instanceData, int direction, ClientData *handlePtr));
+static int  TlsNotifyProc _ANSI_ARGS_((ClientData instanceData, int mask));
+#if 0
+static void TlsChannelHandler _ANSI_ARGS_((ClientData clientData, int mask));
+#endif
+static void TlsChannelHandlerTimer _ANSI_ARGS_((ClientData clientData));
 
 /*
- * This structure describes the channel type structure for TCP socket
- * based IO.  These are what the structures should look like, but we
- * have to build them up at runtime to be correct depending on whether
- * we are loaded into an 8.2.0-8.3.1 or 8.3.2+ Tcl interpreter.
+ * TLS Channel Type
  */
-#ifdef TLS_STATIC_STRUCTURES_NOT_USED
-static Tcl_ChannelType tlsChannelType2 = {
-    "tls",		/* Type name. */
-    TCL_CHANNEL_VERSION_2,	/* A v2 channel (8.3.2+) */
-    TlsCloseProc,	/* Close proc. */
-    TlsInputProc,	/* Input proc. */
-    TlsOutputProc,	/* Output proc. */
-    NULL,		/* Seek proc. */
-    NULL,		/* Set option proc. */
-    TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,	/* Initialize notifier. */
-    TlsGetHandleProc,	/* Get file handle out of channel. */
-    NULL,		/* Close2Proc. */
-    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
-    NULL,		/* FlushProc. */
-    TlsNotifyProc,	/* handlerProc. */
-};
-
-static Tcl_ChannelType tlsChannelType1 = {
-    "tls",		/* Type name. */
-    TlsBlockModeProc,	/* Set blocking/nonblocking mode.*/
-    TlsCloseProc,	/* Close proc. */
-    TlsInputProc,	/* Input proc. */
-    TlsOutputProc,	/* Output proc. */
-    NULL,		/* Seek proc. */
-    NULL,		/* Set option proc. */
-    TlsGetOptionProc,	/* Get option proc. */
-    TlsWatchProc,	/* Initialize notifier. */
-    TlsGetHandleProc,	/* Get file handle out of channel. */
-};
-#else
 static Tcl_ChannelType *tlsChannelType = NULL;
-#endif
 
 /*
  *-------------------------------------------------------------------
@@ -98,130 +55,65 @@ static Tcl_ChannelType *tlsChannelType = NULL;
  *
  *-------------------------------------------------------------------
  */
-Tcl_ChannelType *Tls_ChannelType()
-{
-    /*
-     * Initialize the channel type if necessary
-     */
-    if (tlsChannelType == NULL) {
-	/*
-	 * Allocation of a new channeltype structure is not easy, because of
-	 * the various verson of the core and subsequent changes to the
-	 * structure. The main challenge is to allocate enough memory for
-	 * odern versions even if this extyension is compiled against one
-	 * of the older variant!
-	 *
-	 * (1) Versions before stubs (8.0.x) are simple, because they are
-	 *     supported only if the extension is compiled against exactly
-	 *     that version of the core.
-	 *
-	 * (2) With stubs we just determine the difference between the older
-	 *     and modern variant and overallocate accordingly if compiled
-	 *     against an older variant.
-	 */
-
-	unsigned int size = sizeof(Tcl_ChannelType); /* Base size */
+Tcl_ChannelType *Tls_ChannelType(void) {
+	unsigned int size;
 
 	/*
-	 * Size of a procedure pointer. We assume that all procedure
-	 * pointers are of the same size, regardless of exact type
-	 * (arguments and return values).
-	 *
-	 * 8.2.   First version containing close2proc. Baseline.
-	 * 8.3.2  Three additional vectors. Moved blockMode, new flush- and
-	 *        handlerProc's.
-	 *
-	 * => Compilation against earlier version has to overallocate three
-	 *    procedure pointers.
+	 * Initialize the channel type if necessary
 	 */
+	if (tlsChannelType == NULL) {
+		/*
+		 * Allocation of a new channeltype structure is not easy, because of
+		 * the various verson of the core and subsequent changes to the
+		 * structure. The main challenge is to allocate enough memory for
+		 * modern versions even if this extsension is compiled against one
+		 * of the older variant!
+		 *
+		 * (1) Versions before stubs (8.0.x) are simple, because they are
+		 *     supported only if the extension is compiled against exactly
+		 *     that version of the core.
+		 *
+		 * (2) With stubs we just determine the difference between the older
+		 *     and modern variant and overallocate accordingly if compiled
+		 *     against an older variant.
+		 */
+		size = sizeof(Tcl_ChannelType); /* Base size */
 
-#ifdef EMULATE_CHANNEL_VERSION_2
-	size += 3 * procPtrSize;
-#endif
+		tlsChannelType = (Tcl_ChannelType *) ckalloc(size);
+		memset((VOID *) tlsChannelType, 0, size);
 
-	tlsChannelType = (Tcl_ChannelType *) ckalloc(size);
-	memset((VOID *) tlsChannelType, 0, size);
+		/*
+		 * Common elements of the structure (no changes in location or name)
+		 * close2Proc, seekProc, setOptionProc stay NULL.
+		 */
 
-	/*
-	 * Common elements of the structure (no changes in location or name)
-	 * close2Proc, seekProc, setOptionProc stay NULL.
-	 */
+		tlsChannelType->typeName	= "tls";
+		tlsChannelType->closeProc	= TlsCloseProc;
+		tlsChannelType->inputProc	= TlsInputProc;
+		tlsChannelType->outputProc	= TlsOutputProc;
+		tlsChannelType->getOptionProc	= TlsGetOptionProc;
+		tlsChannelType->watchProc	= TlsWatchProc;
+		tlsChannelType->getHandleProc	= TlsGetHandleProc;
 
-	tlsChannelType->typeName	= "tls";
-	tlsChannelType->closeProc	= TlsCloseProc;
-	tlsChannelType->inputProc	= TlsInputProc;
-	tlsChannelType->outputProc	= TlsOutputProc;
-	tlsChannelType->getOptionProc	= TlsGetOptionProc;
-	tlsChannelType->watchProc	= TlsWatchProc;
-	tlsChannelType->getHandleProc	= TlsGetHandleProc;
+		/*
+		 * Compiled against 8.3.2+. Direct access to all elements possible. Use
+		 * channelTypeVersion information to select the values to use.
+		 */
 
-	/*
-	 * blockModeProc is a twister.  We have to make some runtime-choices,
-	 * depending on the version we compiled against.
-	 */
-
-#ifdef EMULATE_CHANNEL_VERSION_2
-	/*
-	 * We are compiling against an 8.3.1- core.  We have to create some
-	 * definitions for the new elements as the compiler does not know them
-	 * by name.
-	 */
-
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	    /*
-	     * The 'version' element of 8.3.2 is in the the place of the
-	     * blockModeProc. For 8.2.0-8.3.1 we have to set our blockModeProc
-	     * into this place.
-	     */
-	    tlsChannelType->blockModeProc = TlsBlockModeProc;
-	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
-	    /*
-	     * For the 8.3.2 core we present ourselves as a version 2
-	     * driver. This means a special value in version (ex
-	     * blockModeProc), blockModeProc in a different place and of
-	     * course usage of the handlerProc.  The last two have to
-	     * referenced with pointer magic because they aren't defined
-	     * otherwise.
-	     */
-
-	    tlsChannelType->blockModeProc =
-		(Tcl_DriverBlockModeProc*) TLS_CHANNEL_VERSION_2;
-	    (*((Tcl_DriverBlockModeProc**)(&(tlsChannelType->close2Proc)+1)))
-		= TlsBlockModeProc;
-	    (*((TlsDriverHandlerProc**)(&(tlsChannelType->close2Proc)+3)))
-		= TlsNotifyProc;
+		/*
+		 * For the 8.3.2 core we present ourselves as a version 2
+		 * driver. This means a special value in version (ex
+		 * blockModeProc), blockModeProc in a different place and of
+		 * course usage of the handlerProc.
+		 */
+		tlsChannelType->version       = TCL_CHANNEL_VERSION_2;
+		tlsChannelType->blockModeProc = TlsBlockModeProc;
+		tlsChannelType->handlerProc   = TlsNotifyProc;
 	}
-#else
-	/*
-	 * Compiled against 8.3.2+. Direct access to all elements possible. Use
-	 * channelTypeVersion information to select the values to use.
-	 */
 
-	if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	    /*
-	     * The 'version' element of 8.3.2 is in the the place of the
-	     * blockModeProc. For the original patch in 8.1.x and the firstly
-	     * included (8.2) we have to set our blockModeProc into this
-	     * place.
-	     */
-	    tlsChannelType->version = (Tcl_ChannelTypeVersion)TlsBlockModeProc;
-	} else /* channelTypeVersion == TLS_CHANNEL_VERSION_2 */ {
-	    /*
-	     * For the 8.3.2 core we present ourselves as a version 2
-	     * driver. This means a special value in version (ex
-	     * blockModeProc), blockModeProc in a different place and of
-	     * course usage of the handlerProc.
-	     */
-
-	    tlsChannelType->version       = TCL_CHANNEL_VERSION_2;
-	    tlsChannelType->blockModeProc = TlsBlockModeProc;
-	    tlsChannelType->handlerProc   = TlsNotifyProc;
-	}
-#endif
-    }
-    return tlsChannelType;
+	return(tlsChannelType);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -237,28 +129,18 @@ Tcl_ChannelType *Tls_ChannelType()
  *
  *-------------------------------------------------------------------
  */
+static int TlsBlockModeProc(ClientData instanceData, int mode) {
+	State *statePtr = (State *) instanceData;
 
-static int
-TlsBlockModeProc(ClientData instanceData,	/* Socket state. */
-                 int mode)			/* The mode to set. Can be one of
-						* TCL_MODE_BLOCKING or
-						* TCL_MODE_NONBLOCKING. */
-{
-    State *statePtr = (State *) instanceData;
+	if (mode == TCL_MODE_NONBLOCKING) {
+		statePtr->flags |= TLS_TCL_ASYNC;
+	} else {
+		statePtr->flags &= ~(TLS_TCL_ASYNC);
+	}
 
-    if (mode == TCL_MODE_NONBLOCKING) {
-	statePtr->flags |= TLS_TCL_ASYNC;
-    } else {
-	statePtr->flags &= ~(TLS_TCL_ASYNC);
-    }
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	return 0;
-    } else {
-	return Tcl_SetChannelOption(statePtr->interp, Tls_GetParent(statePtr),
-		"-blocking", (mode == TCL_MODE_NONBLOCKING) ? "0" : "1");
-    }
+	return(0);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -278,29 +160,22 @@ TlsBlockModeProc(ClientData instanceData,	/* Socket state. */
  *
  *-------------------------------------------------------------------
  */
-static int
-TlsCloseProc(ClientData instanceData,	/* The socket to close. */
-             Tcl_Interp *interp)	/* For error reporting - unused. */
-{
-    State *statePtr = (State *) instanceData;
+static int TlsCloseProc(ClientData instanceData, Tcl_Interp *interp) {
+	State *statePtr = (State *) instanceData;
 
-    dprintf("TlsCloseProc(%p)", (void *) statePtr);
+	dprintf("TlsCloseProc(%p)", (void *) statePtr);
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_1) {
-	/*
-	 * Remove event handler to underlying channel, this could
-	 * be because we are closing for real, or being "unstacked".
-	 */
+	Tls_Clean(statePtr);
+	Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
 
-	Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-		TlsChannelHandler, (ClientData) statePtr);
-    }
+	dprintf("Returning TCL_OK");
 
-    Tls_Clean(statePtr);
-    Tcl_EventuallyFree((ClientData)statePtr, Tls_Free);
-    return TCL_OK;
+	return(TCL_OK);
+
+	/* Interp is unused. */
+	interp = interp;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -320,84 +195,82 @@ TlsCloseProc(ClientData instanceData,	/* The socket to close. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsInputProc(ClientData instanceData,	/* Socket state. */
-	char *buf,			/* Where to store data read. */
-	int bufSize,			/* How much space is available
-					 * in the buffer? */
-	int *errorCodePtr)		/* Where to store error code. */
-{
-    State *statePtr = (State *) instanceData;
-    int bytesRead;			/* How many bytes were read? */
+static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *errorCodePtr) {
+	State *statePtr = (State *) instanceData;
+	int bytesRead;
+	int tlsConnect;
+	int err;
 
-    *errorCodePtr = 0;
+	*errorCodePtr = 0;
 
-    dprintf("BIO_read(%d)", bufSize);
+	dprintf("BIO_read(%d)", bufSize);
 
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-       /* don't process any bytes while verify callback is running */
-       dprintf("Callback is running, reading 0 bytes");
-
-       bytesRead = 0;
-       goto input;
-    }
-
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-	bytesRead = Tls_WaitForConnect(statePtr, errorCodePtr);
-	if (bytesRead <= 0) {
-            dprintf("Got an error (bytesRead = %i)", bytesRead);
-
-	    if (*errorCodePtr == ECONNRESET) {
-                dprintf("Got connection reset");
-		/* Soft EOF */
-		*errorCodePtr = 0;
-		bytesRead = 0;
-	    }
-	    goto input;
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		/* don't process any bytes while verify callback is running */
+		dprintf("Callback is running, reading 0 bytes");
+		return(0);
 	}
-    }
 
-    if (statePtr->flags & TLS_TCL_INIT) {
-	statePtr->flags &= ~(TLS_TCL_INIT);
-    }
-    /*
-     * We need to clear the SSL error stack now because we sometimes reach
-     * this function with leftover errors in the stack.  If BIO_read
-     * returns -1 and intends EAGAIN, there is a leftover error, it will be
-     * misconstrued as an error, not EAGAIN.
-     *
-     * Alternatively, we may want to handle the <0 return codes from
-     * BIO_read specially (as advised in the RSA docs).  TLS's lower level BIO
-     * functions play with the retry flags though, and this seems to work
-     * correctly.  Similar fix in TlsOutputProc. - hobbs
-     */
-    ERR_clear_error();
-    bytesRead = BIO_read(statePtr->bio, buf, bufSize);
-    dprintf("BIO_read -> %d", bytesRead);
+	dprintf("Calling Tls_WaitForConnect");
+	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr);
+	if (tlsConnect < 0) {
+		dprintf("Got an error (bytesRead = %i)", bytesRead);
 
-    if (bytesRead < 0) {
-	int err = SSL_get_error(statePtr->ssl, bytesRead);
+		if (*errorCodePtr == ECONNRESET) {
+			dprintf("Got connection reset");
+			/* Soft EOF */
+			*errorCodePtr = 0;
+			bytesRead = 0;
+		}
 
-	if (err == SSL_ERROR_SSL) {
-	    Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, bytesRead));
-	    *errorCodePtr = ECONNABORTED;
-	} else if (BIO_should_retry(statePtr->bio)) {
-	    dprintf("RE! ");
-	    *errorCodePtr = EAGAIN;
-	} else {
-	    *errorCodePtr = Tcl_GetErrno();
-	    if (*errorCodePtr == ECONNRESET) {
-		/* Soft EOF */
-		*errorCodePtr = 0;
-		bytesRead = 0;
-	    }
+		return(0);
 	}
-    }
-    input:
-    dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
-    return bytesRead;
+
+	if (statePtr->flags & TLS_TCL_INIT) {
+		statePtr->flags &= ~(TLS_TCL_INIT);
+	}
+
+	/*
+	 * We need to clear the SSL error stack now because we sometimes reach
+	 * this function with leftover errors in the stack.  If BIO_read
+	 * returns -1 and intends EAGAIN, there is a leftover error, it will be
+	 * misconstrued as an error, not EAGAIN.
+	 *
+	 * Alternatively, we may want to handle the <0 return codes from
+	 * BIO_read specially (as advised in the RSA docs).  TLS's lower level BIO
+	 * functions play with the retry flags though, and this seems to work
+	 * correctly.  Similar fix in TlsOutputProc. - hobbs
+	 */
+	ERR_clear_error();
+	bytesRead = BIO_read(statePtr->bio, buf, bufSize);
+	dprintf("BIO_read -> %d", bytesRead);
+
+	err = SSL_get_error(statePtr->ssl, bytesRead);
+
+	if (BIO_should_retry(statePtr->bio)) {
+		dprintf("I/O failed, will retry based on EAGAIN");
+		*errorCodePtr = EAGAIN;
+	}
+
+	switch (err) {
+		case SSL_ERROR_NONE:
+			dprintBuffer(buf, bytesRead);
+			break;
+		case SSL_ERROR_SSL:
+			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, bytesRead));
+			*errorCodePtr = ECONNABORTED;
+			break;
+		case SSL_ERROR_SYSCALL:
+			dprintf("I/O error reading, treating it as EOF");
+			*errorCodePtr = 0;
+			bytesRead = 0;
+			break;
+	}
+
+	dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
+	return(bytesRead);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -416,43 +289,47 @@ TlsInputProc(ClientData instanceData,	/* Socket state. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsOutputProc(ClientData instanceData,	/* Socket state. */
-              CONST char *buf,		/* The data buffer. */
-              int toWrite,		/* How many bytes to write? */
-              int *errorCodePtr)	/* Where to store error code. */
-{
-    State *statePtr = (State *) instanceData;
-    int written, err;
+static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, int *errorCodePtr) {
+	State *statePtr = (State *) instanceData;
+	int written, err;
 
-    *errorCodePtr = 0;
+	*errorCodePtr = 0;
 
-    dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
+	dprintf("BIO_write(%p, %d)", (void *) statePtr, toWrite);
+	dprintBuffer(buf, toWrite);
 
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-       /* don't process any bytes while verify callback is running */
-       written = -1;
-       *errorCodePtr = EAGAIN;
-       goto output;
-    }
-
-    if (!SSL_is_init_finished(statePtr->ssl)) {
-	written = Tls_WaitForConnect(statePtr, errorCodePtr);
-	if (written <= 0) {
-            dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
-
-	    goto output;
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		dprintf("Don't process output while callbacks are running")
+		written = -1;
+		*errorCodePtr = EAGAIN;
+		return(-1);
 	}
-    }
-    if (statePtr->flags & TLS_TCL_INIT) {
-	statePtr->flags &= ~(TLS_TCL_INIT);
-    }
-    if (toWrite == 0) {
-	dprintf("zero-write");
-	BIO_flush(statePtr->bio);
-	written = 0;
-	goto output;
-    } else {
+
+	dprintf("Calling Tls_WaitForConnect");
+	written = Tls_WaitForConnect(statePtr, errorCodePtr);
+	if (written < 0) {
+		dprintf("Tls_WaitForConnect returned %i (err = %i)", written, *errorCodePtr);
+
+		return(-1);
+	}
+
+	if (toWrite == 0) {
+		dprintf("zero-write");
+		err = BIO_flush(statePtr->bio);
+
+		if (err <= 0) {
+			dprintf("Flushing failed");
+
+			*errorCodePtr = EIO;
+			written = 0;
+			return(-1);
+		}
+
+		written = 0;
+		*errorCodePtr = 0;
+		return(0);
+	}
+
 	/*
 	 * We need to clear the SSL error stack now because we sometimes reach
 	 * this function with leftover errors in the stack.  If BIO_write
@@ -466,50 +343,47 @@ TlsOutputProc(ClientData instanceData,	/* Socket state. */
 	 */
 	ERR_clear_error();
 	written = BIO_write(statePtr->bio, buf, toWrite);
-	dprintf("BIO_write(%p, %d) -> [%d]",
-		(void *) statePtr, toWrite, written);
-    }
-    if (written <= 0) {
-	switch ((err = SSL_get_error(statePtr->ssl, written))) {
-	    case SSL_ERROR_NONE:
-		if (written < 0) {
-		    written = 0;
-		}
-		break;
-	    case SSL_ERROR_WANT_WRITE:
-		dprintf(" write W BLOCK");
-		break;
-	    case SSL_ERROR_WANT_READ:
-		dprintf(" write R BLOCK");
-		break;
-	    case SSL_ERROR_WANT_X509_LOOKUP:
-		dprintf(" write X BLOCK");
-		break;
-	    case SSL_ERROR_ZERO_RETURN:
-		dprintf(" closed");
-		written = 0;
-		break;
-	    case SSL_ERROR_SYSCALL:
-		*errorCodePtr = Tcl_GetErrno();
-		dprintf(" [%d] syscall errr: %d",
-			written, *errorCodePtr);
-		written = -1;
-		break;
-	    case SSL_ERROR_SSL:
-		Tls_Error(statePtr, SSL_ERROR(statePtr->ssl, written));
-		*errorCodePtr = ECONNABORTED;
-		written = -1;
-		break;
-	    default:
-		dprintf(" unknown err: %d", err);
-		break;
+	dprintf("BIO_write(%p, %d) -> [%d]", (void *) statePtr, toWrite, written);
+
+	err = SSL_get_error(statePtr->ssl, written);
+	switch (err) {
+		case SSL_ERROR_NONE:
+			if (written < 0) {
+				written = 0;
+			}
+			break;
+		case SSL_ERROR_WANT_WRITE:
+			dprintf(" write W BLOCK");
+			break;
+		case SSL_ERROR_WANT_READ:
+			dprintf(" write R BLOCK");
+			break;
+		case SSL_ERROR_WANT_X509_LOOKUP:
+			dprintf(" write X BLOCK");
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			dprintf(" closed");
+			written = 0;
+			break;
+		case SSL_ERROR_SYSCALL:
+			*errorCodePtr = Tcl_GetErrno();
+			dprintf(" [%d] syscall errr: %d", written, *errorCodePtr);
+			written = -1;
+			break;
+		case SSL_ERROR_SSL:
+			Tls_Error(statePtr, TCLTLS_SSL_ERROR(statePtr->ssl, written));
+			*errorCodePtr = ECONNABORTED;
+			written = -1;
+			break;
+		default:
+			dprintf(" unknown err: %d", err);
+			break;
 	}
-    }
-    output:
-    dprintf("Output(%d) -> %d", toWrite, written);
-    return written;
+
+	dprintf("Output(%d) -> %d", toWrite, written);
+	return(written);
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -540,46 +414,24 @@ TlsGetOptionProc(ClientData instanceData,	/* Socket state. */
 {
     State *statePtr = (State *) instanceData;
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	Tcl_Channel downChan = Tls_GetParent(statePtr);
-	Tcl_DriverGetOptionProc *getOptionProc;
+   Tcl_Channel downChan = Tls_GetParent(statePtr, TLS_TCL_FASTPATH);
+   Tcl_DriverGetOptionProc *getOptionProc;
 
-	getOptionProc = Tcl_ChannelGetOptionProc(Tcl_GetChannelType(downChan));
-	if (getOptionProc != NULL) {
-	    return (*getOptionProc)(Tcl_GetChannelInstanceData(downChan),
-		    interp, optionName, dsPtr);
-	} else if (optionName == (char*) NULL) {
-	    /*
-	     * Request is query for all options, this is ok.
-	     */
-	    return TCL_OK;
-	}
-	/*
-	 * Request for a specific option has to fail, we don't have any.
-	 */
-	return TCL_ERROR;
-    } else {
-#if 0
-	size_t len = 0;
-
-	if (optionName != (char *) NULL) {
-	    len = strlen(optionName);
-	}
-	if ((len == 0) || ((len > 1) && (optionName[1] == 'c') &&
-		(strncmp(optionName, "-cipher", len) == 0))) {
-	    if (len == 0) {
-		Tcl_DStringAppendElement(dsPtr, "-cipher");
-	    }
-	    Tcl_DStringAppendElement(dsPtr, SSL_get_cipher(statePtr->ssl));
-	    if (len) {
-		return TCL_OK;
-	    }
-	}
-#endif
-	return TCL_OK;
+    getOptionProc = Tcl_ChannelGetOptionProc(Tcl_GetChannelType(downChan));
+    if (getOptionProc != NULL) {
+        return (*getOptionProc)(Tcl_GetChannelInstanceData(downChan), interp, optionName, dsPtr);
+    } else if (optionName == (char*) NULL) {
+        /*
+         * Request is query for all options, this is ok.
+         */
+         return TCL_OK;
     }
+    /*
+     * Request for a specific option has to fail, we don't have any.
+     */
+    return TCL_ERROR;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -603,16 +455,32 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
                                          * combination of TCL_READABLE,
                                          * TCL_WRITABLE and TCL_EXCEPTION. */
 {
+    Tcl_Channel     downChan;
     State *statePtr = (State *) instanceData;
 
     dprintf("TlsWatchProc(0x%x)", mask);
 
     /* Pretend to be dead as long as the verify callback is running. 
      * Otherwise that callback could be invoked recursively. */
-    if (statePtr->flags & TLS_TCL_CALLBACK) { return; }
+    if (statePtr->flags & TLS_TCL_CALLBACK) {
+        dprintf("Callback is on-going, doing nothing");
+        return;
+    }
 
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	Tcl_Channel     downChan;
+    dprintFlags(statePtr);
+
+    downChan = Tls_GetParent(statePtr, TLS_TCL_FASTPATH);
+
+    if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+        dprintf("Asked to watch a socket with a failed handshake -- nothing can happen here");
+
+	dprintf("Unregistering interest in the lower channel");
+	(Tcl_GetChannelType(downChan))->watchProc(Tcl_GetChannelInstanceData(downChan), 0);
+
+	statePtr->watchMask = 0;
+
+        return;
+    }
 
 	statePtr->watchMask = mask;
 
@@ -624,8 +492,8 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	 * the request down, unchanged.
 	 */
 
-	downChan = Tls_GetParent(statePtr);
 
+        dprintf("Registering our interest in the lower channel (chan=%p)", (void *) downChan);
 	(Tcl_GetChannelType(downChan))
 	    ->watchProc(Tcl_GetChannelInstanceData(downChan), mask);
 
@@ -634,43 +502,22 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	 */
 
 	if (statePtr->timer != (Tcl_TimerToken) NULL) {
+            dprintf("A timer was found, deleting it");
 	    Tcl_DeleteTimerHandler(statePtr->timer);
 	    statePtr->timer = (Tcl_TimerToken) NULL;
 	}
+
 	if ((mask & TCL_READABLE) && Tcl_InputBuffered(statePtr->self) > 0) {
 	    /*
 	     * There is interest in readable events and we actually have
 	     * data waiting, so generate a timer to flush that.
 	     */
+            dprintf("Creating a new timer since data appears to be waiting");
 	    statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
 		    TlsChannelHandlerTimer, (ClientData) statePtr);
 	}
-    } else {
-	if (mask == statePtr->watchMask)
-	    return;
-
-	if (statePtr->watchMask) {
-	    /*
-	     * Remove event handler to underlying channel, this could
-	     * be because we are closing for real, or being "unstacked".
-	     */
-
-	    Tcl_DeleteChannelHandler(Tls_GetParent(statePtr),
-		    TlsChannelHandler, (ClientData) statePtr);
-	}
-	statePtr->watchMask = mask;
-	if (statePtr->watchMask) {
-	    /*
-	     * Setup active monitor for events on underlying Channel.
-	     */
-
-	    Tcl_CreateChannelHandler(Tls_GetParent(statePtr),
-		    statePtr->watchMask, TlsChannelHandler,
-		    (ClientData) statePtr);
-	}
-    }
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -687,16 +534,12 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
  *
  *-------------------------------------------------------------------
  */
-static int
-TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
-                 int direction,		/* Which Tcl_File to retrieve? */
-                 ClientData *handlePtr)	/* Where to store the handle.  */
-{
-    State *statePtr = (State *) instanceData;
+static int TlsGetHandleProc(ClientData instanceData, int direction, ClientData *handlePtr) {
+	State *statePtr = (State *) instanceData;
 
-    return Tcl_GetChannelHandle(Tls_GetParent(statePtr), direction, handlePtr);
+	return(Tcl_GetChannelHandle(Tls_GetParent(statePtr, TLS_TCL_FASTPATH), direction, handlePtr));
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -714,48 +557,50 @@ TlsGetHandleProc(ClientData instanceData,	/* The socket state. */
  *-------------------------------------------------------------------
  */
 
-static int
-TlsNotifyProc(instanceData, mask)
-    ClientData	   instanceData; /* The state of the notified transformation */
-    int		   mask;       /* The mask of occuring events */
-{
-    State *statePtr = (State *) instanceData;
+static int TlsNotifyProc(ClientData instanceData, int mask) {
+	State *statePtr = (State *) instanceData;
+	int errorCode;
 
-    /*
-     * An event occured in the underlying channel.  This
-     * transformation doesn't process such events thus returns the
-     * incoming mask unchanged.
-     */
-
-    if (statePtr->timer != (Tcl_TimerToken) NULL) {
 	/*
-	 * Delete an existing timer. It was not fired, yet we are
-	 * here, so the channel below generated such an event and we
-	 * don't have to. The renewal of the interest after the
-	 * execution of channel handlers will eventually cause us to
-	 * recreate the timer (in WatchProc).
+	 * An event occured in the underlying channel.  This
+	 * transformation doesn't process such events thus returns the
+	 * incoming mask unchanged.
 	 */
-
-	Tcl_DeleteTimerHandler(statePtr->timer);
-	statePtr->timer = (Tcl_TimerToken) NULL;
-    }
-
-    if (statePtr->flags & TLS_TCL_CALLBACK) {
-	return 0;
-    }
-
-    if (statePtr->flags & TLS_TCL_INIT
-	    && !SSL_is_init_finished(statePtr->ssl)) {
-	int errorCode = 0;
-	if (Tls_WaitForConnect(statePtr, &errorCode) <= 0 && errorCode == EAGAIN) {
-            dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN");
-	    return 0;
+	if (statePtr->timer != (Tcl_TimerToken) NULL) {
+		/*
+		 * Delete an existing timer. It was not fired, yet we are
+		 * here, so the channel below generated such an event and we
+		 * don't have to. The renewal of the interest after the
+		 * execution of channel handlers will eventually cause us to
+		 * recreate the timer (in WatchProc).
+		 */
+		Tcl_DeleteTimerHandler(statePtr->timer);
+		statePtr->timer = (Tcl_TimerToken) NULL;
 	}
-    }
 
-    return mask;
+	if (statePtr->flags & TLS_TCL_CALLBACK) {
+		dprintf("Returning 0 due to callback");
+		return 0;
+	}
+
+	dprintf("Calling Tls_WaitForConnect");
+	errorCode = 0;
+	if (Tls_WaitForConnect(statePtr, &errorCode) < 0) {
+		if (errorCode == EAGAIN) {
+			dprintf("Async flag could be set (didn't check) and errorCode == EAGAIN:  Returning 0");
+
+			return 0;
+		}
+
+		dprintf("Tls_WaitForConnect returned an error");
+	}
+
+	dprintf("Returning %i", mask);
+
+	return(mask);
 }
-
+
+#if 0
 /*
  *------------------------------------------------------*
  *
@@ -835,7 +680,8 @@ TlsChannelHandler (clientData, mask)
     }
     Tcl_Release( (ClientData)statePtr);
 }
-
+#endif
+
 /*
  *------------------------------------------------------*
  *
@@ -855,24 +701,34 @@ TlsChannelHandler (clientData, mask)
  *------------------------------------------------------*
  */
 
-static void
-TlsChannelHandlerTimer (clientData)
-ClientData clientData; /* Transformation to query */
-{
-    State *statePtr = (State *) clientData;
-    int mask = 0;
+static void TlsChannelHandlerTimer(ClientData clientData) {
+	State *statePtr = (State *) clientData;
+	int mask = 0;
 
-    statePtr->timer = (Tcl_TimerToken) NULL;
+	dprintf("Called");
 
-    if (BIO_wpending(statePtr->bio)) {
-	mask |= TCL_WRITABLE;
-    }
-    if (BIO_pending(statePtr->bio)) {
-	mask |= TCL_READABLE;
-    }
-    Tcl_NotifyChannel(statePtr->self, mask);
+	statePtr->timer = (Tcl_TimerToken) NULL;
+
+	if (BIO_wpending(statePtr->bio)) {
+		dprintf("[chan=%p] BIO writable", statePtr->self);
+
+		mask |= TCL_WRITABLE;
+	}
+
+	if (BIO_pending(statePtr->bio)) {
+		dprintf("[chan=%p] BIO readable", statePtr->self);
+
+		mask |= TCL_READABLE;
+	}
+
+	dprintf("Notifying ourselves");
+	Tcl_NotifyChannel(statePtr->self, mask);
+
+	dprintf("Returning");
+
+	return;
 }
-
+
 /*
  *------------------------------------------------------*
  *
@@ -886,142 +742,165 @@ ClientData clientData; /* Transformation to query */
  *
  *------------------------------------------------------*
  */
-int
-Tls_WaitForConnect( statePtr, errorCodePtr)
-    State *statePtr;
-    int *errorCodePtr;		/* Where to store error code. */
-{
-    int err;
+int Tls_WaitForConnect(State *statePtr, int *errorCodePtr) {
+	unsigned long backingError;
+	int err, rc;
+	int bioShouldRetry;
 
-    dprintf("WaitForConnect(%p)", (void *) statePtr);
+	dprintf("WaitForConnect(%p)", (void *) statePtr);
+	dprintFlags(statePtr);
 
-    if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
-        /*
-         * We choose ECONNRESET over ECONNABORTED here because some server
-         * side code, on the wiki for example, sets up a read handler that
-         * does a read and if eof closes the channel. There is no catch/try
-         * around the reads so exceptions will result in potentially many
-         * dangling channels hanging around that should have been closed.
-         * (Backgroun: ECONNABORTED maps to a Tcl exception and 
-         * ECONNRESET maps to graceful EOF).
-         */
-        *errorCodePtr = ECONNRESET;
-        return -1;
-    }
-
-    for (;;) {
-	/* Not initialized yet! */
-	if (statePtr->flags & TLS_TCL_SERVER) {
-            dprintf("Calling SSL_accept()");
-	    err = SSL_accept(statePtr->ssl);
-	} else {
-            dprintf("Calling SSL_connect()");
-	    err = SSL_connect(statePtr->ssl);
+	if (!(statePtr->flags & TLS_TCL_INIT)) {
+		dprintf("Tls_WaitForConnect called on already initialized channel -- returning with immediate success");
+		*errorCodePtr = 0;
+		return(0);
 	}
 
-	/*SSL_write(statePtr->ssl, (char*)&err, 0);	HACK!!! */
-	if (err > 0) {
-            dprintf("That seems to have gone okay");
-	    BIO_flush(statePtr->bio);
-	} else {
-	    int rc = SSL_get_error(statePtr->ssl, err);
-
-            dprintf("Got error: %i (rc = %i)", err, rc);
-
-	    if (rc == SSL_ERROR_SSL) {
-		Tls_Error(statePtr,
-			(char *)ERR_reason_error_string(ERR_get_error()));
-                statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-		*errorCodePtr = ECONNABORTED;
-		return -1;
-	    } else if (BIO_should_retry(statePtr->bio)) {
-		if (statePtr->flags & TLS_TCL_ASYNC) {
-		    dprintf("E! ");
-		    *errorCodePtr = EAGAIN;
-		    return -1;
-		} else {
-		    continue;
-		}
-	    } else if (err == 0) {
-                if (SSL_in_init(statePtr->ssl)) {
-                    dprintf("SSL_in_init() is true");
-                }
-
-                if (Tcl_Eof(statePtr->self)) {
-                    dprintf("Error = 0 and EOF is set");
-
-                    if (rc != SSL_ERROR_SYSCALL) {
-                        dprintf("Error from some reason other than our BIO, returning 0");
-                        return 0;
-                    }
-                }
-		dprintf("CR! ");
+	if (statePtr->flags & TLS_TCL_HANDSHAKE_FAILED) {
+		/*
+		 * We choose ECONNRESET over ECONNABORTED here because some server
+		 * side code, on the wiki for example, sets up a read handler that
+		 * does a read and if eof closes the channel. There is no catch/try
+		 * around the reads so exceptions will result in potentially many
+		 * dangling channels hanging around that should have been closed.
+		 * (Backgroun: ECONNABORTED maps to a Tcl exception and 
+		 * ECONNRESET maps to graceful EOF).
+		 */
 		*errorCodePtr = ECONNRESET;
-		return -1;
-	    }
-	    if (statePtr->flags & TLS_TCL_SERVER) {
+		return(-1);
+	}
+
+	for (;;) {
+		/* Not initialized yet! */
+		if (statePtr->flags & TLS_TCL_SERVER) {
+			dprintf("Calling SSL_accept()");
+
+			err = SSL_accept(statePtr->ssl);
+		} else {
+			dprintf("Calling SSL_connect()");
+
+			err = SSL_connect(statePtr->ssl);
+		}
+
+		if (err > 0) {
+			dprintf("That seems to have gone okay");
+
+			err = BIO_flush(statePtr->bio);
+
+			if (err <= 0) {
+				dprintf("Flushing the lower layers failed, this will probably terminate this session");
+			}
+		}
+
+		rc = SSL_get_error(statePtr->ssl, err);
+
+		dprintf("Got error: %i (rc = %i)", err, rc);
+
+		bioShouldRetry = 0;
+		if (err <= 0) {
+			if (rc == SSL_ERROR_WANT_CONNECT || rc == SSL_ERROR_WANT_ACCEPT || rc == SSL_ERROR_WANT_READ || rc == SSL_ERROR_WANT_WRITE) {
+				bioShouldRetry = 1;
+			} else if (BIO_should_retry(statePtr->bio)) {
+				bioShouldRetry = 1;
+			} else if (rc == SSL_ERROR_SYSCALL && Tcl_GetErrno() == EAGAIN) {
+				bioShouldRetry = 1;
+			}
+		} else {
+			if (!SSL_is_init_finished(statePtr->ssl)) {
+				bioShouldRetry = 1;
+			}
+		}
+
+		if (bioShouldRetry) {
+			dprintf("The I/O did not complete -- but we should try it again");
+
+			if (statePtr->flags & TLS_TCL_ASYNC) {
+				dprintf("Returning EAGAIN so that it can be retried later");
+
+				*errorCodePtr = EAGAIN;
+
+				return(-1);
+			} else {
+				dprintf("Doing so now");
+
+				continue;
+			}
+		}
+
+		dprintf("We have either completely established the session or completely failed it -- there is no more need to ever retry it though");
+		break;
+	}
+
+
+	*errorCodePtr = EINVAL;
+
+	switch (rc) {
+		case SSL_ERROR_NONE:
+			/* The connection is up, we are done here */
+			dprintf("The connection is up");
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			dprintf("SSL_ERROR_ZERO_RETURN: Connect returned an invalid value...")
+			return(-1);
+		case SSL_ERROR_SYSCALL:
+			backingError = ERR_get_error();
+			dprintf("I/O error occured");
+
+			if (backingError == 0 && err == 0) {
+				dprintf("EOF reached")
+			}
+
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNRESET;
+			return(-1);
+		case SSL_ERROR_SSL:
+			dprintf("Got permanent fatal SSL error, aborting immediately");
+			Tls_Error(statePtr, (char *)ERR_reason_error_string(ERR_get_error()));
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNABORTED;
+			return(-1);
+		case SSL_ERROR_WANT_CONNECT:
+		case SSL_ERROR_WANT_ACCEPT:
+		case SSL_ERROR_WANT_X509_LOOKUP:
+		default:
+			dprintf("We got a confusing reply: %i", rc);
+			*errorCodePtr = Tcl_GetErrno();
+			dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
+			return(-1);
+	}
+
+#if 0
+	if (statePtr->flags & TLS_TCL_SERVER) {
+		dprintf("This is an TLS server, checking the certificate for the peer");
+
 		err = SSL_get_verify_result(statePtr->ssl);
 		if (err != X509_V_OK) {
-		    Tls_Error(statePtr,
-			    (char *)X509_verify_cert_error_string(err));
-                    statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
-		    *errorCodePtr = ECONNABORTED;
-		    return -1;
+			dprintf("Invalid certificate, returning in failure");
+
+			Tls_Error(statePtr, (char *)X509_verify_cert_error_string(err));
+			statePtr->flags |= TLS_TCL_HANDSHAKE_FAILED;
+			*errorCodePtr = ECONNABORTED;
+			return(-1);
 		}
-	    }
-	    *errorCodePtr = Tcl_GetErrno();
-	    dprintf("ERR(%d, %d) ", rc, *errorCodePtr);
-	    return -1;
 	}
-	dprintf("R0! ");
-	return 1;
-    }
+#endif
+
+	dprintf("Removing the \"TLS_TCL_INIT\" flag since we have completed the handshake");
+	statePtr->flags &= ~TLS_TCL_INIT;
+
+	dprintf("Returning in success");
+	*errorCodePtr = 0;
+
+	return(0);
 }
 
-Tcl_Channel
-Tls_GetParent( statePtr )
-    State *statePtr;
-{
-    if (channelTypeVersion == TLS_CHANNEL_VERSION_2) {
-	return Tcl_GetStackedChannel(statePtr->self);
-    } else {
-	/* The reason for the existence of this procedure is
-	 * the fact that stacking a transform over another
-	 * transform will leave our internal pointer unchanged,
-	 * and thus pointing to the new transform, and not the
-	 * Channel structure containing the saved state of this
-	 * transform. This is the price to pay for leaving
-	 * Tcl_Channel references intact. The only other solution
-	 * is an extension of Tcl_ChannelType with another driver
-	 * procedure to notify a Channel about the (un)stacking.
-	 *
-	 * It walks the chain of Channel structures until it
-	 * finds the one pointing having 'ctrl' as instanceData
-	 * and then returns the superceding channel to that. (AK)
-	 */
+Tcl_Channel Tls_GetParent(State *statePtr, int maskFlags) {
+	dprintf("Requested to get parent of channel %p", statePtr->self);
 
-	Tcl_Channel self = statePtr->self;
-	Tcl_Channel next;
-
-	while ((ClientData) statePtr != Tcl_GetChannelInstanceData (self)) {
-	    next = Tcl_GetStackedChannel (self);
-	    if (next == (Tcl_Channel) NULL) {
-		/* 09/24/1999 Unstacking bug,
-		 * found by Matt Newman <matt@sensus.org>.
-		 *
-		 * We were unable to find the channel structure for this
-		 * transformation in the chain of stacked channel. This
-		 * means that we are currently in the process of unstacking
-		 * it *and* there were some bytes waiting which are now
-		 * flushed. In this situation the pointer to the channel
-		 * itself already refers to the parent channel we have to
-		 * write the bytes into, so we return that.
-		 */
-		return statePtr->self;
-	    }
-	    self = next;
+	if ((statePtr->flags & ~maskFlags) & TLS_TCL_FASTPATH) {
+		dprintf("Asked to get the parent channel while we are using FastPath -- returning NULL");
+		return(NULL);
 	}
 
-	return Tcl_GetStackedChannel (self);
-    }
+	return(Tcl_GetStackedChannel(statePtr->self));
 }
