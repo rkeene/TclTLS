@@ -129,9 +129,9 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	BIO_clear_flags(bio, BIO_FLAGS_WRITE | BIO_FLAGS_SHOULD_RETRY);
 
 	if (tclEofChan && ret <= 0) {
-		dprintf("Got %i from Tcl_WriteRaw, and EOF is set; ret = -1", ret);
+		dprintf("Got EOF while reading, returning a Connection Reset error which maps to Soft EOF");
 		Tcl_SetErrno(ECONNRESET);
-		ret = -1;
+		ret = 0;
 	} else if (ret == 0) {
 		dprintf("Got 0 from Tcl_WriteRaw, and EOF is not set; ret = 0");
 		dprintf("Setting retry read flag");
@@ -182,9 +182,9 @@ static int BioRead(BIO *bio, char *buf, int bufLen) {
 	BIO_clear_flags(bio, BIO_FLAGS_READ | BIO_FLAGS_SHOULD_RETRY);
 
 	if (tclEofChan && ret <= 0) {
-		dprintf("Got %i from Tcl_Read or Tcl_ReadRaw, and EOF is set; ret = -1", ret);
+		dprintf("Got EOF while reading, returning a Connection Reset error which maps to Soft EOF");
 		Tcl_SetErrno(ECONNRESET);
-		ret = -1;
+		ret = 0;
 	} else if (ret == 0) {
 		dprintf("Got 0 from Tcl_Read or Tcl_ReadRaw, and EOF is not set; ret = 0");
 		dprintf("Setting retry read flag");
