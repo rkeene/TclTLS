@@ -16,14 +16,8 @@ The current release is TLS 1.6, with binaries built against OpenSSL 0.9.8g.
 For best security and function, always compile from source with the latest
 official release of OpenSSL (http://www.openssl.org/).
 
-TLS requires Tcl 8.2.0+, with 8.3.2+ preferred.  The stacked channel
-implementation in Tcl was originally introduced in 8.2.0 (previously the
-Trf patch) and rewritten for 8.3.2+ due to inherent limitations in the
-earlier implementation.  TLS should compile with any stubs-capable Tcl
-interpreter, but will require 8.2+ when loaded.  There are known
-limitations in the 8.2.0-8.3.1 stacked channel implementation, so it is
-encouraged that people use TLS with an 8.3.2+ Tcl interpreter.  These
-modifications are by Jeff Hobbs.
+TLS 1.7 and newer require Tcl 8.4.0+, older versions may be used if older
+versions of Tcl need to be used.
 
 Non-exclusive credits for TLS are:
    Original work: Matt Newman @ Novadigm

@@ -5,13 +5,15 @@ CFLAGS = @CFLAGS@ @SHOBJFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I@srcdir@ -I. @DEFS@ @TCL_DEFS@
 LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
 LIBS = @LIBS@
-INSTALL = @INSTALL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 libdir = @libdir@
 TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
 PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
 VPATH = @srcdir@
 
 all: @EXTENSION_TARGET@
@@ -35,7 +37,7 @@ tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
-tls.tcl.h: @srcdir@/tls.tcl
+tls.tcl.h: @srcdir@/tls.tcl Makefile
 	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
 	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
 	rm -f tls.tcl.h.new.1
@@ -54,7 +56,14 @@ dh_params.h: @srcdir@/gen_dh_params Makefile
 # Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
 	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
-	$(INSTALL) -c @EXTENSION_TARGET@ pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_PROGRAM) @EXTENSION_TARGET@ '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_DATA)    pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# A convienent helper to undo the installation just done
+uninstall:
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/@EXTENSION_TARGET@'
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/pkgIndex.tcl'
+	-rmdir '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
 
 # Test target, run the automated test suite
 test: @EXTENSION_TARGET@
@@ -66,8 +75,7 @@ clean:
 	rm -f tcltls.@SHOBJEXT@
 	rm -f tcltls.@SHOBJEXT@.a tcltls.@SHOBJEXT@.def
 	rm -f tcltls.a.new tcltls.a
-	rm -f tls.tcl.h.new.1 tls.tcl.h.new.2
-	@if [ '@srcdir@' != '.' ]; then echo rm -f tls.tcl.h; rm -f tls.tcl.h; fi
+	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
 
 # Clean the local build directory back to what it was after unpacking the
 # distribution tarball
@@ -83,6 +91,5 @@ mrproper: distclean
 	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
 	rm -f @srcdir@/aclocal.m4
 	rm -rf @srcdir@/autom4te.cache
-	rm -f @srcdir@/tls.tcl.h
 
-.PHONY: all install clean distclean mrproper test
+.PHONY: all install uninstall clean distclean mrproper test
