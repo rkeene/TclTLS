@@ -102,7 +102,7 @@ proc tls::_initsocketoptions {} {
                 set argToExecute {
                     incr idx
                     if {$idx >= [llength $args]} {
-                        return -code error "incorrect usage: $arg requires an argument"
+                        return -code error "\"$arg\" option must be followed by value"
                     }
                     set argValue [lindex $args $idx]
                     lappend @VAR@ $arg $argValue
