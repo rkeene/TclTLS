@@ -103,7 +103,14 @@ used directly.</p>
         exactly the same as the native Tcl <strong>socket</strong>
         command except that the options can include any of the
         applicable <a href="#tls::import"><strong>tls:import</strong></a>
-        options.</dd>
+        options with one additional option:
+<blockquote>
+    <dl>
+        <dt><strong>-autoservername</strong> <em>bool</em></dt>
+        <dd>Automatically send the -servername as the <em>host</em> argument
+            (<strong>default</strong>: <em>false</em>)</dd>
+    </dl>
+</blockquote>
     <dt>&nbsp;</dt>
     <dt><a name="tls::handshake"><strong>tls::handshake</strong> <em>channel</em></a></dt>
     <dd>Forces handshake to take place, and returns 0 if
@@ -400,9 +407,9 @@ courtesy of the <strong>OpenSSL</strong> project.</p>
 package require http
 package require tls
 
-http::register https 443 [list ::tls::socket -require 1 -cafile ./server.pem]
+http::register https 443 [list ::tls::socket -autoservername true -require true -cadir /etc/ssl/certs]
 
-set tok [http::geturl https://developer.netscape.com/]
+set tok [http::geturl https://www.tcl.tk/]
 </code></pre>
 
 <h3><a name="SPECIAL CONSIDERATIONS">SPECIAL CONSIDERATIONS</a></h3>
