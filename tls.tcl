@@ -17,6 +17,114 @@ namespace eval tls {
     if {![info exists socketCmd]} {
         set socketCmd [info command ::socket]
     }
+
+    # This is the possible arguments to tls::socket and tls::init
+    # The format of this is a list of lists
+    ## Each inner list contains the following elements
+    ### Server (matched against "string match" for 0/1)
+    ### Option name
+    ### Variable to add the option to:
+    #### sopts: [socket] option
+    #### iopts: [tls::import] option
+    ### How many arguments the following the option to consume
+    variable socketOptionRules {
+        {0 -async sopts 0}
+        {* -myaddr sopts 1}
+        {0 -myport sopts 1}
+        {* -type sopts 1}
+        {* -cadir iopts 1}
+        {* -cafile iopts 1}
+        {* -certfile iopts 1}
+        {* -cipher iopts 1}
+        {* -command iopts 1}
+        {* -dhparams iopts 1}
+        {* -keyfile iopts 1}
+        {* -password iopts 1}
+        {* -request iopts 1}
+        {* -require iopts 1}
+        {* -autoservername discardOpts 1}
+        {* -servername iopts 1}
+        {* -ssl2 iopts 1}
+        {* -ssl3 iopts 1}
+        {* -tls1 iopts 1}
+        {* -tls1.1 iopts 1}
+        {* -tls1.2 iopts 1}
+    }
+
+    # tls::socket and tls::init options as a humane readable string
+    variable socketOptionsNoServer
+    variable socketOptionsServer
+
+    # Internal [switch] body to validate options
+    variable socketOptionsSwitchBody
+}
+
+proc tls::_initsocketoptions {} {
+    variable socketOptionRules
+    variable socketOptionsNoServer
+    variable socketOptionsServer
+    variable socketOptionsSwitchBody
+
+    # Do not re-run if we have already been initialized
+    if {[info exists socketOptionsSwitchBody]} {
+        return
+    }
+
+    # Create several structures from our list of options
+    ## 1. options: a text representation of the valid options for the current
+    ##             server type
+    ## 2. argSwitchBody: Switch body for processing arguments
+    set options(0) [list]
+    set options(1) [list]
+    set argSwitchBody [list]
+    foreach optionRule $socketOptionRules {
+        set ruleServer [lindex $optionRule 0]
+        set ruleOption [lindex $optionRule 1]
+        set ruleVarToUpdate [lindex $optionRule 2]
+        set ruleVarArgsToConsume [lindex $optionRule 3]
+
+        foreach server [list 0 1] {
+            if {![string match $ruleServer $server]} {
+                continue
+            }
+
+            lappend options($server) $ruleOption
+        }
+
+        switch -- $ruleVarArgsToConsume {
+            0 {
+                set argToExecute {
+                    lappend @VAR@ $arg
+                    set argsArray($arg) true
+                } 
+            }
+            1 {
+                set argToExecute {
+                    incr idx
+                    if {$idx >= [llength $args]} {
+                        return -code error "\"$arg\" option must be followed by value"
+                    }
+                    set argValue [lindex $args $idx]
+                    lappend @VAR@ $arg $argValue
+                    set argsArray($arg) $argValue
+                }
+            }
+            default {
+                return -code error "Internal argument construction error"
+            }
+        }
+
+        lappend argSwitchBody $ruleServer,$ruleOption [string map [list @VAR@ $ruleVarToUpdate] $argToExecute]
+    }
+
+    # Add in the final options
+    lappend argSwitchBody {*,-*} {return -code error "bad option \"$arg\": must be one of $options"}
+    lappend argSwitchBody default break
+
+    # Set the final variables
+    set socketOptionsNoServer   [join $options(0) {, }]
+    set socketOptionsServer     [join $options(1) {, }]
+    set socketOptionsSwitchBody $argSwitchBody
 }
 
 proc tls::initlib {dir dll} {
@@ -47,14 +155,35 @@ proc tls::initlib {dir dll} {
     rename tls::initlib {}
 }
 
+
 #
 # Backwards compatibility, also used to set the default
 # context options
 #
 proc tls::init {args} {
     variable defaults
+    variable socketOptionsNoServer
+    variable socketOptionsServer
+    variable socketOptionsSwitchBody
 
-    set defaults $args
+    tls::_initsocketoptions
+
+    # Technically a third option should be used here: Options that are valid
+    # only a both servers and non-servers
+    set server -1
+    set options $socketOptionsServer
+
+    # Validate arguments passed
+    set initialArgs $args
+    set argc [llength $args]
+
+    array set argsArray [list]
+    for {set idx 0} {$idx < $argc} {incr idx} {
+	set arg [lindex $args $idx]
+	switch -glob -- $server,$arg $socketOptionsSwitchBody
+    }
+
+    set defaults $initialArgs
 }
 #
 # Helper function - behaves exactly as the native socket command.
@@ -62,6 +191,12 @@ proc tls::init {args} {
 proc tls::socket {args} {
     variable socketCmd
     variable defaults
+    variable socketOptionsNoServer
+    variable socketOptionsServer
+    variable socketOptionsSwitchBody
+
+    tls::_initsocketoptions
+
     set idx [lsearch $args -server]
     if {$idx != -1} {
 	set server 1
@@ -69,44 +204,27 @@ proc tls::socket {args} {
 	set args [lreplace $args $idx [expr {$idx+1}]]
 
 	set usage "wrong # args: should be \"tls::socket -server command ?options? port\""
-	set options "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -myaddr, -password, -request, -require, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2"
+        set options $socketOptionsServer
     } else {
 	set server 0
 
 	set usage "wrong # args: should be \"tls::socket ?options? host port\""
-	set options "-async, -cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -myaddr, -myport, -password, -request, -require, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2"
+        set options $socketOptionsNoServer
     }
+
+    # Combine defaults with current options
+    set args [concat $defaults $args]
+
     set argc [llength $args]
     set sopts {}
-    set iopts [concat [list -server $server] $defaults]	;# Import options
+    set iopts [list -server $server]
 
+    array set argsArray [list]
     for {set idx 0} {$idx < $argc} {incr idx} {
 	set arg [lindex $args $idx]
-	switch -glob -- $server,$arg {
-	    0,-async	{lappend sopts $arg}
-	    0,-myport	-
-	    *,-type	-
-	    *,-myaddr	{lappend sopts $arg [lindex $args [incr idx]]}
-	    *,-cadir	-
-	    *,-cafile	-
-	    *,-certfile	-
-	    *,-cipher	-
-	    *,-command	-
-	    *,-dhparams -
-	    *,-keyfile	-
-	    *,-password	-
-	    *,-request	-
-	    *,-require	-
-            *,-servername -
-	    *,-ssl2	-
-	    *,-ssl3	-
-	    *,-tls1	-
-	    *,-tls1.1	-
-	    *,-tls1.2	{lappend iopts $arg [lindex $args [incr idx]]}
-	    -*		{return -code error "bad option \"$arg\": must be one of $options"}
-	    default	{break}
-	}
+	switch -glob -- $server,$arg $socketOptionsSwitchBody
     }
+
     if {$server} {
 	if {($idx + 1) != $argc} {
 	    return -code error $usage
@@ -122,8 +240,18 @@ proc tls::socket {args} {
 	if {($idx + 2) != $argc} {
 	    return -code error $usage
 	}
+
 	set host [lindex $args [expr {$argc-2}]]
 	set port [lindex $args [expr {$argc-1}]]
+
+        # If an "-autoservername" option is found, honor it
+        if {[info exists argsArray(-autoservername)] && $argsArray(-autoservername)} {
+            if {![info exists argsArray(-servername)]} {
+                set argsArray(-servername) $host
+                lappend iopts -servername $host
+            }
+        }
+
 	lappend sopts $host $port
     }
     #
