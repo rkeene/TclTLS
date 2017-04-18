@@ -1,6 +1,17 @@
 #! /usr/bin/env sh
 
 bits='2048'
+option_fallback='0'
+for arg in "$@"; do
+	case "${arg}" in
+		fallback)
+			option_fallback='1'
+			;;
+		bits=*)
+			bits="`echo "${arg}" | cut -f 2 -d =`"
+			;;
+	esac
+done
 
 openssl_dhparam() {
 	if [ -x "`which openssl 2>/dev/null`" ]; then
@@ -103,7 +114,7 @@ _EOF_
 }
 
 # Enable support for giving the same DH params each time
-if [ "$1" = 'fallback' ]; then
+if [ "${option_fallback}" = '1' ]; then
 	gen_dh_params_fallback && exit 0
 
 	echo "Unable to generate fallback parameters for DH of ${bits} bits" >&2
