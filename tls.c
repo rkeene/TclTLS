@@ -1181,7 +1181,7 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 		return (SSL_CTX *)0;
 	    }
 	} else {
-	    dh = get_dh2048();
+	    dh = get_dhParams();
 	}
 	SSL_CTX_set_tmp_dh(ctx, dh);
 	DH_free(dh);

@@ -5,6 +5,7 @@ bits='2048'
 openssl_dhparam() {
 	if [ -x "`which openssl 2>/dev/null`" ]; then
 		o_output="`openssl dhparam -C "$@" 2>/dev/null`" || return 1
+		o_output="`echo "${o_output}" | sed 's/get_dh[0-9]\+/get_dhParams/'`" || return 1
 		o_output="`echo "${o_output}" | sed '/^-----BEGIN DH PARAMETERS-----$/,/^-----END DH PARAMETERS-----$/ d;/^#/ d'`" || return 1
 
 		echo "${o_output}"
@@ -36,8 +37,9 @@ gen_dh_params_remote() {
 }
 
 gen_dh_params_fallback() {
-	cat << \_EOF_
-DH *get_dh2048(void) {
+	if [ "${bits}" = '2048' ]; then
+		cat << \_EOF_
+DH *get_dhParams(void) {
 	static unsigned char dhp_2048[] = {
 		0xC1,0x51,0x58,0x69,0xFB,0xE8,0x6C,0x47,0x2B,0x86,0x61,0x4F,
 		0x20,0x2E,0xD3,0xFC,0x19,0xEE,0xB8,0xF3,0x35,0x7D,0xBA,0x86,
@@ -93,11 +95,18 @@ DH *get_dh2048(void) {
 	return(dh);
 }
 _EOF_
+
+		return 0
+	fi
+
+	return 1
 }
 
 # Enable support for giving the same DH params each time
 if [ "$1" = 'fallback' ]; then
 	gen_dh_params_fallback && exit 0
+
+	echo "Unable to generate fallback parameters for DH of ${bits} bits" >&2
 
 	exit 1
 fi
@@ -109,5 +118,7 @@ echo "*****************************" >&2
 gen_dh_params_openssl && exit 0
 gen_dh_params_remote && exit 0
 gen_dh_params_fallback && exit 0
+
+echo "Unable to generate parameters for DH of ${bits} bits" >&2
 
 exit 1
