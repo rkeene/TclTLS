@@ -659,14 +659,13 @@ static int HandshakeObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 	ret = Tls_WaitForConnect(statePtr, &err, 1);
 	dprintf("Tls_WaitForConnect returned: %i", ret);
 
-	if (ret < 0) {
-		if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
-			dprintf("Async set and err = EAGAIN");
-			ret = 0;
-		}
-	}
-
-	if (ret < 0) {
+	if (
+	    ret < 0 && \
+	    ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN)
+	) {
+		dprintf("Async set and err = EAGAIN");
+		ret = 0;
+	} else if (ret < 0) {
 		errStr = statePtr->err;
 		Tcl_ResetResult(interp);
 		Tcl_SetErrno(err);
