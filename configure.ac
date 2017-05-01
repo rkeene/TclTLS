@@ -56,6 +56,17 @@ if test "$tcltls_deterministic" = 'true'; then
 else
 	GEN_DH_PARAMS_ARGS=''
 fi
+
+dnl Enable support for specifying pre-computed DH params size
+AC_ARG_WITH([builtin-dh-params-size], AS_HELP_STRING([--with-builtin-dh-params-size=<bits>], [specify the size of the built-in, precomputed, DH params]), [
+	AS_CASE([$withval],
+		[2048|4096|8192],,
+		[
+			AC_MSG_ERROR([Unsupported DH params size: $withval])
+		]
+	)
+	GEN_DH_PARAMS_ARGS="${GEN_DH_PARAMS_ARGS} bits=$withval"
+])
 AC_SUBST(GEN_DH_PARAMS_ARGS)
 
 dnl Allow the user to manually disable protocols

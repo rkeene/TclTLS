@@ -626,74 +626,72 @@ CiphersObjCmd(clientData, interp, objc, objv)
  *-------------------------------------------------------------------
  */
 
-static int
-HandshakeObjCmd(clientData, interp, objc, objv)
-    ClientData clientData;	/* Not used. */
-    Tcl_Interp *interp;
-    int objc;
-    Tcl_Obj *CONST objv[];
-{
-    Tcl_Channel chan;		/* The channel to set a mode on. */
-    State *statePtr;		/* client state for ssl socket */
-    int ret = 1;
-    int err = 0;
+static int HandshakeObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+	Tcl_Channel chan;		/* The channel to set a mode on. */
+	State *statePtr;		/* client state for ssl socket */
+	CONST char *errStr = NULL;
+	int ret = 1;
+	int err = 0;
 
-    dprintf("Called");
+	dprintf("Called");
 
-    if (objc != 2) {
-	Tcl_WrongNumArgs(interp, 1, objv, "channel");
-	return TCL_ERROR;
-    }
-
-    chan = Tcl_GetChannel(interp, Tcl_GetStringFromObj(objv[1], NULL), NULL);
-    if (chan == (Tcl_Channel) NULL) {
-	return TCL_ERROR;
-    }
-
-    /*
-     * Make sure to operate on the topmost channel
-     */
-    chan = Tcl_GetTopChannel(chan);
-    if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
-	Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan),
-		"\": not a TLS channel", NULL);
-	return TCL_ERROR;
-    }
-    statePtr = (State *)Tcl_GetChannelInstanceData(chan);
-
-        dprintf("Calling Tls_WaitForConnect");
-	ret = Tls_WaitForConnect(statePtr, &err, 1);
-        dprintf("Tls_WaitForConnect returned: %i", ret);
-
-     if (ret < 0) {
-	if ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN) {
-            dprintf("Async set and err = EAGAIN");
-	    ret = 0;
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "channel");
+		return(TCL_ERROR);
 	}
-     }
 
-	if (ret < 0) {
-	    CONST char *errStr = statePtr->err;
-	    Tcl_ResetResult(interp);
-	    Tcl_SetErrno(err);
+	chan = Tcl_GetChannel(interp, Tcl_GetStringFromObj(objv[1], NULL), NULL);
+	if (chan == (Tcl_Channel) NULL) {
+		return(TCL_ERROR);
+	}
 
-	    if (!errStr || *errStr == 0) {
-		errStr = Tcl_PosixError(interp);
-	    }
+	/*
+	 * Make sure to operate on the topmost channel
+	 */
+	chan = Tcl_GetTopChannel(chan);
+	if (Tcl_GetChannelType(chan) != Tls_ChannelType()) {
+		Tcl_AppendResult(interp, "bad channel \"", Tcl_GetChannelName(chan), "\": not a TLS channel", NULL);
+		return(TCL_ERROR);
+	}
+	statePtr = (State *)Tcl_GetChannelInstanceData(chan);
 
-	    Tcl_AppendResult(interp, "handshake failed: ", errStr, (char *) NULL);
-            dprintf("Returning TCL_ERROR with handshake failed: %s", errStr);
-	    return TCL_ERROR;
+	dprintf("Calling Tls_WaitForConnect");
+	ret = Tls_WaitForConnect(statePtr, &err, 1);
+	dprintf("Tls_WaitForConnect returned: %i", ret);
+
+	if (
+	    ret < 0 && \
+	    ((statePtr->flags & TLS_TCL_ASYNC) && err == EAGAIN)
+	) {
+		dprintf("Async set and err = EAGAIN");
+		ret = 0;
+	} else if (ret < 0) {
+		errStr = statePtr->err;
+		Tcl_ResetResult(interp);
+		Tcl_SetErrno(err);
+
+		if (!errStr || *errStr == 0) {
+			errStr = Tcl_PosixError(interp);
+		}
+
+		Tcl_AppendResult(interp, "handshake failed: ", errStr, (char *) NULL);
+		dprintf("Returning TCL_ERROR with handshake failed: %s", errStr);
+		return(TCL_ERROR);
 	} else {
-          ret = 1;
-        }
+		if (err != 0) {
+			dprintf("Got an error with a completed handshake: err = %i", err);
+		}
 
-    dprintf("Returning TCL_OK with data \"%i\"", ret);
-    Tcl_SetObjResult(interp, Tcl_NewIntObj(ret));
-    return TCL_OK;
+		ret = 1;
+	}
+
+	dprintf("Returning TCL_OK with data \"%i\"", ret);
+	Tcl_SetObjResult(interp, Tcl_NewIntObj(ret));
+	return(TCL_OK);
+
     	clientData = clientData;
 }
-
+
 /*
  *-------------------------------------------------------------------
  *
@@ -1181,7 +1179,7 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 		return (SSL_CTX *)0;
 	    }
 	} else {
-	    dh = get_dh2048();
+	    dh = get_dhParams();
 	}
 	SSL_CTX_set_tmp_dh(ctx, dh);
 	DH_free(dh);
