@@ -678,6 +678,10 @@ static int HandshakeObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 		dprintf("Returning TCL_ERROR with handshake failed: %s", errStr);
 		return(TCL_ERROR);
 	} else {
+		if (err != 0) {
+			dprintf("Got an error with a completed handshake: err = %i", err);
+		}
+
 		ret = 1;
 	}
 
