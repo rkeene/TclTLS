@@ -45,7 +45,7 @@ tls.tcl.h: @srcdir@/tls.tcl Makefile
 
 # Create default DH parameters
 dh_params.h: @srcdir@/gen_dh_params Makefile
-	@srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
+	sh @srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
 	mv dh_params.h.new dh_params.h
 
 # Generic target for building files from the "srcdir"
