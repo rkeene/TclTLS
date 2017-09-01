@@ -22,6 +22,7 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER], [
 
 AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	openssldir=''
+	opensslpkgconfigdir=''
 	AC_ARG_WITH([ssl-dir],
 		AS_HELP_STRING(
 			[--with-ssl-dir=<dir>],
@@ -36,6 +37,14 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 			[path to root directory of OpenSSL or LibreSSL installation]
 		), [
 			openssldir="$withval"
+		]
+	)
+	AC_ARG_WITH([openssl-pkgconfig],
+		AS_HELP_STRING(
+			[--with-openssl-pkgconfig=<dir>],
+			[path to root directory of OpenSSL or LibreSSL pkgconfigdir]
+		), [
+			opensslpkgconfigdir="$withval"
 		]
 	)
 
@@ -56,6 +65,17 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	fi
 
 	dnl Use pkg-config to find the libraries
+	dnl Temporarily update PKG_CONFIG_PATH
+	PKG_CONFIG_PATH_SAVE="${PKG_CONFIG_PATH}"
+	if test -n "${opensslpkgconfigdir}"; then
+		if ! test -f "${opensslpkgconfigdir}/openssl.pc"; then
+			AC_MSG_ERROR([Unable to locate ${opensslpkgconfigdir}/openssl.pc])
+		fi
+
+		PKG_CONFIG_PATH="${opensslpkgconfigdir}${PATH_SEPARATOR}${PKG_CONFIG_PATH}"
+		export PKG_CONFIG_PATH
+	fi
+
 	AC_ARG_VAR([TCLTLS_SSL_LIBS], [libraries to pass to the linker for OpenSSL or LibreSSL])
 	AC_ARG_VAR([TCLTLS_SSL_CFLAGS], [C compiler flags for OpenSSL or LibreSSL])
 	AC_ARG_VAR([TCLTLS_SSL_CPPFLAGS], [C preprocessor flags for OpenSSL or LibreSSL])
@@ -68,6 +88,7 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	if test -z "$TCLTLS_SSL_CPPFLAGS"; then
 		TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I $pkgConfigExtraArgs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
 	fi
+	PKG_CONFIG_PATH="${PKG_CONFIG_PATH_SAVE}"
 
 	if test "$TCLEXT_BUILD" = "static"; then
 		dnl If we are doing a static build, save the linker flags for other programs to consume
@@ -110,9 +131,9 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	SAVE_CPPFLAGS="${CPPFLAGS}"
 
 	dnl Update compile-altering variables to include the OpenSSL libraries
-	LIBS="${SAVE_LIBS} ${TCLTLS_SSL_LIBS}"
-	CFLAGS="${SAVE_CFLAGS} ${TCLTLS_SSL_CFLAGS}"
-	CPPFLAGS="${SAVE_CPPFLAGS} ${TCLTLS_SSL_CPPFLAGS}"
+	LIBS="${TCLTLS_SSL_LIBS} ${SAVE_LIBS} ${TCLTLS_SSL_LIBS}"
+	CFLAGS="${TCLTLS_SSL_CFLAGS} ${SAVE_CFLAGS} ${TCLTLS_SSL_CFLAGS}"
+	CPPFLAGS="${TCLTLS_SSL_CPPFLAGS} ${SAVE_CPPFLAGS} ${TCLTLS_SSL_CPPFLAGS}"
 
 	dnl Verify that basic functionality is there
 	AC_LANG_PUSH(C)

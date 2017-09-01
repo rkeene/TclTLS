@@ -1,5 +1,5 @@
 dnl Define ourselves
-AC_INIT(tcltls, 1.7.12)
+AC_INIT(tcltls, 1.7.13)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -204,9 +204,9 @@ AS_CASE([$tcltls_ssl_lib],
 )
 dnl Determine how to use this SSL library
 AC_MSG_CHECKING([how to use $tcltls_ssl_lib])
-LIBS="${LIBS} ${TCLTLS_SSL_LIBS}"
-CFLAGS="${CFLAGS} ${TCLTLS_SSL_CFLAGS}"
-CPPFLAGS="${CPPFLAGS} ${TCLTLS_SSL_CPPFLAGS}"
+LIBS="${TCLTLS_SSL_LIBS} ${LIBS} ${TCLTLS_SSL_LIBS}"
+CFLAGS="${TCLTLS_SSL_CFLAGS} ${CFLAGS} ${TCLTLS_SSL_CFLAGS}"
+CPPFLAGS="${TCLTLS_SSL_CPPFLAGS} ${CPPFLAGS} ${TCLTLS_SSL_CPPFLAGS}"
 AC_MSG_RESULT([$TCLTLS_SSL_CPPFLAGS $TCLTLS_SSL_CFLAGS $TCLTLS_SSL_LIBS])
 
 dnl Sync the RPATH if requested
