@@ -129,7 +129,7 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	BIO_clear_flags(bio, BIO_FLAGS_WRITE | BIO_FLAGS_SHOULD_RETRY);
 
 	if (tclEofChan && ret <= 0) {
-		dprintf("Got EOF while reading, returning a Connection Reset error which maps to Soft EOF");
+		dprintf("Got EOF while writing, returning a Connection Reset error which maps to Soft EOF");
 		Tcl_SetErrno(ECONNRESET);
 		ret = 0;
 	} else if (ret == 0) {

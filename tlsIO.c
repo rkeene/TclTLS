@@ -390,6 +390,13 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 		return(0);
 	}
 
+	if (statePtr->flags & TLS_TCL_EOF) {
+		dprintf("Asked to read after reaching EOF, we are treating this as fatal.");
+		bytesRead = 0;
+		*errorCodePtr = ECONNRESET;
+		return(bytesRead);
+	}
+
 	dprintf("Calling Tls_WaitForConnect");
 	tlsConnect = Tls_WaitForConnect(statePtr, errorCodePtr, 0);
 	if (tlsConnect < 0) {
@@ -479,6 +486,12 @@ static int TlsInputProc(ClientData instanceData, char *buf, int bufSize, int *er
 			break;
 	}
 
+	if (bufSize != 0 && bytesRead == 0 && *errorCodePtr == 0) {
+		dprintf("Detected EOF, setting the EOF flag");
+		statePtr->flags |= TLS_TCL_EOF;
+		*errorCodePtr = ECONNRESET;
+	}
+
 	dprintf("Input(%d) -> %d [%d]", bufSize, bytesRead, *errorCodePtr);
 	return(bytesRead);
 }
@@ -521,7 +534,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 
 	if (statePtr->flags & TLS_TCL_EOF) {
 		dprintf("Asked to write after reaching EOF, we are treating this as fatal.");
-		written = -1;
+		written = 0;
 		*errorCodePtr = ECONNRESET;
 		return(written);
 	}
@@ -535,7 +548,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 		if (*errorCodePtr == ECONNRESET) {
 			dprintf("Got connection reset (setting EOF flag)");
 			/* Soft EOF */
-			*errorCodePtr = 0;
+			*errorCodePtr = ECONNRESET;
 			written = 0;
 			statePtr->flags |= TLS_TCL_EOF;
 		}
@@ -629,6 +642,7 @@ static int TlsOutputProc(ClientData instanceData, CONST char *buf, int toWrite, 
 	if (toWrite != 0 && written == 0 && *errorCodePtr == 0) {
 		dprintf("Detected EOF, setting the EOF flag");
 		statePtr->flags |= TLS_TCL_EOF;
+		*errorCodePtr = ECONNRESET;
 	}
 
 	dprintf("Output(%d) -> %d", toWrite, written);
