@@ -120,9 +120,15 @@ static int BioWrite(BIO *bio, CONST char *buf, int bufLen) {
 	dprintf("[chan=%p] BioWrite(%p, <buf>, %d)", (void *)chan, (void *) bio, bufLen);
 
 	ret = Tcl_WriteRaw(chan, buf, bufLen);
+if (bufLen == 31) {
+ret = -1;
+tclEofChan = 0;
+tclErrno = EPIPE;
+} else {
 
 	tclEofChan = Tcl_Eof(chan);
 	tclErrno = Tcl_GetErrno();
+}
 
 	dprintf("[chan=%p] BioWrite(%d) -> %d [tclEof=%d; tclErrno=%d]", (void *) chan, bufLen, ret, tclEofChan, Tcl_GetErrno());
 
