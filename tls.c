@@ -722,6 +722,8 @@ ImportObjCmd(clientData, interp, objc, objv)
     SSL_CTX *ctx	= NULL;
     Tcl_Obj *script	= NULL;
     Tcl_Obj *password	= NULL;
+    Tcl_DString upperChannelTranslation;
+    Tcl_DString upperChannelBlocking;
     int idx, len;
     int flags		= TLS_TCL_INIT;
     int server		= 0;	/* is connection incoming or outgoing? */
@@ -886,6 +888,10 @@ ImportObjCmd(clientData, interp, objc, objv)
      * We only want to adjust the buffering in pre-v2 channels, where
      * each channel in the stack maintained its own buffers.
      */
+    Tcl_DStringInit(&upperChannelTranslation);
+    Tcl_DStringInit(&upperChannelBlocking);
+    Tcl_GetChannelOption(interp, chan, "-translation", &upperChannelTranslation);
+    Tcl_GetChannelOption(interp, chan, "-blocking", &upperChannelBlocking);
     Tcl_SetChannelOption(interp, chan, "-translation", "binary");
     Tcl_SetChannelOption(interp, chan, "-blocking", "true");
     dprintf("Consuming Tcl channel %s", Tcl_GetChannelName(chan));
@@ -898,6 +904,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 	Tls_Free((char *) statePtr);
 	return TCL_ERROR;
     }
+
+    Tcl_SetChannelOption(interp, statePtr->self, "-translation", Tcl_DStringValue(&upperChannelTranslation));
+    Tcl_SetChannelOption(interp, statePtr->self, "-blocking", Tcl_DStringValue(&upperChannelBlocking));
 
     /*
      * SSL Initialization
