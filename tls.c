@@ -722,8 +722,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     SSL_CTX *ctx	= NULL;
     Tcl_Obj *script	= NULL;
     Tcl_Obj *password	= NULL;
-    Tcl_DString upperChannelTranslation;
-    Tcl_DString upperChannelBlocking;
+    Tcl_DString upperChannelTranslation, upperChannelBlocking, upperChannelEncoding, upperChannelEOFChar;
     int idx, len;
     int flags		= TLS_TCL_INIT;
     int server		= 0;	/* is connection incoming or outgoing? */
@@ -890,6 +889,10 @@ ImportObjCmd(clientData, interp, objc, objv)
      */
     Tcl_DStringInit(&upperChannelTranslation);
     Tcl_DStringInit(&upperChannelBlocking);
+    Tcl_DStringInit(&upperChannelEOFChar);
+    Tcl_DStringInit(&upperChannelEncoding);
+    Tcl_GetChannelOption(interp, chan, "-eofchar", &upperChannelEOFChar);
+    Tcl_GetChannelOption(interp, chan, "-encoding", &upperChannelEncoding);
     Tcl_GetChannelOption(interp, chan, "-translation", &upperChannelTranslation);
     Tcl_GetChannelOption(interp, chan, "-blocking", &upperChannelBlocking);
     Tcl_SetChannelOption(interp, chan, "-translation", "binary");
@@ -906,6 +909,8 @@ ImportObjCmd(clientData, interp, objc, objv)
     }
 
     Tcl_SetChannelOption(interp, statePtr->self, "-translation", Tcl_DStringValue(&upperChannelTranslation));
+    Tcl_SetChannelOption(interp, statePtr->self, "-encoding", Tcl_DStringValue(&upperChannelEncoding));
+    Tcl_SetChannelOption(interp, statePtr->self, "-eofchar", Tcl_DStringValue(&upperChannelEOFChar));
     Tcl_SetChannelOption(interp, statePtr->self, "-blocking", Tcl_DStringValue(&upperChannelBlocking));
 
     /*
