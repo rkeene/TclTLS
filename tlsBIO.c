@@ -264,7 +264,7 @@ static long BioCtrl(BIO *bio, int cmd, long num, void *ptr) {
 			break;
 		case BIO_CTRL_PENDING:
 			dprintf("Got BIO_CTRL_PENDING");
-			ret = ((chan) ? 1 : 0);
+			ret = ((chan) ? Tcl_InputBuffered(chan) : 0);
 			dprintf("BIO_CTRL_PENDING(%d)", (int) ret);
 			break;
 		case BIO_CTRL_WPENDING:
