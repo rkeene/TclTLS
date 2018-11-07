@@ -744,7 +744,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     char *servername	= NULL;	/* hostname for Server Name Indication */
 #endif
     int ssl2 = 0, ssl3 = 0;
-    int tls1 = 1, tls1_1 = 1, tls1_2 = 1;
+    int tls1 = 1, tls1_1 = 1, tls1_2 = 1, tls1_3 = 1;
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
@@ -764,6 +764,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 #endif
 #if defined(NO_TLS1_2)
     tls1_2 = 0;
+#endif
+#if defined(NO_TLS1_3)
+    tls1_3 = 0;
 #endif
 
     if (objc < 2) {
@@ -808,8 +811,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-tls1", tls1);
 	OPTBOOL( "-tls1.1", tls1_1);
 	OPTBOOL( "-tls1.2", tls1_2);
+	OPTBOOL( "-tls1.3", tls1_3);
 
-	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2");
+	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
 
 	return TCL_ERROR;
     }
