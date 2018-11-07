@@ -49,6 +49,7 @@ namespace eval tls {
         {* -tls1 iopts 1}
         {* -tls1.1 iopts 1}
         {* -tls1.2 iopts 1}
+        {* -tls1.3 iopts 1}
     }
 
     # tls::socket and tls::init options as a humane readable string

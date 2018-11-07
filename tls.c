@@ -498,10 +498,10 @@ CiphersObjCmd(clientData, interp, objc, objv)
     Tcl_Obj	*CONST objv[];
 {
     static CONST84 char *protocols[] = {
-	"ssl2",	"ssl3",	"tls1",	"tls1.1", "tls1.2", NULL
+	"ssl2",	"ssl3",	"tls1",	"tls1.1", "tls1.2", "tls1.3", NULL
     };
     enum protocol {
-	TLS_SSL2, TLS_SSL3, TLS_TLS1, TLS_TLS1_1, TLS_TLS1_2, TLS_NONE
+	TLS_SSL2, TLS_SSL3, TLS_TLS1, TLS_TLS1_1, TLS_TLS1_2, TLS_TLS1_3, TLS_NONE
     };
     Tcl_Obj *objPtr;
     SSL_CTX *ctx = NULL;
@@ -559,6 +559,13 @@ CiphersObjCmd(clientData, interp, objc, objv)
 		return TCL_ERROR;
 #else
 		ctx = SSL_CTX_new(TLSv1_2_method()); break;
+#endif
+    case TLS_TLS1_3:
+#if defined(NO_TLS1_3)
+		Tcl_AppendResult(interp, "protocol not supported", NULL);
+		return TCL_ERROR;
+#else
+		ctx = SSL_CTX_new(TLSv1_3_method()); break;
 #endif
     default:
 		break;

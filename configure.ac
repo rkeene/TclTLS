@@ -110,7 +110,7 @@ AC_ARG_ENABLE([tlsv1.1], AS_HELP_STRING([--disable-tlsv1.1], [disable TLSv1.1 pr
 	fi
 ])
 
-dnl ## TLSv1.1: Enabled by default
+dnl ## TLSv1.2: Enabled by default
 tcltls_ssl_tls1_2='true'
 AC_ARG_ENABLE([tlsv1.2], AS_HELP_STRING([--disable-tlsv1.2], [disable TLSv1.2 protocol]), [
 	if test "$enableval" = "yes"; then
@@ -119,6 +119,17 @@ AC_ARG_ENABLE([tlsv1.2], AS_HELP_STRING([--disable-tlsv1.2], [disable TLSv1.2 pr
 		tcltls_ssl_tls1_2='false'
 	fi
 ])
+
+dnl ## TLSv1.3: Enabled by default
+tcltls_ssl_tls1_3='true'
+AC_ARG_ENABLE([tlsv1.3], AS_HELP_STRING([--disable-tlsv1.3], [disable TLSv1.3 protocol]), [
+	if test "$enableval" = "yes"; then
+		tcltls_ssl_tls1_3='force'
+	else
+		tcltls_ssl_tls1_3='false'
+	fi
+])
+
 
 dnl Enable support for a debugging build
 tcltls_debug='false'
