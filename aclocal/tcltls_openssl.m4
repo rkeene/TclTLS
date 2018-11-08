@@ -160,6 +160,9 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_0], [TLSv1_method], [tlsv1.0], [NO_TLS1])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_1], [TLSv1_1_method], [tlsv1.1], [NO_TLS1_1])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_2], [TLSv1_2_method], [tlsv1.2], [NO_TLS1_2])
+
+	dnl XXX:TODO: Note that OpenSSL 1.1.1 does not export this, still need to figure out how to
+	dnl talk only TLSv1.3
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_3], [TLSv1_3_method], [tlsv1.3], [NO_TLS1_3])
 
 	AC_CACHE_VAL([tcltls_cv_func_tlsext_hostname], [
