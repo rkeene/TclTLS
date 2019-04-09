@@ -61,7 +61,7 @@ static int	MiscObjCmd(ClientData clientData,
 static int	UnimportObjCmd(ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
-static SSL_CTX *CTX_Init(State *statePtr, int proto, char *key,
+static SSL_CTX *CTX_Init(State *statePtr, int isServer, int proto, char *key,
 			char *cert, char *CAdir, char *CAfile, char *ciphers,
 			char *DHparams);
 
@@ -72,6 +72,7 @@ static int	TlsLibInit(int uninitialize);
 #define TLS_PROTO_TLS1		0x04
 #define TLS_PROTO_TLS1_1	0x08
 #define TLS_PROTO_TLS1_2	0x10
+#define TLS_PROTO_TLS1_3	0x20
 #define ENABLED(flag, mask)	(((flag) & (mask)) == (mask))
 
 /*
@@ -498,10 +499,10 @@ CiphersObjCmd(clientData, interp, objc, objv)
     Tcl_Obj	*CONST objv[];
 {
     static CONST84 char *protocols[] = {
-	"ssl2",	"ssl3",	"tls1",	"tls1.1", "tls1.2", NULL
+	"ssl2",	"ssl3",	"tls1",	"tls1.1", "tls1.2", "tls1.3", NULL
     };
     enum protocol {
-	TLS_SSL2, TLS_SSL3, TLS_TLS1, TLS_TLS1_1, TLS_TLS1_2, TLS_NONE
+	TLS_SSL2, TLS_SSL3, TLS_TLS1, TLS_TLS1_1, TLS_TLS1_2, TLS_TLS1_3, TLS_NONE
     };
     Tcl_Obj *objPtr;
     SSL_CTX *ctx = NULL;
@@ -559,6 +560,15 @@ CiphersObjCmd(clientData, interp, objc, objv)
 		return TCL_ERROR;
 #else
 		ctx = SSL_CTX_new(TLSv1_2_method()); break;
+#endif
+    case TLS_TLS1_3:
+#if defined(NO_TLS1_3)
+		Tcl_AppendResult(interp, "protocol not supported", NULL);
+		return TCL_ERROR;
+#else
+		ctx = SSL_CTX_new(TLS_method()); break;
+                SSL_CTX_set_min_proto_version (ctx, TLS1_3_VERSION);
+                SSL_CTX_set_max_proto_version (ctx, TLS1_3_VERSION);
 #endif
     default:
 		break;
@@ -737,7 +747,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     char *servername	= NULL;	/* hostname for Server Name Indication */
 #endif
     int ssl2 = 0, ssl3 = 0;
-    int tls1 = 1, tls1_1 = 1, tls1_2 = 1;
+    int tls1 = 1, tls1_1 = 1, tls1_2 = 1, tls1_3 = 1;
     int proto = 0;
     int verify = 0, require = 0, request = 1;
 
@@ -757,6 +767,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 #endif
 #if defined(NO_TLS1_2)
     tls1_2 = 0;
+#endif
+#if defined(NO_TLS1_3)
+    tls1_3 = 0;
 #endif
 
     if (objc < 2) {
@@ -801,8 +814,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-tls1", tls1);
 	OPTBOOL( "-tls1.1", tls1_1);
 	OPTBOOL( "-tls1.2", tls1_2);
+	OPTBOOL( "-tls1.3", tls1_3);
 
-	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1 or -tls1.2");
+	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
 
 	return TCL_ERROR;
     }
@@ -815,6 +829,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     proto |= (tls1 ? TLS_PROTO_TLS1 : 0);
     proto |= (tls1_1 ? TLS_PROTO_TLS1_1 : 0);
     proto |= (tls1_2 ? TLS_PROTO_TLS1_2 : 0);
+    proto |= (tls1_3 ? TLS_PROTO_TLS1_3 : 0);
 
     /* reset to NULL if blank string provided */
     if (cert && !*cert)		cert	 = NULL;
@@ -872,7 +887,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	}
 	ctx = ((State *)Tcl_GetChannelInstanceData(chan))->ctx;
     } else {
-	if ((ctx = CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers,
+	if ((ctx = CTX_Init(statePtr, server, proto, key, cert, CAdir, CAfile, ciphers,
 		DHparams)) == (SSL_CTX*)0) {
 	    Tls_Free((char *) statePtr);
 	    return TCL_ERROR;
@@ -1041,8 +1056,9 @@ UnimportObjCmd(clientData, interp, objc, objv)
  */
 
 static SSL_CTX *
-CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
+CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
     State *statePtr;
+    int isServer;
     int proto;
     char *key;
     char *cert;
@@ -1096,6 +1112,12 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 	return (SSL_CTX *)0;
     }
 #endif
+#if defined(NO_TLS1_3)
+    if (ENABLED(proto, TLS_PROTO_TLS1_3)) {
+	Tcl_AppendResult(interp, "protocol not supported", NULL);
+	return (SSL_CTX *)0;
+    }
+#endif
 
     switch (proto) {
 #if !defined(NO_SSL2)
@@ -1123,8 +1145,22 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 	method = TLSv1_2_method ();
 	break;
 #endif
+#if !defined(NO_TLS1_3)
+    case TLS_PROTO_TLS1_3:
+        /*
+         * The version range is constrained below,
+         * after the context is created.  Use the
+         * generic method here.
+         */
+	method = TLS_method ();
+	break;
+#endif
     default:
+#ifdef HAVE_TLS_METHOD
+        method = TLS_method ();
+#else
         method = SSLv23_method ();
+#endif
 #if !defined(NO_SSL2)
 	off |= (ENABLED(proto, TLS_PROTO_SSL2)   ? 0 : SSL_OP_NO_SSLv2);
 #endif
@@ -1140,10 +1176,24 @@ CTX_Init(statePtr, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 #if !defined(NO_TLS1_2)
 	off |= (ENABLED(proto, TLS_PROTO_TLS1_2) ? 0 : SSL_OP_NO_TLSv1_2);
 #endif
+#if !defined(NO_TLS1_3)
+	off |= (ENABLED(proto, TLS_PROTO_TLS1_3) ? 0 : SSL_OP_NO_TLSv1_3);
+#endif
 	break;
     }
     
     ctx = SSL_CTX_new (method);
+
+    if (!ctx) {
+        return(NULL);
+    }
+
+#if !defined(NO_TLS1_3)
+    if (proto == TLS_PROTO_TLS1_3) {
+        SSL_CTX_set_min_proto_version (ctx, TLS1_3_VERSION);
+        SSL_CTX_set_max_proto_version (ctx, TLS1_3_VERSION);
+    }
+#endif
     
     SSL_CTX_set_app_data( ctx, (VOID*)interp);	/* remember the interpreter */
     SSL_CTX_set_options( ctx, SSL_OP_ALL);	/* all SSL bug workarounds */

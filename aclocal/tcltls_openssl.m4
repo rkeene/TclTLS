@@ -2,16 +2,43 @@ dnl $1 = Name of variable
 dnl $2 = Name of function to check for
 dnl $3 = Name of protocol
 dnl $4 = Name of CPP macro to define
+dnl $5 = Name of CPP macro to check for instead of a function
 AC_DEFUN([TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER], [
 	dnl Determine if particular SSL version is enabled
 	if test "[$]$1" = "true" -o "[$]$1" = "force"; then
-		AC_CHECK_FUNC($2,, [
+		proto_check='true'
+		ifelse($5,, [
+			AC_CHECK_FUNC($2,, [
+				proto_check='false'
+			])
+		], [
+			AC_LANG_PUSH(C)
+			AC_MSG_CHECKING([for $3 protocol support])
+			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+#include <openssl/ssl.h>
+#include <openssl/opensslv.h>
+#if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
+# include <openssl/conf.h>
+#endif
+			], [
+int x = $5;
+			])], [
+				AC_MSG_RESULT([yes])
+			], [
+				AC_MSG_RESULT([no])
+
+				proto_check='false'
+			])
+			AC_LANG_POP([C])
+		])
+
+		if test "$proto_check" = 'false'; then
 			if test "[$]$1" = "force"; then
 				AC_MSG_ERROR([Unable to enable $3])
 			fi
 
 			$1='false'
-		])
+		fi
 	fi
 
 	if test "[$]$1" = "false"; then
@@ -155,11 +182,13 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	])
 	AC_LANG_POP([C])
 
+	AC_CHECK_FUNCS([TLS_method])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_ssl2], [SSLv2_method], [sslv2], [NO_SSL2])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_ssl3], [SSLv3_method], [sslv3], [NO_SSL3])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_0], [TLSv1_method], [tlsv1.0], [NO_TLS1])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_1], [TLSv1_1_method], [tlsv1.1], [NO_TLS1_1])
 	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_2], [TLSv1_2_method], [tlsv1.2], [NO_TLS1_2])
+	TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER([tcltls_ssl_tls1_3], [], [tlsv1.3], [NO_TLS1_3], [SSL_OP_NO_TLSv1_3])
 
 	AC_CACHE_VAL([tcltls_cv_func_tlsext_hostname], [
 		AC_LANG_PUSH(C)
