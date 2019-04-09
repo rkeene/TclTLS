@@ -745,14 +745,15 @@ TlsWatchProc(ClientData instanceData,	/* The socket state. */
 	    statePtr->timer = (Tcl_TimerToken) NULL;
 	}
 
-	if ((mask & TCL_READABLE) && Tcl_InputBuffered(statePtr->self) > 0) {
-	    /*
-	     * There is interest in readable events and we actually have
-	     * data waiting, so generate a timer to flush that.
-	     */
-            dprintf("Creating a new timer since data appears to be waiting");
-	    statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY,
-		    TlsChannelHandlerTimer, (ClientData) statePtr);
+	if (mask & TCL_READABLE) {
+		if (Tcl_InputBuffered(statePtr->self) > 0 || BIO_ctrl_pending(statePtr->bio) > 0) {
+			/*
+			 * There is interest in readable events and we actually have
+			 * data waiting, so generate a timer to flush that.
+			 */
+			dprintf("Creating a new timer since data appears to be waiting");
+			statePtr->timer = Tcl_CreateTimerHandler(TLS_TCL_DELAY, TlsChannelHandlerTimer, (ClientData) statePtr);
+		}
 	}
 }
 

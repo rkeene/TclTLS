@@ -18,15 +18,17 @@ VPATH = @srcdir@
 
 all: @EXTENSION_TARGET@
 
+ifeq (@TCLEXT_BUILD@,shared)
 # The shared object target
-tcltls.@SHOBJEXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
-
+else
 # The static target
-tcltls.@AREXT@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
-	$(RANLIB) tcltls.a.new
+	-$(RANLIB) tcltls.a.new
 	mv tcltls.a.new tcltls.a
+endif
 
 # Dependencies for all our targets
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
