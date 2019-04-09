@@ -84,6 +84,8 @@ ASN1_UTCTIME_tostr(ASN1_UTCTIME *tm)
  *------------------------------------------------------*
  */
 
+#define CERT_STR_SIZE 16384
+
 Tcl_Obj*
 Tls_NewX509Obj( interp, cert)
     Tcl_Interp *interp;
@@ -98,7 +100,8 @@ Tls_NewX509Obj( interp, cert)
     char serial[BUFSIZ];
     char notBefore[BUFSIZ];
     char notAfter[BUFSIZ];
-    char certStr[BUFSIZ];
+    char certStr[CERT_STR_SIZE], *certStr_p;
+    int certStr_len, toRead;
 #ifndef NO_SSL_SHA
     int shai;
     char sha_hash_ascii[SHA_DIGEST_LENGTH * 2 + 1];
@@ -136,9 +139,23 @@ Tls_NewX509Obj( interp, cert)
 	(void)BIO_flush(bio);
 
         if (PEM_write_bio_X509(bio, cert)) {
-            n = BIO_read(bio, certStr, min(BIO_pending(bio), BUFSIZ - 1));
-            n = max(n, 0);
-            certStr[n] = 0;
+            certStr_p = certStr;
+            certStr_len = 0;
+            while (1) {
+                toRead = min(BIO_pending(bio), CERT_STR_SIZE - certStr_len - 1);
+                toRead = min(toRead, BUFSIZ);
+                if (toRead == 0) {
+                    break;
+                }
+                dprintf("Reading %i bytes from the certificate...", toRead);
+                n = BIO_read(bio, certStr_p, toRead);
+                if (n <= 0) {
+                    break;
+                }
+                certStr_len += n;
+                certStr_p   += n;
+            }
+            *certStr_p = '\0';
             (void)BIO_flush(bio);
         }
 
