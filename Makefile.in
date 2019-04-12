@@ -18,17 +18,17 @@ VPATH = @srcdir@
 
 all: @EXTENSION_TARGET@
 
-ifeq (@TCLEXT_BUILD@,shared)
+@EXTENSION_TARGET@: @TCLEXT_BUILD@-@EXTENSION_TARGET@
+	mv @TCLEXT_BUILD@-@EXTENSION_TARGET@ @EXTENSION_TARGET@
+
 # The shared object target
-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o tcltls.@SHOBJEXT@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
-else
+shared-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o shared-@EXTENSION_TARGET@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
+
 # The static target
-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
-	$(AR) rcu tcltls.a.new tls.o tlsBIO.o tlsIO.o tlsX509.o
-	-$(RANLIB) tcltls.a.new
-	mv tcltls.a.new tcltls.a
-endif
+static-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+	$(AR) rcu static-@EXTENSION_TARGET@ tls.o tlsBIO.o tlsIO.o tlsX509.o
+	-$(RANLIB) static-@EXTENSION_TARGET@
 
 # Dependencies for all our targets
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
@@ -74,9 +74,8 @@ test: @EXTENSION_TARGET@
 # Clean the local build directory for rebuild against the same configuration
 clean:
 	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
-	rm -f tcltls.@SHOBJEXT@
-	rm -f tcltls.@SHOBJEXT@.a tcltls.@SHOBJEXT@.def
-	rm -f tcltls.a.new tcltls.a
+	rm -f @EXTENSION_TARGET@ shared-@EXTENSION_TARGET@ static-@EXTENSION_TARGET@
+	rm -f shared-@EXTENSION_TARGET@.def shared-@EXTENSION_TARGET@.lib
 	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
 
 # Clean the local build directory back to what it was after unpacking the
