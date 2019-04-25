@@ -3,7 +3,7 @@ if {[package vsatisfies [package present Tcl] 8.5]} {
 		if {{@TCLEXT_BUILD@} eq "static"} {
 			load {} Tls
 		} else {
-			load [file join $dir tcltls.@SHOBJEXT@] Tls
+			load [file join $dir @EXTENSION_TARGET@] Tls
 		}
 
 		set tlsTclInitScript [file join $dir tls.tcl]
@@ -12,5 +12,5 @@ if {[package vsatisfies [package present Tcl] 8.5]} {
 		}
 	}} $dir]
 } elseif {[package vsatisfies [package present Tcl] 8.4]} {
-	package ifneeded tls @PACKAGE_VERSION@ [list load [file join $dir tcltls.@SHOBJEXT@] Tls]
+	package ifneeded tls @PACKAGE_VERSION@ [list load [file join $dir @EXTENSION_TARGET@] Tls]
 }
