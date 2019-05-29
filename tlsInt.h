@@ -23,6 +23,12 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef OPENSSL_HEADER_PREFIX
+#  define OPENSSL_HEADER(header) <OPENSSL_HEADER_PREFIX/header>
+#else
+#  define OPENSSL_HEADER(header) <header>
+#endif
+
 #ifdef __WIN32__
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -45,10 +51,10 @@
 #  endif
 #endif
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/opensslv.h>
+#include OPENSSL_HEADER(openssl/ssl.h)
+#include OPENSSL_HEADER(openssl/err.h)
+#include OPENSSL_HEADER(openssl/rand.h)
+#include OPENSSL_HEADER(openssl/opensslv.h)
 
 /*
  * Determine if we should use the pre-OpenSSL 1.1.0 API

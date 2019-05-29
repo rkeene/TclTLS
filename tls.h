@@ -18,7 +18,11 @@
 #ifndef _TLS_H
 #define _TLS_H
 
+#define mp_digit __TCL_MP_DIGIT
+#define mp_int   __TCL_MP_INT
 #include <tcl.h>
+#undef mp_digit
+#undef mp_int
 
 /*
  * Initialization routines -- our entire public C API.

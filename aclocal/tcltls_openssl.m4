@@ -15,10 +15,15 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL_CHECK_PROTO_VER], [
 			AC_LANG_PUSH(C)
 			AC_MSG_CHECKING([for $3 protocol support])
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
-#include <openssl/ssl.h>
-#include <openssl/opensslv.h>
+#ifdef OPENSSL_HEADER_PREFIX
+#  define OPENSSL_HEADER(header) <OPENSSL_HEADER_PREFIX/header>
+#else
+#  define OPENSSL_HEADER(header) <header>
+#endif
+#include OPENSSL_HEADER(openssl/ssl.h)
+#include OPENSSL_HEADER(openssl/opensslv.h)
 #if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
-# include <openssl/conf.h>
+# include OPENSSL_HEADER(openssl/conf.h)
 #endif
 			], [
 int x = $5;
@@ -83,6 +88,9 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 			TCLTLS_SSL_LIBS="-L$openssldir/lib -lssl -lcrypto"
 		fi
 		TCLTLS_SSL_CFLAGS="-I$openssldir/include"
+		if test -n "$openssldir"; then
+			AC_DEFINE_UNQUOTED(OPENSSL_HEADER_PREFIX, [$openssldir/include], [Path to OpenSSL headers])
+		fi
 		TCLTLS_SSL_CPPFLAGS="-I$openssldir/include"
 	fi
 
@@ -114,6 +122,10 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	fi
 	if test -z "$TCLTLS_SSL_CPPFLAGS"; then
 		TCLTLS_SSL_CPPFLAGS="`"${PKGCONFIG}" openssl --cflags-only-I $pkgConfigExtraArgs`" || AC_MSG_ERROR([Unable to get OpenSSL Configuration])
+		opensslincdir="$(echo "${TCLTLS_SSL_CPPFLAGS}" | sed 's@^.*-I@@')"
+		if test -n "$opensslincdir"; then
+			AC_DEFINE_UNQUOTED(OPENSSL_HEADER_PREFIX, [$opensslincdir], [Path to OpenSSL headers])
+		fi
 	fi
 	PKG_CONFIG_PATH="${PKG_CONFIG_PATH_SAVE}"
 
@@ -166,10 +178,15 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 	AC_LANG_PUSH(C)
 	AC_MSG_CHECKING([if a basic OpenSSL program works])
 	AC_LINK_IFELSE([AC_LANG_PROGRAM([
-#include <openssl/ssl.h>
-#include <openssl/opensslv.h>
+#ifdef OPENSSL_HEADER_PREFIX
+#  define OPENSSL_HEADER(header) <OPENSSL_HEADER_PREFIX/header>
+#else
+#  define OPENSSL_HEADER(header) <header>
+#endif
+#include OPENSSL_HEADER(openssl/ssl.h)
+#include OPENSSL_HEADER(openssl/opensslv.h)
 #if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
-# include <openssl/conf.h>
+# include OPENSSL_HEADER(openssl/conf.h)
 #endif
 		], [
   SSL_library_init();
@@ -194,9 +211,14 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 		AC_LANG_PUSH(C)
 		AC_MSG_CHECKING([for SSL_set_tlsext_host_name])
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([
-#include <openssl/ssl.h>
+#ifdef OPENSSL_HEADER_PREFIX
+#  define OPENSSL_HEADER(header) <OPENSSL_HEADER_PREFIX/header>
+#else
+#  define OPENSSL_HEADER(header) <header>
+#endif
+#include OPENSSL_HEADER(openssl/ssl.h)
 #if (SSLEAY_VERSION_NUMBER >= 0x0907000L)
-# include <openssl/conf.h>
+# include OPENSSL_HEADER(openssl/conf.h)
 #endif
 			], [
   (void)SSL_set_tlsext_host_name((void *) 0, (void *) 0);

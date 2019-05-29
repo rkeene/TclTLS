@@ -108,10 +108,10 @@ static int	TlsLibInit(int uninitialize);
 
 #ifdef TCL_THREADS
 #define OPENSSL_THREAD_DEFINES
-#include <openssl/opensslconf.h>
+#include OPENSSL_HEADER(openssl/opensslconf.h)
 
 #ifdef OPENSSL_THREADS
-#include <openssl/crypto.h>
+#include OPENSSL_HEADER(openssl/crypto.h)
 
 /*
  * Threaded operation requires locking callbacks
