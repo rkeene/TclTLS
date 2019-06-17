@@ -820,11 +820,10 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-tls1.1", tls1_1);
 	OPTBOOL( "-tls1.2", tls1_2);
 	OPTBOOL( "-tls1.3", tls1_3);
+  OPTBYTE("-cert", cert_asn1, cert_asn1_len);
+  OPTBYTE("-key", key_asn1, key_asn1_len);
 
-  OPTBYTE("-certasn1", cert_asn1, cert_asn1_len);
-  OPTBYTE("-keyasn1", key_asn1, key_asn1_len);
-
-	OPTBAD( "option", "-cadir, -cafile, -certasn1, -certfile, -cipher, -command, -dhparams, -keyasn1, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
+	OPTBAD( "option", "-cadir, -cafile, -cert, -certfile, -cipher, -command, -dhparams, -key, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
 
 	return TCL_ERROR;
     }
@@ -1308,7 +1307,7 @@ CTX_Init(statePtr, isServer, proto, key, cert, key_asn1, cert_asn1,
 	if (SSL_CTX_use_certificate_ASN1(ctx, cert_asn1_len, cert_asn1) <= 0) {
 	    Tcl_DStringFree(&ds);
 	    Tcl_AppendResult(interp,
-			     "unable to set certificate from ASN1: ",
+			     "unable to set certificate: ",
 			     REASON(), (char *) NULL);
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
@@ -1322,7 +1321,7 @@ CTX_Init(statePtr, isServer, proto, key, cert, key_asn1, cert_asn1,
 	    /* flush the passphrase which might be left in the result */
 	    Tcl_SetResult(interp, NULL, TCL_STATIC);
 	    Tcl_AppendResult(interp,
-			     "unable to set public key from ASN1: ",
+			     "unable to set public key: ",
 			     REASON(), (char *) NULL);
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
