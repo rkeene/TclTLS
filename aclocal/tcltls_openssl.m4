@@ -119,8 +119,8 @@ AC_DEFUN([TCLTLS_SSL_OPENSSL], [
 
 	if test "$TCLEXT_BUILD" = "static"; then
 		dnl If we are doing a static build, save the linker flags for other programs to consume
-		rm -f tcltls.a.linkadd
-		AS_ECHO(["$TCLTLS_SSL_LIBS"]) > tcltls.a.linkadd
+		rm -f tcltls.${AREXT}.linkadd
+		AS_ECHO(["$TCLTLS_SSL_LIBS"]) > tcltls.${AREXT}.linkadd
 	fi
 
 	dnl If we have been asked to statically link to the SSL library, specifically tell the linker to do so

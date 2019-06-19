@@ -24,6 +24,8 @@ all: @EXTENSION_TARGET@
 # The shared object target
 shared-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o shared-@EXTENSION_TARGET@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
+	-@WEAKENSYMS@ shared-@EXTENSION_TARGET@
+	-@REMOVESYMS@ shared-@EXTENSION_TARGET@
 
 # The static target
 static-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile

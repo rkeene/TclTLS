@@ -245,5 +245,12 @@ if test "$TCLEXT_BUILD" != 'static'; then
 	fi
 fi
 
+dnl Enable a stable ABI
+DC_SETUP_STABLE_API([${srcdir}/tcltls.vers], tcltls.syms)
+if test "$tcltls_debug" = 'true'; then
+	WEAKENSYMS=':'
+	REMOVESYMS=':'
+fi
+
 dnl Produce output
-AC_OUTPUT(Makefile pkgIndex.tcl)
+AC_OUTPUT(Makefile pkgIndex.tcl tcltls.syms)
