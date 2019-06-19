@@ -114,18 +114,20 @@ AC_DEFUN([DC_SYNC_RPATH], [
 		LDFLAGS="$OLD_LDFLAGS"
 		unset OLD_LDFLAGS
 
-		ADDLDFLAGS=""
-		for opt in $LDFLAGS $LIBS; do
-			if echo "$opt" | grep '^-L' >/dev/null; then
-				rpathdir="`echo "$opt" | sed 's@^-L *@@'`"
-				ADDLDFLAGS="$ADDLDFLAGS $rsk_cv_link_set_rpath -Wl,$rpathdir"
-			fi
-		done
-		unset opt
+		if test -n "$rsk_cv_link_set_rpath"; then
+			ADDLDFLAGS=""
+			for opt in $LDFLAGS $LIBS; do
+				if echo "$opt" | grep '^-L' >/dev/null; then
+					rpathdir="`echo "$opt" | sed 's@^-L *@@'`"
+					ADDLDFLAGS="$ADDLDFLAGS $rsk_cv_link_set_rpath -Wl,$rpathdir"
+				fi
+			done
+			unset opt
 
-		LDFLAGS="$LDFLAGS $ADDLDFLAGS"
+			LDFLAGS="$LDFLAGS $ADDLDFLAGS"
 
-		unset ADDLDFLAGS
+			unset ADDLDFLAGS
+		fi
 	fi
 ])
 
@@ -164,7 +166,6 @@ AC_DEFUN([DC_CHK_OS_INFO], [
 				;;
 			mingw32|mingw32msvc*)
 				SHOBJEXT="dll"
-				AREXT='lib'
 				CFLAGS="$CFLAGS -mms-bitfields"
 				CPPFLAGS="$CPPFLAGS -mms-bitfields"
 				SHOBJCPPFLAGS="-DPIC"
