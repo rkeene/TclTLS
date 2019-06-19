@@ -181,9 +181,25 @@ AX_CHECK_COMPILE_FLAG([-W], [
 ])
 
 dnl Enable hardening
-AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [CFLAGS="$CFLAGS -fstack-protector-all"])
-AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CFLAGS="$CFLAGS -fno-strict-overflow"])
-AC_DEFINE([_FORTIFY_SOURCE], [2], [Enable fortification])
+tcltls_enable_hardening='auto'
+AC_ARG_ENABLE([hardening], AS_HELP_STRING([--disable-hardening], [disable hardening attempts]), [
+	tcltls_enable_hardening="$enableval"
+])
+if test "$tcltls_enable_hardening" = 'auto'; then
+	tcltls_enable_hardening='true'
+	if test "$TCLEXT_BUILD" = 'static'; then
+		tcltls_enable_hardening='false'
+	fi
+elif test "$tcltls_enable_hardening" = 'yes'; then
+	tcltls_enable_hardening='true'
+else
+	tcltls_enable_hardening='false'
+fi
+if test "$tcltls_enable_hardening" = 'true'; then
+	AX_CHECK_COMPILE_FLAG([-fstack-protector-all], [CFLAGS="$CFLAGS -fstack-protector-all"])
+	AX_CHECK_COMPILE_FLAG([-fno-strict-overflow], [CFLAGS="$CFLAGS -fno-strict-overflow"])
+	AC_DEFINE([_FORTIFY_SOURCE], [2], [Enable fortification])
+fi
 
 dnl XXX:TODO: Automatically determine the SSL library to use
 dnl           defaulting to OpenSSL for compatibility reasons
