@@ -19,6 +19,8 @@ official release of OpenSSL (http://www.openssl.org/).
 TLS 1.7 and newer require Tcl 8.4.0+, older versions may be used if older
 versions of Tcl need to be used.
 
+TclTLS requires OpenSSL or LibreSSL in order to be compiled and function.
+
 Non-exclusive credits for TLS are:
    Original work: Matt Newman @ Novadigm
    Updates: Jeff Hobbs @ ActiveState
