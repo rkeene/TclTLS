@@ -30,7 +30,7 @@ AC_SUBST(EXTENSION_TARGET)
 AC_SUBST(TCLEXT_BUILD)
 
 dnl Determine what SSL library to link with
-AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl=<name>], [name of ssl library to build against (openssl, libressl, nss, auto)]), [
+AC_ARG_WITH([ssl], AS_HELP_STRING([--with-ssl=<name>], [name of ssl library to build against (openssl, libressl, mbedtls, auto)]), [
 	if test "$withval" = "no"; then
 		AC_MSG_ERROR([You may not specify --without-ssl])
 	fi
@@ -220,10 +220,8 @@ AS_CASE([$tcltls_ssl_lib],
 	[openssl], [
 		TCLTLS_SSL_OPENSSL
 	],
-	[nss], [
-	 	TCLTLS_SSL_LIBS=""
-		TCLTLS_SSL_CFLAGS=""
-		TCLTLS_SSL_CPPFLAGS=""
+	[mbedtls], [
+		TCLTLS_SSL_MBEDTLS
 	],
 	[
 		AC_MSG_ERROR([Unsupported SSL library: $tcltls_ssl_lib])

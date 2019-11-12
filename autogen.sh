@@ -18,6 +18,7 @@ urls=(
 
 localFiles=(
 	aclocal/tcltls_openssl.m4
+	aclocal/tcltls_mbedtls.m4
 )
 
 failed='0'
