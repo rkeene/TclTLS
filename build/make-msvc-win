@@ -1,0 +1,242 @@
+#! /usr/bin/env bash
+
+cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
+
+function make-makefile-vc() {
+	local outDir
+
+	outDir="$1"
+
+	cat << \_EOF_ > "${outDir}/Makefile.vc"
+# Specify OpenSSL and Tcl parameters here
+# -----BEGIN MODIFICATIONS-----
+OPENSSL_DIR        = c:/OpenSSL-Win64
+OPENSSL_LIBS       = c:/OpenSSL-Win64/lib/VC/static/libssl64MT.lib c:/OpenSSL-Win64/lib/VC/static/libcrypto64MT.lib
+OPENSSL_CPPFLAGS   = -DNO_SSL2 -DNO_SSL3
+
+TCL_DIR            = c:/Tcl
+# -----END MODIFICATIONS-----
+_EOF_
+
+AR
+CC
+CFLAGS
+CPPFLAGS
+DEFS
+EXTENSION_TARGET
+GEN_DH_PARAMS_ARGS
+INSTALL
+INSTALL_DATA
+INSTALL_PROGRAM
+LDFLAGS
+LIBS
+PACKAGE_VERSION
+RANLIB
+REMOVESYMS
+SHOBJFLAGS
+SHOBJLDFLAGS
+TCLEXT_BUILD
+TCLSH_PROG
+TCL_DEFS
+TCL_PACKAGE_PATH
+WEAKENSYMS
+exec_prefix
+libdir
+prefix
+srcdir
+--
+CC = @CC@
+AR = @AR@
+RANLIB = @RANLIB@
+CFLAGS = @CFLAGS@ @SHOBJFLAGS@
+CPPFLAGS = @CPPFLAGS@ -I@srcdir@ -I. @DEFS@ @TCL_DEFS@
+LDFLAGS = @LDFLAGS@ @SHOBJLDFLAGS@
+LIBS = @LIBS@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+libdir = @libdir@
+TCL_PACKAGE_PATH = @TCL_PACKAGE_PATH@
+PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+VPATH = @srcdir@
+
+all: @EXTENSION_TARGET@
+
+@EXTENSION_TARGET@: @TCLEXT_BUILD@-@EXTENSION_TARGET@
+	mv @TCLEXT_BUILD@-@EXTENSION_TARGET@ @EXTENSION_TARGET@
+
+# The shared object target
+shared-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o shared-@EXTENSION_TARGET@ tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
+	-@WEAKENSYMS@ shared-@EXTENSION_TARGET@
+	-@REMOVESYMS@ shared-@EXTENSION_TARGET@
+
+# The static target
+static-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
+	$(AR) rcu static-@EXTENSION_TARGET@ tls.o tlsBIO.o tlsIO.o tlsX509.o
+	-$(RANLIB) static-@EXTENSION_TARGET@
+
+# Dependencies for all our targets
+tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tls.o -c @srcdir@/tls.c
+
+tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsBIO.o -c @srcdir@/tlsBIO.c
+
+tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsIO.o -c @srcdir@/tlsIO.c
+
+tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsX509.o -c @srcdir@/tlsX509.c
+
+# Create a C-source-ified version of the script resources
+# for TclTLS so that we only need a single file to enable
+# this extension
+tls.tcl.h: @srcdir@/tls.tcl Makefile
+	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
+	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
+	rm -f tls.tcl.h.new.1
+	mv tls.tcl.h.new.2 tls.tcl.h
+
+# Create default DH parameters
+dh_params.h: @srcdir@/gen_dh_params Makefile
+	sh @srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
+	mv dh_params.h.new dh_params.h
+
+# Install the extension
+install: @EXTENSION_TARGET@ pkgIndex.tcl
+	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_PROGRAM) @EXTENSION_TARGET@ '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_DATA)    pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# A convienent helper to undo the installation just done
+uninstall:
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/@EXTENSION_TARGET@'
+	rm -f '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/pkgIndex.tcl'
+	-rmdir '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# Test target, run the automated test suite
+test: @EXTENSION_TARGET@
+	@TCLSH_PROG@ @srcdir@/tests/all.tcl $(TESTFLAGS) -load "lappend auto_path $(shell pwd)"
+
+# Clean the local build directory for rebuild against the same configuration
+clean:
+	rm -f tls.o tlsBIO.o tlsIO.o tlsX509.o
+	rm -f @EXTENSION_TARGET@ shared-@EXTENSION_TARGET@ static-@EXTENSION_TARGET@
+	rm -f shared-@EXTENSION_TARGET@.def shared-@EXTENSION_TARGET@.lib
+	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
+
+# Clean the local build directory back to what it was after unpacking the
+# distribution tarball
+distclean: clean
+	rm -f config.log config.status
+	rm -f dh_params.h.new dh_params.h
+	rm -f Makefile pkgIndex.tcl
+	rm -f tcltls.a.linkadd
+
+# Clean the local build directory back to only thing things that exist in
+# version control system
+mrproper: distclean
+	rm -f @srcdir@/configure @srcdir@/config.sub @srcdir@/config.guess @srcdir@/install-sh
+	rm -f @srcdir@/aclocal.m4
+	rm -rf @srcdir@/autom4te.cache
+
+.PHONY: all install uninstall clean distclean mrproper test
+--
+CC = CL
+AR = false
+RANLIB = false
+CFLAGS = $(OPENSSL_CFLAGS) 
+CPPFLAGS = $(OPENSSL_CPPFLAGS) -I$(OPENSSL_DIR)/include -I$(TCL_DIR)/include -DPACKAGE_VERSION="\"$(PACKAGE_VERSION)\"" -I.. -I. -DUSE_TCL_STUBS=1 -DUSE_TCL_STUBS=1
+LDFLAGS =  -LD
+LIBS = $(OPENSSL_LIBS) $(TCL_DIR)/lib/libtclstub86.lib ws2_32.lib advapi32.lib crypt32.lib user32.lib
+PACKAGE_VERSION = 1.7.19
+prefix = /
+exec_prefix = /
+libdir = /lib
+TCL_PACKAGE_PATH = 
+PACKAGE_INSTALL_DIR = $(TCL_PACKAGE_PATH)/tcltls$(PACKAGE_VERSION)
+INSTALL = false
+INSTALL_PROGRAM = false
+INSTALL_DATA = false
+VPATH = ..
+
+all: tcltls.dll
+
+tcltls.dll: shared-tcltls.dll
+	REN shared-tcltls.dll tcltls.dll
+
+# The shared object target
+shared-tcltls.dll: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile.vc
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -Feshared-tcltls.dll tls.o tlsBIO.o tlsIO.o tlsX509.o $(LIBS)
+
+# The static target
+static-tcltls.dll: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile.vc
+	$(AR) rcu static-tcltls.dll tls.o tlsBIO.o tlsIO.o tlsX509.o
+	-$(RANLIB) static-tcltls.dll
+
+# Dependencies for all our targets
+tls.o: ../tls.c ../tlsInt.h ../tclOpts.h tls.tcl.h dh_params.h Makefile.vc
+	$(CC) $(CPPFLAGS) $(CFLAGS) -Fotls.o -c ../tls.c
+
+tlsBIO.o: ../tlsBIO.c ../tlsInt.h Makefile.vc
+	$(CC) $(CPPFLAGS) $(CFLAGS) -FotlsBIO.o -c ../tlsBIO.c
+
+tlsIO.o: ../tlsIO.c ../tlsInt.h Makefile.vc
+	$(CC) $(CPPFLAGS) $(CFLAGS) -FotlsIO.o -c ../tlsIO.c
+
+tlsX509.o: ../tlsX509.c ../tlsInt.h Makefile.vc
+	$(CC) $(CPPFLAGS) $(CFLAGS) -FotlsX509.o -c ../tlsX509.c
+
+# Create a C-source-ified version of the script resources
+# for TclTLS so that we only need a single file to enable
+# this extension
+# Create default DH parameters
+.c.o:
+
+# Install the extension
+install: tcltls.dll pkgIndex.tcl
+	$(INSTALL) -d '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_PROGRAM) tcltls.dll '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+	$(INSTALL_DATA)    pkgIndex.tcl '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# A convienent helper to undo the installation just done
+uninstall:
+	DEL /F '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/tcltls.dll'
+	DEL /F '$(DESTDIR)$(PACKAGE_INSTALL_DIR)/pkgIndex.tcl'
+	-DEL /F '$(DESTDIR)$(PACKAGE_INSTALL_DIR)'
+
+# Test target, run the automated test suite
+# Clean the local build directory for rebuild against the same configuration
+clean:
+	DEL /F tls.o tlsBIO.o tlsIO.o tlsX509.o
+	DEL /F tcltls.dll shared-tcltls.dll static-tcltls.dll
+	DEL /F shared-tcltls.dll.def shared-tcltls.dll.lib
+
+# Clean the local build directory back to what it was after unpacking the
+# distribution tarball
+distclean: clean
+	DEL /F config.log config.status
+	DEL /F tcltls.a.linkadd
+
+# Clean the local build directory back to only thing things that exist in
+# version control system
+mrproper: distclean
+	DEL /F ../configure ../config.sub ../config.guess ../install-sh
+	DEL /F ../aclocal.m4
+	DEL /F ../autom4te.cache
+
+.PHONY: all install uninstall clean distclean mrproper test
+
+}
+
+mkdir ../win || exit 1
+make-makefile-vc ../win
+cd ../win || exit 1
+
+sed 's|@srcdir@|..|g;s|@GEN_DH_PARAMS_ARGS@|fallback|g' < ../Makefile.in > Makefile
+make tls.tcl.h dh_params.h
+rm -f Makefile
