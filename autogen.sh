@@ -76,4 +76,9 @@ fi
 
 autoconf
 
+if grep AC_COMPILE_IFELSE aclocal/ax_check_compile_flag.m4 >/dev/null; then
+	sed 's@AC_COMPILE_IFELSE@AC_LINK_IFELSE@g' aclocal/ax_check_compile_flag.m4 > aclocal/ax_check_compile_flag.m4.new
+	mv aclocal/ax_check_compile_flag.m4.new aclocal/ax_check_compile_flag.m4
+fi
+
 rm -rf autom4te.cache

@@ -34,16 +34,23 @@ static-@EXTENSION_TARGET@: tls.o tlsBIO.o tlsIO.o tlsX509.o Makefile
 
 # Dependencies for all our targets
 tls.o: @srcdir@/tls.c @srcdir@/tlsInt.h @srcdir@/tclOpts.h tls.tcl.h dh_params.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tls.o -c @srcdir@/tls.c
+
 tlsBIO.o: @srcdir@/tlsBIO.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsBIO.o -c @srcdir@/tlsBIO.c
+
 tlsIO.o: @srcdir@/tlsIO.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsIO.o -c @srcdir@/tlsIO.c
+
 tlsX509.o: @srcdir@/tlsX509.c @srcdir@/tlsInt.h Makefile
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tlsX509.o -c @srcdir@/tlsX509.c
 
 # Create a C-source-ified version of the script resources
 # for TclTLS so that we only need a single file to enable
 # this extension
 tls.tcl.h: @srcdir@/tls.tcl Makefile
 	od -A n -v -t xC < '@srcdir@/tls.tcl' > tls.tcl.h.new.1
-	sed 's@  *@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
+	sed 's@[^0-9A-Fa-f]@@g;s@..@0x&, @g' < tls.tcl.h.new.1 > tls.tcl.h.new.2
 	rm -f tls.tcl.h.new.1
 	mv tls.tcl.h.new.2 tls.tcl.h
 
@@ -51,11 +58,6 @@ tls.tcl.h: @srcdir@/tls.tcl Makefile
 dh_params.h: @srcdir@/gen_dh_params Makefile
 	sh @srcdir@/gen_dh_params @GEN_DH_PARAMS_ARGS@ > dh_params.h.new
 	mv dh_params.h.new dh_params.h
-
-# Generic target for building files from the "srcdir"
-# tree -- the default target will not match paths
-.c.o:
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o "$@" -c "$<"
 
 # Install the extension
 install: @EXTENSION_TARGET@ pkgIndex.tcl
@@ -79,6 +81,7 @@ clean:
 	rm -f @EXTENSION_TARGET@ shared-@EXTENSION_TARGET@ static-@EXTENSION_TARGET@
 	rm -f shared-@EXTENSION_TARGET@.def shared-@EXTENSION_TARGET@.lib
 	rm -f tls.tcl.h tls.tcl.h.new.1 tls.tcl.h.new.2
+	rm -f tcltls.syms
 
 # Clean the local build directory back to what it was after unpacking the
 # distribution tarball
