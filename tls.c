@@ -1280,7 +1280,9 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	}
 
 	/* get the private key associated with this certificate */
-	if (key == NULL) keyfile=certfile;
+	if (keyfile == NULL) {
+	    keyfile = certfile;
+	}
 
 	if (SSL_CTX_use_PrivateKey_file(ctx, F2N( keyfile, &ds),
 					SSL_FILETYPE_PEM) <= 0) {
@@ -1313,9 +1315,9 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	    return (SSL_CTX *)0;
 	}
 	if (key == NULL) {
-    key=cert;
-    key_len = cert_len;
-  }
+	    key = cert;
+	    key_len = cert_len;
+	}
 	if (SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ctx, key,key_len) <= 0) {
 	    Tcl_DStringFree(&ds);
 	    /* flush the passphrase which might be left in the result */
