@@ -1087,6 +1087,7 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
     Tcl_DString ds;
     Tcl_DString ds1;
     int off = 0;
+    int load_private_key;
     const SSL_METHOD *method;
 
     dprintf("Called");
@@ -1266,7 +1267,10 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 #endif
 
     /* set our certificate */
+    load_private_key = 0;
     if (certfile != NULL) {
+	load_private_key = 1;
+
 	Tcl_DStringInit(&ds);
 
 	if (SSL_CTX_use_certificate_file(ctx, F2N( certfile, &ds),
@@ -1279,6 +1283,7 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	    return (SSL_CTX *)0;
 	}
     } else if (cert != NULL) {
+	load_private_key = 1;
 	if (SSL_CTX_use_certificate_ASN1(ctx, cert_len, cert) <= 0) {
 	    Tcl_DStringFree(&ds);
 	    Tcl_AppendResult(interp,
@@ -1304,45 +1309,47 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
     }
 
     /* set our private key */
-    if (keyfile == NULL && key == NULL) {
-	keyfile = certfile;
-    }
-
-    if (keyfile != NULL) {
-	/* get the private key associated with this certificate */
-	if (keyfile == NULL) {
+    if (load_private_key) {
+	if (keyfile == NULL && key == NULL) {
 	    keyfile = certfile;
 	}
 
-	if (SSL_CTX_use_PrivateKey_file(ctx, F2N( keyfile, &ds),
-					SSL_FILETYPE_PEM) <= 0) {
+	if (keyfile != NULL) {
+	    /* get the private key associated with this certificate */
+	    if (keyfile == NULL) {
+		keyfile = certfile;
+	    }
+
+	    if (SSL_CTX_use_PrivateKey_file(ctx, F2N( keyfile, &ds), SSL_FILETYPE_PEM) <= 0) {
+		Tcl_DStringFree(&ds);
+		/* flush the passphrase which might be left in the result */
+		Tcl_SetResult(interp, NULL, TCL_STATIC);
+		Tcl_AppendResult(interp,
+			         "unable to set public key file ", keyfile, " ",
+			         REASON(), (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
+
 	    Tcl_DStringFree(&ds);
-	    /* flush the passphrase which might be left in the result */
-	    Tcl_SetResult(interp, NULL, TCL_STATIC);
-	    Tcl_AppendResult(interp,
-			     "unable to set public key file ", keyfile, " ",
-			     REASON(), (char *) NULL);
-	    SSL_CTX_free(ctx);
-	    return (SSL_CTX *)0;
+	} else if (key != NULL) {
+	    if (SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ctx, key,key_len) <= 0) {
+		Tcl_DStringFree(&ds);
+		/* flush the passphrase which might be left in the result */
+		Tcl_SetResult(interp, NULL, TCL_STATIC);
+		Tcl_AppendResult(interp,
+		                 "unable to set public key: ",
+		                 REASON(), (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
 	}
-	Tcl_DStringFree(&ds);
 	/* Now we know that a key and cert have been set against
 	 * the SSL context */
 	if (!SSL_CTX_check_private_key(ctx)) {
 	    Tcl_AppendResult(interp,
 			     "private key does not match the certificate public key",
 			     (char *) NULL);
-	    SSL_CTX_free(ctx);
-	    return (SSL_CTX *)0;
-	}
-    } else if (key != NULL) {
-	if (SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ctx, key,key_len) <= 0) {
-	    Tcl_DStringFree(&ds);
-	    /* flush the passphrase which might be left in the result */
-	    Tcl_SetResult(interp, NULL, TCL_STATIC);
-	    Tcl_AppendResult(interp,
-			     "unable to set public key: ",
-			     REASON(), (char *) NULL);
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
