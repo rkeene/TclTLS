@@ -1278,7 +1278,37 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
+    } else if (cert != NULL) {
+	if (SSL_CTX_use_certificate_ASN1(ctx, cert_len, cert) <= 0) {
+	    Tcl_DStringFree(&ds);
+	    Tcl_AppendResult(interp,
+			     "unable to set certificate: ",
+			     REASON(), (char *) NULL);
+	    SSL_CTX_free(ctx);
+	    return (SSL_CTX *)0;
+	}
+    } else {
+	certfile = (char*)X509_get_default_cert_file();
 
+	if (SSL_CTX_use_certificate_file(ctx, certfile,
+					SSL_FILETYPE_PEM) <= 0) {
+#if 0
+	    Tcl_DStringFree(&ds);
+	    Tcl_AppendResult(interp,
+			     "unable to use default certificate file ", certfile, ": ",
+			     REASON(), (char *) NULL);
+	    SSL_CTX_free(ctx);
+	    return (SSL_CTX *)0;
+#endif
+	}
+    }
+
+    /* set our private key */
+    if (keyfile == NULL && key == NULL) {
+	keyfile = certfile;
+    }
+
+    if (keyfile != NULL) {
 	/* get the private key associated with this certificate */
 	if (keyfile == NULL) {
 	    keyfile = certfile;
@@ -1305,19 +1335,7 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
-    } else if (cert != NULL) {
-	if (SSL_CTX_use_certificate_ASN1(ctx, cert_len, cert) <= 0) {
-	    Tcl_DStringFree(&ds);
-	    Tcl_AppendResult(interp,
-			     "unable to set certificate: ",
-			     REASON(), (char *) NULL);
-	    SSL_CTX_free(ctx);
-	    return (SSL_CTX *)0;
-	}
-	if (key == NULL) {
-	    key = cert;
-	    key_len = cert_len;
-	}
+    } else if (key != NULL) {
 	if (SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ctx, key,key_len) <= 0) {
 	    Tcl_DStringFree(&ds);
 	    /* flush the passphrase which might be left in the result */
@@ -1328,22 +1346,9 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
-    } else {
-	certfile = (char*)X509_get_default_cert_file();
-
-	if (SSL_CTX_use_certificate_file(ctx, certfile,
-					SSL_FILETYPE_PEM) <= 0) {
-#if 0
-	    Tcl_DStringFree(&ds);
-	    Tcl_AppendResult(interp,
-			     "unable to use default certificate file ", certfile, ": ",
-			     REASON(), (char *) NULL);
-	    SSL_CTX_free(ctx);
-	    return (SSL_CTX *)0;
-#endif
-	}
     }
-	
+
+    /* Set verification CAs */
     Tcl_DStringInit(&ds);
     Tcl_DStringInit(&ds1);
     if (!SSL_CTX_load_verify_locations(ctx, F2N(CAfile, &ds), F2N(CAdir, &ds1)) ||
@@ -1360,6 +1365,7 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
     }
 
     /* https://sourceforge.net/p/tls/bugs/57/ */
+    /* XXX:TODO: Let the user supply values here instead of something that exists on the filesystem */
     if ( CAfile != NULL ) {
         STACK_OF(X509_NAME) *certNames = SSL_load_client_CA_file( F2N(CAfile, &ds) );
 	if ( certNames != NULL ) { 
