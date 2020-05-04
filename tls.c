@@ -62,8 +62,9 @@ static int	UnimportObjCmd(ClientData clientData,
 			Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]);
 
 static SSL_CTX *CTX_Init(State *statePtr, int isServer, int proto, char *key,
-			char *cert, char *CAdir, char *CAfile, char *ciphers,
-			char *DHparams);
+			char *certfile, unsigned char *key_asn1, unsigned char *cert_asn1,
+			int key_asn1_len, int cert_asn1_len, char *CAdir, char *CAfile,
+      char *ciphers, char *DHparams);
 
 static int	TlsLibInit(int uninitialize);
 
@@ -729,22 +730,26 @@ ImportObjCmd(clientData, interp, objc, objv)
 {
     Tcl_Channel chan;		/* The channel to set a mode on. */
     State *statePtr;		/* client state for ssl socket */
-    SSL_CTX *ctx	= NULL;
-    Tcl_Obj *script	= NULL;
-    Tcl_Obj *password	= NULL;
+    SSL_CTX *ctx	        = NULL;
+    Tcl_Obj *script	        = NULL;
+    Tcl_Obj *password	        = NULL;
     Tcl_DString upperChannelTranslation, upperChannelBlocking, upperChannelEncoding, upperChannelEOFChar;
     int idx, len;
-    int flags		= TLS_TCL_INIT;
-    int server		= 0;	/* is connection incoming or outgoing? */
-    char *key		= NULL;
-    char *cert		= NULL;
-    char *ciphers	= NULL;
-    char *CAfile	= NULL;
-    char *CAdir		= NULL;
-    char *DHparams	= NULL;
-    char *model		= NULL;
+    int flags		        = TLS_TCL_INIT;
+    int server		        = 0;	/* is connection incoming or outgoing? */
+    char *keyfile	        = NULL;
+    char *certfile	        = NULL;
+    unsigned char *key  	= NULL;
+    int key_len                 = 0;
+    unsigned char *cert         = NULL;
+    int cert_len                = 0;
+    char *ciphers	        = NULL;
+    char *CAfile	        = NULL;
+    char *CAdir		        = NULL;
+    char *DHparams	        = NULL;
+    char *model		        = NULL;
 #ifndef OPENSSL_NO_TLSEXT
-    char *servername	= NULL;	/* hostname for Server Name Indication */
+    char *servername	        = NULL;	/* hostname for Server Name Indication */
 #endif
     int ssl2 = 0, ssl3 = 0;
     int tls1 = 1, tls1_1 = 1, tls1_2 = 1, tls1_3 = 1;
@@ -795,11 +800,11 @@ ImportObjCmd(clientData, interp, objc, objv)
 
 	OPTSTR( "-cadir", CAdir);
 	OPTSTR( "-cafile", CAfile);
-	OPTSTR( "-certfile", cert);
+	OPTSTR( "-certfile", certfile);
 	OPTSTR( "-cipher", ciphers);
 	OPTOBJ( "-command", script);
 	OPTSTR( "-dhparams", DHparams);
-	OPTSTR( "-keyfile", key);
+	OPTSTR( "-keyfile", keyfile);
 	OPTSTR( "-model", model);
 	OPTOBJ( "-password", password);
 	OPTBOOL( "-require", require);
@@ -815,8 +820,10 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-tls1.1", tls1_1);
 	OPTBOOL( "-tls1.2", tls1_2);
 	OPTBOOL( "-tls1.3", tls1_3);
+  OPTBYTE("-cert", cert, cert_len);
+  OPTBYTE("-key", key, key_len);
 
-	OPTBAD( "option", "-cadir, -cafile, -certfile, -cipher, -command, -dhparams, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
+	OPTBAD( "option", "-cadir, -cafile, -cert, -certfile, -cipher, -command, -dhparams, -key, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
 
 	return TCL_ERROR;
     }
@@ -832,12 +839,14 @@ ImportObjCmd(clientData, interp, objc, objv)
     proto |= (tls1_3 ? TLS_PROTO_TLS1_3 : 0);
 
     /* reset to NULL if blank string provided */
-    if (cert && !*cert)		cert	 = NULL;
-    if (key && !*key)		key	 = NULL;
-    if (ciphers && !*ciphers)	ciphers	 = NULL;
-    if (CAfile && !*CAfile)	CAfile	 = NULL;
-    if (CAdir && !*CAdir)	CAdir	 = NULL;
-    if (DHparams && !*DHparams)	DHparams = NULL;
+    if (cert && !*cert)		        cert	        = NULL;
+    if (key && !*key)		        key	        = NULL;
+    if (certfile && !*certfile)         certfile	= NULL;
+    if (keyfile && !*keyfile)		keyfile	        = NULL;
+    if (ciphers && !*ciphers)	        ciphers	        = NULL;
+    if (CAfile && !*CAfile)	        CAfile	        = NULL;
+    if (CAdir && !*CAdir)	        CAdir	        = NULL;
+    if (DHparams && !*DHparams)	        DHparams        = NULL;
 
     /* new SSL state */
     statePtr		= (State *) ckalloc((unsigned) sizeof(State));
@@ -887,8 +896,9 @@ ImportObjCmd(clientData, interp, objc, objv)
 	}
 	ctx = ((State *)Tcl_GetChannelInstanceData(chan))->ctx;
     } else {
-	if ((ctx = CTX_Init(statePtr, server, proto, key, cert, CAdir, CAfile, ciphers,
-		DHparams)) == (SSL_CTX*)0) {
+	if ((ctx = CTX_Init(statePtr, server, proto, keyfile, certfile, key,
+    cert, key_len, cert_len, CAdir, CAfile, ciphers,
+    DHparams)) == (SSL_CTX*)0) {
 	    Tls_Free((char *) statePtr);
 	    return TCL_ERROR;
 	}
@@ -1056,12 +1066,17 @@ UnimportObjCmd(clientData, interp, objc, objv)
  */
 
 static SSL_CTX *
-CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
+CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
+         key_len, cert_len, CAdir, CAfile, ciphers, DHparams)
     State *statePtr;
     int isServer;
     int proto;
-    char *key;
-    char *cert;
+    char *keyfile;
+    char *certfile;
+    unsigned char *key;
+    unsigned char *cert;
+    int key_len;
+    int cert_len;
     char *CAdir;
     char *CAfile;
     char *ciphers;
@@ -1072,6 +1087,7 @@ CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
     Tcl_DString ds;
     Tcl_DString ds1;
     int off = 0;
+    int load_private_key;
     const SSL_METHOD *method;
 
     dprintf("Called");
@@ -1251,34 +1267,83 @@ CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 #endif
 
     /* set our certificate */
-    if (cert != NULL) {
+    load_private_key = 0;
+    if (certfile != NULL) {
+	load_private_key = 1;
+
 	Tcl_DStringInit(&ds);
 
-	if (SSL_CTX_use_certificate_file(ctx, F2N( cert, &ds),
+	if (SSL_CTX_use_certificate_file(ctx, F2N( certfile, &ds),
 					SSL_FILETYPE_PEM) <= 0) {
 	    Tcl_DStringFree(&ds);
 	    Tcl_AppendResult(interp,
-			     "unable to set certificate file ", cert, ": ",
+			     "unable to set certificate file ", certfile, ": ",
 			     REASON(), (char *) NULL);
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
-
-	/* get the private key associated with this certificate */
-	if (key == NULL) key=cert;
-
-	if (SSL_CTX_use_PrivateKey_file(ctx, F2N( key, &ds),
-					SSL_FILETYPE_PEM) <= 0) {
+    } else if (cert != NULL) {
+	load_private_key = 1;
+	if (SSL_CTX_use_certificate_ASN1(ctx, cert_len, cert) <= 0) {
 	    Tcl_DStringFree(&ds);
-	    /* flush the passphrase which might be left in the result */
-	    Tcl_SetResult(interp, NULL, TCL_STATIC);
 	    Tcl_AppendResult(interp,
-			     "unable to set public key file ", key, " ",
+			     "unable to set certificate: ",
 			     REASON(), (char *) NULL);
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
-	Tcl_DStringFree(&ds);
+    } else {
+	certfile = (char*)X509_get_default_cert_file();
+
+	if (SSL_CTX_use_certificate_file(ctx, certfile,
+					SSL_FILETYPE_PEM) <= 0) {
+#if 0
+	    Tcl_DStringFree(&ds);
+	    Tcl_AppendResult(interp,
+			     "unable to use default certificate file ", certfile, ": ",
+			     REASON(), (char *) NULL);
+	    SSL_CTX_free(ctx);
+	    return (SSL_CTX *)0;
+#endif
+	}
+    }
+
+    /* set our private key */
+    if (load_private_key) {
+	if (keyfile == NULL && key == NULL) {
+	    keyfile = certfile;
+	}
+
+	if (keyfile != NULL) {
+	    /* get the private key associated with this certificate */
+	    if (keyfile == NULL) {
+		keyfile = certfile;
+	    }
+
+	    if (SSL_CTX_use_PrivateKey_file(ctx, F2N( keyfile, &ds), SSL_FILETYPE_PEM) <= 0) {
+		Tcl_DStringFree(&ds);
+		/* flush the passphrase which might be left in the result */
+		Tcl_SetResult(interp, NULL, TCL_STATIC);
+		Tcl_AppendResult(interp,
+			         "unable to set public key file ", keyfile, " ",
+			         REASON(), (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
+
+	    Tcl_DStringFree(&ds);
+	} else if (key != NULL) {
+	    if (SSL_CTX_use_PrivateKey_ASN1(EVP_PKEY_RSA, ctx, key,key_len) <= 0) {
+		Tcl_DStringFree(&ds);
+		/* flush the passphrase which might be left in the result */
+		Tcl_SetResult(interp, NULL, TCL_STATIC);
+		Tcl_AppendResult(interp,
+		                 "unable to set public key: ",
+		                 REASON(), (char *) NULL);
+		SSL_CTX_free(ctx);
+		return (SSL_CTX *)0;
+	    }
+	}
 	/* Now we know that a key and cert have been set against
 	 * the SSL context */
 	if (!SSL_CTX_check_private_key(ctx)) {
@@ -1288,22 +1353,9 @@ CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
 	    SSL_CTX_free(ctx);
 	    return (SSL_CTX *)0;
 	}
-    } else {
-	cert = (char*)X509_get_default_cert_file();
-
-	if (SSL_CTX_use_certificate_file(ctx, cert,
-					SSL_FILETYPE_PEM) <= 0) {
-#if 0
-	    Tcl_DStringFree(&ds);
-	    Tcl_AppendResult(interp,
-			     "unable to use default certificate file ", cert, ": ",
-			     REASON(), (char *) NULL);
-	    SSL_CTX_free(ctx);
-	    return (SSL_CTX *)0;
-#endif
-	}
     }
-	
+
+    /* Set verification CAs */
     Tcl_DStringInit(&ds);
     Tcl_DStringInit(&ds1);
     if (!SSL_CTX_load_verify_locations(ctx, F2N(CAfile, &ds), F2N(CAdir, &ds1)) ||
@@ -1320,6 +1372,7 @@ CTX_Init(statePtr, isServer, proto, key, cert, CAdir, CAfile, ciphers, DHparams)
     }
 
     /* https://sourceforge.net/p/tls/bugs/57/ */
+    /* XXX:TODO: Let the user supply values here instead of something that exists on the filesystem */
     if ( CAfile != NULL ) {
         STACK_OF(X509_NAME) *certNames = SSL_load_client_CA_file( F2N(CAfile, &ds) );
 	if ( certNames != NULL ) { 

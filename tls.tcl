@@ -34,10 +34,12 @@ namespace eval tls {
         {* -type sopts 1}
         {* -cadir iopts 1}
         {* -cafile iopts 1}
+        {* -cert iopts 1}
         {* -certfile iopts 1}
         {* -cipher iopts 1}
         {* -command iopts 1}
         {* -dhparams iopts 1}
+        {* -key iopts 1}
         {* -keyfile iopts 1}
         {* -password iopts 1}
         {* -request iopts 1}

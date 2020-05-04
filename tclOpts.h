@@ -45,6 +45,11 @@
     }						\
     OPT_POSTLOG()
 
+#define OPTBYTE(option, var, lvar)			\
+    OPT_PROLOG(option)				\
+    var = Tcl_GetByteArrayFromObj(objv[idx], &(lvar));\
+    OPT_POSTLOG()
+
 #define OPTBAD(type, list)			\
     Tcl_AppendResult(interp, "bad ", (type),	\
 		" \"", opt, "\": must be ",	\
