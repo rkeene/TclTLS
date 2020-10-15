@@ -1776,7 +1776,7 @@ void Tls_Clean(State *statePtr) {
  *-------------------------------------------------------------------
  */
 
-int Tls_Init(Tcl_Interp *interp) {
+DLLEXPORT int Tls_Init(Tcl_Interp *interp) {
 	const char tlsTclInitScript[] = {
 #include "tls.tcl.h"
             0x00
@@ -1836,7 +1836,7 @@ int Tls_Init(Tcl_Interp *interp) {
  *------------------------------------------------------*
  */
 
-int Tls_SafeInit(Tcl_Interp *interp) {
+DLLEXPORT int Tls_SafeInit(Tcl_Interp *interp) {
 	dprintf("Called");
 	return(Tls_Init(interp));
 }
