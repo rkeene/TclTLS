@@ -54,13 +54,11 @@ nmake -f makefile.vc TCLDIR=c:\test\tcl8610 SSL_INSTALL_FOLDER=C:\test\tcltls\op
 
 nmake -f makefile.vc install TCLDIR=c:\test\tcl8610 INSTALLDIR=c:\test\tcltls SSL_INSTALL_FOLDER=C:\test\tcltls\openssl
 
-tls.c: 
-Lines 1779, 1839: replace
-int Tls_Init by
-DLLEXPORT int  Tls_Init
+3) Test
 
-tls.h: same change
+Start tclsh or wish
 
 lappend auto_path {C:\test\tcltls\tls1.7.22}
 package require tls
 
+A small "1.7.22" showing up is hopefully the end of this long way...
