@@ -76,6 +76,8 @@ static int	TlsLibInit(int uninitialize);
 #define TLS_PROTO_TLS1_3	0x20
 #define ENABLED(flag, mask)	(((flag) & (mask)) == (mask))
 
+#define SSLKEYLOGFILE		"SSLKEYLOGFILE"
+
 /*
  * Static data structures
  */
@@ -403,6 +405,16 @@ Tls_Error(State *statePtr, char *msg)
 
     Tcl_Release((ClientData) statePtr);
     Tcl_Release((ClientData) statePtr->interp);
+}
+
+void KeyLogCallback(const SSL *ssl, const char *line) {
+    char *str = getenv(SSLKEYLOGFILE);
+    FILE *fd;
+    if (str) {
+	fd = fopen(str, "a");
+	fprintf(fd, "%s\n",line);
+	fclose(fd);
+    }
 }
 
 /*
@@ -1202,6 +1214,10 @@ CTX_Init(statePtr, isServer, proto, keyfile, certfile, key, cert,
 
     if (!ctx) {
         return(NULL);
+    }
+
+    if (getenv(SSLKEYLOGFILE)) {
+	SSL_CTX_set_keylog_callback(ctx, KeyLogCallback);
     }
 
 #if !defined(NO_TLS1_3)
