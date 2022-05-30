@@ -149,6 +149,9 @@ used directly.</p>
         <dd>The number of bits used for the session key.</dd>
         <dt><strong>certificate</strong> <em>n</em></dt>
         <dd>The PEM encoded certificate.</dd>
+        <dt><strong>alpn</strong> <em>protocol</em></dt>
+        <dd>The protocol selected after Application-Layer Protocol
+	    Negotiation (ALPN).</dd>
         <dt><strong>version</strong> <em>value</em></dt>
         <dd>The protocol version used for the connection:
 	  SSLv2, SSLv3, TLSv1, TLSv1.1, TLSv1.2, unknown</dd>
@@ -165,6 +168,9 @@ used directly.</p>
 
 <blockquote>
     <dl>
+        <dt><strong>-alpn</strong> <em>list</em></dt>
+        <dd>List of protocols to offer during Application-Layer
+	    Protocol Negotiation (ALPN).</dd>
         <dt><strong>-cadir</strong> <em>dir</em></dt>
         <dd>Provide the directory containing the CA certificates.</dd>
         <dt><strong>-cafile </strong><em>filename</em></dt>

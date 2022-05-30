@@ -750,6 +750,7 @@ ImportObjCmd(clientData, interp, objc, objv)
     char *model		        = NULL;
 #ifndef OPENSSL_NO_TLSEXT
     char *servername	        = NULL;	/* hostname for Server Name Indication */
+    Tcl_Obj *alpn		= NULL;
 #endif
     int ssl2 = 0, ssl3 = 0;
     int tls1 = 1, tls1_1 = 1, tls1_2 = 1, tls1_3 = 1;
@@ -812,6 +813,7 @@ ImportObjCmd(clientData, interp, objc, objv)
 	OPTBOOL( "-server", server);
 #ifndef OPENSSL_NO_TLSEXT
         OPTSTR( "-servername", servername);
+	OPTOBJ( "-alpn", alpn);
 #endif
 
 	OPTBOOL( "-ssl2", ssl2);
@@ -823,7 +825,7 @@ ImportObjCmd(clientData, interp, objc, objv)
   OPTBYTE("-cert", cert, cert_len);
   OPTBYTE("-key", key, key_len);
 
-	OPTBAD( "option", "-cadir, -cafile, -cert, -certfile, -cipher, -command, -dhparams, -key, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
+	OPTBAD( "option", "-alpn, -cadir, -cafile, -cert, -certfile, -cipher, -command, -dhparams, -key, -keyfile, -model, -password, -require, -request, -server, -servername, -ssl2, -ssl3, -tls1, -tls1.1, -tls1.2, or tls1.3");
 
 	return TCL_ERROR;
     }
@@ -959,6 +961,47 @@ ImportObjCmd(clientData, interp, objc, objv)
             Tls_Free((char *) statePtr);
             return TCL_ERROR;
         }
+    }
+    if (alpn) {
+	/* Convert a Tcl list into a protocol-list in wire-format */
+	unsigned char *protos, *p;
+	unsigned int protoslen = 0;
+	int i, len, cnt;
+	Tcl_Obj **list;
+	if (Tcl_ListObjGetElements(interp, alpn, &cnt, &list) != TCL_OK) {
+	    Tls_Free((char *) statePtr);
+	    return TCL_ERROR;
+	}
+	/* Determine the memory required for the protocol-list */
+	for (i = 0; i < cnt; i++) {
+	    Tcl_GetStringFromObj(list[i], &len);
+	    if (len > 255) {
+		Tcl_AppendResult(interp, "alpn protocol name too long",
+		  (char *) NULL);
+		Tls_Free((char *) statePtr);
+		return TCL_ERROR;
+	    }
+	    protoslen += 1 + len;
+	}
+	/* Build the complete protocol-list */
+	protos = ckalloc(protoslen);
+	/* protocol-lists consist of 8-bit length-prefixed, byte strings */
+	for (i = 0, p = protos; i < cnt; i++) {
+	    char *str = Tcl_GetStringFromObj(list[i], &len);
+	    *p++ = len;
+	    memcpy(p, str, len);
+	    p += len;
+	}
+	/* Note: This functions reverses the return value convention */
+	if (SSL_set_alpn_protos(statePtr->ssl, protos, protoslen)) {
+	    Tcl_AppendResult(interp, "failed to set alpn protocols",
+	      (char *) NULL);
+	    Tls_Free((char *) statePtr);
+	    ckfree(protos);
+	    return TCL_ERROR;
+	}
+	/* SSL_set_alpn_protos makes a copy of the protocol-list */
+	ckfree(protos);
     }
 #endif
 
@@ -1411,6 +1454,10 @@ StatusObjCmd(clientData, interp, objc, objv)
     Tcl_Channel chan;
     char *channelName, *ciphers;
     int mode;
+#ifndef OPENSSL_NO_TLSEXT
+    const unsigned char *proto;
+    unsigned int len;
+#endif
 
     dprintf("Called");
 
@@ -1425,6 +1472,7 @@ StatusObjCmd(clientData, interp, objc, objv)
 		break;
 	    }
 	    /* else fall... */
+	    __attribute__((fallthrough));
 	default:
 	    Tcl_WrongNumArgs(interp, 1, objv, "?-local? channel");
 	    return TCL_ERROR;
@@ -1468,6 +1516,14 @@ StatusObjCmd(clientData, interp, objc, objv)
 	Tcl_ListObjAppendElement(interp, objPtr,
 		Tcl_NewStringObj(SSL_get_cipher(statePtr->ssl), -1));
     }
+
+#ifndef OPENSSL_NO_TLSEXT
+    /* Report the selected protocol as a result of the negotiation */
+    SSL_get0_alpn_selected(statePtr->ssl, &proto, &len);
+    Tcl_ListObjAppendElement(interp, objPtr, Tcl_NewStringObj("alpn", -1));
+    Tcl_ListObjAppendElement(interp, objPtr,
+      Tcl_NewStringObj((char *)proto, (int)len));
+#endif
 
     Tcl_ListObjAppendElement(interp, objPtr,
 	Tcl_NewStringObj("version", -1));

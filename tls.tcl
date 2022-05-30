@@ -46,6 +46,7 @@ namespace eval tls {
         {* -require iopts 1}
         {* -autoservername discardOpts 1}
         {* -servername iopts 1}
+        {* -alpn iopts 1}
         {* -ssl2 iopts 1}
         {* -ssl3 iopts 1}
         {* -tls1 iopts 1}
